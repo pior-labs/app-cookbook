@@ -1,12 +1,44 @@
 # Pior Labs Application Agent Instructions
 
-This repository is intended to become a Pior Labs user-facing application.
+This repository is the Pior Labs Cookbook, a private household recipe management application.
+
+## Source-of-truth hierarchy
+
+Before making product or architectural changes, use the repository documentation in this order:
+
+1. `docs/PRD.md` — what the Cookbook should do.
+2. `docs/TECHNICAL_DESIGN.md` — how approved Cookbook-specific requirements are implemented.
+3. `docs/STATUS.md` — what is actually implemented today.
+4. `docs/DECISIONS/` — durable architectural decisions and their rationale.
+5. The current issue, task, or PR — the immediate scope of work.
+
+Do not assume a requirement in the PRD has already been implemented. Check `docs/STATUS.md` and the codebase.
+
+## Current product scope
+
+The current product phase is **Phase 1 — Core Cookbook**.
+
+Do not implement Phase 2+ features unless the task explicitly changes scope. MCP v1 is planned after Phase 1 once the recipe model and API are stable.
+
+Important Phase 1 product constraints include:
+
+- Recipes are shared household data.
+- Favorites, ratings, and recently viewed history are per-user.
+- Ingredients must remain structured because serving scaling and future grocery aggregation depend on them.
+- Serving adjustments must not mutate the saved base recipe.
+- Recipe deletion must be recoverable.
+- The UI should feel like a polished consumer cooking application, not primarily an administrative CRUD interface.
+- Mobile usability is important because recipes will be referenced while cooking.
+
+When a product requirement is unclear, prefer the PRD over inference from the template.
 
 ## Before making architectural changes
 
 Read the current public platform documentation in `pior-labs/platform` and, when starting a new application, use `platform/prompts/new-webapp-bootstrap.md` as bootstrap context.
 
-When implementation details conflict with this template, current platform/service documentation wins.
+When implementation details conflict with this template, current platform/service documentation wins. Cookbook-specific approved decisions in `docs/TECHNICAL_DESIGN.md` may refine the paved road where explicitly documented.
+
+Record durable deviations or major architectural choices in `docs/DECISIONS/`.
 
 ## Default architecture
 
@@ -56,9 +88,11 @@ This repository owns:
 When this template becomes a real app:
 
 1. replace generic names and descriptions;
-2. define the real domain schema;
-3. generate and commit the first Drizzle migration;
-4. register the OAuth client;
-5. provision the database and routes in `platform-deploy`;
-6. configure deployment variables/secrets;
-7. update this file only where the application genuinely deviates from platform conventions.
+2. complete the Cookbook-specific technical design;
+3. define the real domain schema;
+4. generate and commit the first Drizzle migration;
+5. register the OAuth client;
+6. provision the database and routes in `platform-deploy`;
+7. configure deployment variables/secrets;
+8. update `docs/STATUS.md` as capabilities become real;
+9. update this file only where the application genuinely deviates from platform conventions.
