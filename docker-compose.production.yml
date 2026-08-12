@@ -1,0 +1,7 @@
+services:
+  api:
+    environment:
+      DATABASE_URL: ""
+      DATABASE_URL_FILE: /run/secrets/database_url
+    volumes:
+      - ${PLATFORM_DATABASE_URL_FILE:?Set PLATFORM_DATABASE_URL_FILE to the platform-managed database-url file}:/run/secrets/database_url:ro

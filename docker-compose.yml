@@ -1,0 +1,60 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: packages/api/Dockerfile
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      API_PORT: 3000
+      DATABASE_URL: ${DOCKER_DATABASE_URL:-${DATABASE_URL:-}}
+    expose:
+      - "3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      pior_edge:
+        aliases:
+          - ${APP_SLUG:-webapp}-api
+      pior_data:
+
+  web:
+    build:
+      context: .
+      dockerfile: packages/web/Dockerfile
+      secrets:
+        - github_token
+    depends_on:
+      api:
+        condition: service_healthy
+    expose:
+      - "80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      pior_edge:
+        aliases:
+          - ${APP_SLUG:-webapp}-web
+
+networks:
+  pior_edge:
+    external: true
+    name: pior_edge
+  pior_data:
+    external: true
+    name: pior_data
+
+secrets:
+  github_token:
+    environment: GITHUB_TOKEN

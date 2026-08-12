@@ -1,0 +1,46 @@
+name: Deploy
+
+# Manual until the generated app has a runner, database, OAuth client,
+# production environment, and Caddy routes. Add a push-to-main trigger only
+# after those dependencies are provisioned.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, linux, prod]
+    env:
+      DEPLOY_DIR: ${{ vars.DEPLOY_DIR }}
+      APP_ENV: ${{ secrets.APP_ENV }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate deployment configuration
+        run: |
+          test -n "$DEPLOY_DIR" || { echo "Set the DEPLOY_DIR repository variable"; exit 1; }
+          test -n "$APP_ENV" || { echo "Set the APP_ENV repository secret"; exit 1; }
+
+      - name: Sync application source
+        run: |
+          mkdir -p "$DEPLOY_DIR"
+          rsync -a --delete --exclude .git ./ "$DEPLOY_DIR"/
+
+      - name: Write application environment
+        run: printf '%s\n' "$APP_ENV" > "$DEPLOY_DIR/.env"
+
+      - name: Build images
+        run: cd "$DEPLOY_DIR" && docker compose -f docker-compose.yml -f docker-compose.production.yml build
+
+      - name: Run database migrations
+        run: cd "$DEPLOY_DIR" && docker compose -f docker-compose.yml -f docker-compose.production.yml run --rm api node packages/api/dist/db/migrate.js
+
+      - name: Start application
+        run: cd "$DEPLOY_DIR" && docker compose -f docker-compose.yml -f docker-compose.production.yml up -d --remove-orphans
+
+      - name: Show service health
+        run: cd "$DEPLOY_DIR" && docker compose -f docker-compose.yml -f docker-compose.production.yml ps
