@@ -24,6 +24,21 @@ Unless the Cookbook has a concrete reason to deviate, follow the repository and 
 
 These are platform defaults, not a substitute for the Cookbook-specific design work below.
 
+## Established scaffold baseline
+
+The initialization scaffold establishes only the following app-owned implementation details:
+
+- The pnpm workspace contains `@cookbook/web` and `@cookbook/api` packages.
+- The web package is a React/Vite SPA using `@pior-labs/design-system` and a responsive Cookbook shell.
+- Local development uses `http://localhost:5175` for the web app and `http://localhost:3002` for the API so a local `service-auth` instance can run on its established ports.
+- The Hono API exposes liveness endpoints at `/health` and `/api/health`, application metadata at `/api`, and a PostgreSQL-backed readiness check at `/api/readiness`.
+- The API accepts `DATABASE_URL` locally and prefers the server-managed `DATABASE_URL_FILE` contract in production.
+- Drizzle tooling is configured, but the schema is intentionally empty and no baseline migration exists. The first migration belongs with the approved Phase 1 domain model.
+- The app reserves the OAuth client ID `cookbook` and server-only central-auth configuration variables. Session handling, token validation, identity mapping, and authorization remain unresolved below.
+- The web runtime Caddy serves static SPA files only. Platform Caddy owns `cookbook.szarans.ca`, TLS, and direct `/api/*` routing to the API container.
+
+These are applications of the Pior Labs paved road, not Cookbook-specific architectural deviations, so no ADR is required for the scaffold.
+
 ## Design work to complete before feature implementation
 
 ### 1. Domain model

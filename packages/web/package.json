@@ -1,5 +1,5 @@
 {
-  "name": "@webapp/web",
+  "name": "@cookbook/web",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -10,16 +10,16 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@pior-labs/design-system": "^1.0.0",
+    "@pior-labs/design-system": "1.0.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.0.8",
+    "@tailwindcss/vite": "4.1.11",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
     "@vitejs/plugin-react": "^4.4.1",
-    "tailwindcss": "^4.0.8",
+    "tailwindcss": "4.1.11",
     "typescript": "^5.7.3",
     "vite": "^6.1.0"
   }

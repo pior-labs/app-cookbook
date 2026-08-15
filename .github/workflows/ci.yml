@@ -1,4 +1,4 @@
-name: CI
+name: Cookbook CI
 
 on:
   pull_request:
@@ -22,7 +22,7 @@ jobs:
       - name: Install dependencies
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
       - name: Typecheck
         run: pnpm typecheck
       - name: Build
