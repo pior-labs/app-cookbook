@@ -56,10 +56,12 @@ Vite proxies `/api/*` to the local API during development.
 
 Production routing belongs to the platform Caddy instance managed by `platform-deploy`.
 
+Each application uses one canonical `<app>.szarans.ca` hostname. The same hostname is used from the trusted LAN and through Tailscale; split-horizon DNS returns the appropriate private address for the client's network context.
+
 The expected pattern is:
 
 ```text
-<app>.szarans.ca / <app>.ts.szarans.ca
+<app>.szarans.ca
         |
         v
 platform Caddy
@@ -70,6 +72,8 @@ platform Caddy
                   static Caddy
                   SPA files only
 ```
+
+Separate `.ts.szarans.ca` application hostnames are no longer used.
 
 The Caddy process inside the web container is deliberately not a reverse proxy. It only serves the compiled Vite application and falls back to `index.html` for client-side routes. API routing, domains, TLS, and ingress remain platform responsibilities.
 
