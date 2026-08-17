@@ -33,8 +33,8 @@ The initialization scaffold establishes only the following app-owned implementat
 - Local development uses `http://localhost:5175` for the web app and `http://localhost:3002` for the API so a local `service-auth` instance can run on its established ports.
 - The Hono API exposes liveness endpoints at `/health` and `/api/health`, application metadata at `/api`, and a PostgreSQL-backed readiness check at `/api/readiness`.
 - The API accepts `DATABASE_URL` locally and prefers the server-managed `DATABASE_URL_FILE` contract in production.
-- Drizzle tooling is configured, but the schema is intentionally empty and no baseline migration exists. The first migration belongs with the approved Phase 1 domain model.
-- The app reserves the OAuth client ID `cookbook` and server-only central-auth configuration variables. Session handling, token validation, identity mapping, and authorization remain unresolved below.
+- Drizzle includes the application-local user, account, session, and verification tables required by authentication. The recipe domain schema remains deferred until its Phase 1 design is approved.
+- The `cookbook` OAuth client uses central `service-auth` identities and stores an HTTP-only application session. The authorization boundary and identity mapping are defined in section 4.
 - The web runtime Caddy serves static SPA files only. Platform Caddy owns `cookbook.szarans.ca`, TLS, and direct `/api/*` routing to the API container.
 
 These are applications of the Pior Labs paved road, not Cookbook-specific architectural deviations, so no ADR is required for the scaffold.
@@ -89,15 +89,43 @@ Core business logic should remain reusable outside the frontend so it can later 
 
 ### 4. Authentication and authorization
 
-Document how the Cookbook integrates with `service-auth`, including:
+The Cookbook delegates identity to `service-auth` using the OAuth 2.1/OIDC
+authorization-code flow with PKCE. It is registered as the confidential client
+`cookbook` and requests `openid profile email offline_access`.
 
-- Session/token validation
-- User identity mapping
-- Authorized household access
-- API authorization boundaries
-- Local development behavior
+The API uses Better Auth's generic OAuth client and Drizzle adapter. After the
+central callback succeeds, it maintains a Cookbook-local, HTTP-only session
+cookie and local `users`, `accounts`, `sessions`, and `verifications` records.
+The linked `accounts.account_id` is the stable subject from `service-auth`;
+Cookbook's numeric `users.id` is the foreign-key identity used by recipes and
+per-user features. Cookbook does not enable passwords, signup, or any other
+independent identity provider.
 
-Do not introduce a second authentication system.
+The central provider is responsible for deciding which household identities
+may authenticate. Cookbook trusts identity claims only after issuer validation
+against the configured discovery document. Matching verified identities may
+link to the same local user through the trusted `auth-pior` provider.
+
+The API authorization boundary is deny-by-default:
+
+- `/health` and `/api/health` are public health checks.
+- `/api/auth/*` is public so OAuth initiation and callbacks can complete.
+- Every other `/api/*` route requires a valid Cookbook session.
+- Authenticated handlers receive the local user ID, email, and display name
+  from middleware; future per-user tables reference the local user ID.
+
+Local development uses `service-auth` at `http://localhost:5173`, Cookbook web
+at `http://localhost:5175`, and Cookbook API at `http://localhost:3002`. Vite
+proxies Cookbook `/api/*` traffic to the API, preserving one browser-facing
+Cookbook origin. The registered local callback is
+`http://localhost:5175/api/auth/oauth2/callback/auth-pior`.
+
+`CENTRAL_AUTH_CLIENT_SECRET` and the independent Cookbook
+`BETTER_AUTH_SECRET` remain server-only configuration and must never use a
+`VITE_*` variable. Production uses the canonical issuer and callback registered
+by `service-auth`.
+
+See [ADR 0001](./DECISIONS/0001-central-sso-and-local-sessions.md).
 
 ### 5. Image storage
 

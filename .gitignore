@@ -5,8 +5,8 @@ dist/
 !.env.example
 *.local
 *.log
+*.tsbuildinfo
 .DS_Store
 coverage/
 data/
 .vite/
-*.tsbuildinfo

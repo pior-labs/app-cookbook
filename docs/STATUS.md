@@ -1,7 +1,7 @@
 # Development Status
 
-**Last updated:** 2026-08-15
-**Current stage:** Application scaffold initialized / ready for technical design
+**Last updated:** 2026-08-16
+**Current stage:** Phase 1 foundation / authentication integrated
 **Current product phase:** Phase 1 — Core Cookbook
 
 This file records the application's **actual implementation state**.
@@ -14,7 +14,7 @@ Agents and contributors must not infer that a PRD requirement has been implement
 
 ## Current state
 
-The generic web application template has been initialized as Pior Labs Cookbook. The repository now has a Cookbook-specific application shell and operational baseline, but the Cookbook domain model, authentication flow, and Phase 1 product features have not been implemented.
+The generic web application template has been initialized as Pior Labs Cookbook. The repository has a Cookbook-specific application shell, operational baseline, and working local central SSO flow. The Cookbook recipe domain model and product features have not been implemented.
 
 ## Completed
 
@@ -26,23 +26,25 @@ The generic web application template has been initialized as Pior Labs Cookbook.
 - Responsive Cookbook application shell built with `@pior-labs/design-system` foundations.
 - Hono liveness, metadata, readiness, not-found, and error-handling baseline established.
 - PostgreSQL and Drizzle configuration retained with production `DATABASE_URL_FILE` support.
-- Generic template database table removed; no domain migration exists before design approval.
-- Central `service-auth` configuration contract and exact trusted-client registration follow-up documented.
+- Generic template database table removed; the first migration contains only the local authentication tables.
+- Central `service-auth` OAuth/OIDC integration implemented with PKCE, issuer validation, and an HTTP-only local session.
+- Public health/auth routes and a deny-by-default authenticated `/api/*` boundary implemented.
+- Responsive login, session restoration, authenticated home, and logout states implemented and exercised locally end to end.
 - Static-only web Caddy runtime, private container ports, and health checks confirmed.
 - CI configured to install, typecheck, and build the pnpm workspace.
 - Manual production deployment workflow retained pending external provisioning.
 
 ## In progress
 
-- Reviewing and approving the Phase 1 technical design.
+- Reviewing and approving the remaining Phase 1 recipe-domain technical design.
 
 ## Next
 
 Before substantial Cookbook feature implementation:
 
 1. Review and approve `docs/PRD.md` as the product source of truth.
-2. Complete `docs/TECHNICAL_DESIGN.md` for Phase 1, including auth and the domain model.
-3. Register the `cookbook` trusted OAuth client in `service-auth`.
+2. Complete `docs/TECHNICAL_DESIGN.md` for the Phase 1 recipe domain model.
+3. Register and seed the `cookbook` trusted OAuth client in the production `service-auth` environment.
 4. Provision the Cookbook database, routes, DNS, and connection file in `platform-deploy`.
 5. Record important architectural decisions in `docs/DECISIONS/` as needed.
 6. Break Phase 1 into implementation epics/issues or incremental PRs.
@@ -50,7 +52,7 @@ Before substantial Cookbook feature implementation:
 
 ## Phase 1 — Core Cookbook
 
-**Status:** Not started
+**Status:** In progress — authentication foundation complete
 
 Planned scope includes:
 

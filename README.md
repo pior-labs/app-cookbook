@@ -2,7 +2,7 @@
 
 Pior Labs Cookbook is a private, self-hosted household recipe manager. It is being built as a polished, mobile-friendly place to save, find, scale, and cook the recipes the household wants to keep.
 
-The application is currently an initialized **Phase 1 — Core Cookbook** scaffold. The responsive application shell, API baseline, PostgreSQL/Drizzle tooling, container configuration, CI, and central-auth configuration contract are in place. Recipe features and the final domain model have intentionally not been implemented yet.
+The application is currently in **Phase 1 — Core Cookbook**. The responsive application shell, API baseline, PostgreSQL/Drizzle tooling, container configuration, CI, and local central SSO flow are in place. Recipe features and the final domain model have intentionally not been implemented yet.
 
 ## Stack
 
@@ -70,22 +70,26 @@ pnpm db:generate
 pnpm db:migrate
 ```
 
-There is currently no migration because the approved Phase 1 domain model does not yet exist. The generic template table was removed; `pnpm db:migrate` safely reports that there is nothing to apply. Generate the first migration only after the Cookbook technical design defines the real domain schema.
+The first migration creates the local user, account, session, and verification tables used by authentication. The recipe domain schema does not exist yet; generate its migrations only after the Cookbook technical design defines that model.
 
 Production uses `DATABASE_URL_FILE`. `platform-deploy` provisions the database, role, and server-managed connection file; this repository only mounts that file read-only into the API container.
 
 ## Authentication
 
-Cookbook will use the central Pior Labs `service-auth` OAuth 2.1/OIDC provider. The app-side configuration contract is represented by:
+Cookbook uses the central Pior Labs `service-auth` OAuth 2.1/OIDC provider through an authorization-code flow with PKCE. Better Auth handles the callback and stores an HTTP-only Cookbook session in PostgreSQL. Configure the local app with:
 
 ```text
 CENTRAL_AUTH_ISSUER
+CENTRAL_AUTH_DISCOVERY_URL
 CENTRAL_AUTH_CLIENT_ID=cookbook
 CENTRAL_AUTH_CLIENT_SECRET
 PUBLIC_BASE_URL
+BETTER_AUTH_SECRET
+BETTER_AUTH_URL
+BETTER_AUTH_TRUSTED_ORIGINS
 ```
 
-The client secret is server-only and must never use a `VITE_*` name. The browser/session integration remains intentionally deferred until the authentication section of [`docs/TECHNICAL_DESIGN.md`](docs/TECHNICAL_DESIGN.md) is approved.
+The OAuth client secret and Cookbook session secret are server-only and must never use `VITE_*` names. Copy `.env.example` to `.env.local`, supply those secrets, run `pnpm db:migrate`, and start both Cookbook and a local `service-auth` instance.
 
 Before authenticated feature work or production deployment, `service-auth` must register a trusted client with:
 
@@ -96,7 +100,7 @@ Before authenticated feature work or production deployment, `service-auth` must 
 - local callback: `http://localhost:5175/api/auth/oauth2/callback/auth-pior`
 - scopes: `openid profile email offline_access`
 
-The corresponding plaintext client secret belongs in local or server-managed secrets, not source control. Follow current `service-auth` documentation when implementing the client flow.
+The corresponding plaintext client secret belongs in local or server-managed secrets, not source control. The login screen, callback, protected API boundary, session restoration, and logout flow are implemented locally.
 
 ## Docker
 

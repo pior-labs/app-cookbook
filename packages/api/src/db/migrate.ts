@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
-import { databaseUrl } from '../env.js';
+import { databaseConnection } from '../env.js';
 
 const migrationsFolder = fileURLToPath(new URL('../../drizzle', import.meta.url));
 const journalFile = fileURLToPath(new URL('../../drizzle/meta/_journal.json', import.meta.url));
@@ -14,7 +14,8 @@ if (!existsSync(journalFile)) {
   process.exit(0);
 }
 
-const client = postgres(databaseUrl(), { max: 1 });
+const connection = databaseConnection();
+const client = postgres(connection.url, { ...connection.options, max: 1 });
 const db = drizzle(client);
 
 try {
