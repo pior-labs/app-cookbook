@@ -1,6 +1,6 @@
-name: Deploy
+name: Deploy Cookbook
 
-# Manual until the generated app has a runner, database, OAuth client,
+# Manual until Cookbook has a runner, database, OAuth client,
 # production environment, and Caddy routes. Add a push-to-main trigger only
 # after those dependencies are provisioned.
 on:

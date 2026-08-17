@@ -22,7 +22,7 @@ services:
     networks:
       pior_edge:
         aliases:
-          - ${APP_SLUG:-webapp}-api
+          - ${APP_SLUG:-cookbook}-api
       pior_data:
 
   web:
@@ -45,7 +45,7 @@ services:
     networks:
       pior_edge:
         aliases:
-          - ${APP_SLUG:-webapp}-web
+          - ${APP_SLUG:-cookbook}-web
 
 networks:
   pior_edge:
