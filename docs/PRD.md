@@ -2,8 +2,9 @@
 
 ## Product Requirements Document
 
-**Document version:** 0.1  
-**Status:** Draft / pre-development  
+**Document version:** 1.0
+**Status:** Approved
+**Approved:** 2026-08-17
 **Product:** Cookbook  
 **Repository:** `pior-labs/app-cookbook`  
 **Category:** Self-hosted household productivity application
