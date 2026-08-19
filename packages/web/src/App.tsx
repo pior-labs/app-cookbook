@@ -1,6 +1,12 @@
 import { useAuth } from './auth';
 import { CookbookHome } from './CookbookHome';
 import { LoginScreen } from './LoginScreen';
+import { LoginGallery } from './login/LoginGallery';
+
+function isGalleryRequested() {
+  if (typeof window === 'undefined') return false;
+  return new URLSearchParams(window.location.search).has('login-gallery');
+}
 
 function SessionLoading() {
   return (
@@ -15,6 +21,8 @@ function SessionLoading() {
 
 export function App() {
   const { loading, user } = useAuth();
+
+  if (isGalleryRequested()) return <LoginGallery />;
 
   if (loading) return <SessionLoading />;
   if (!user) return <LoginScreen />;

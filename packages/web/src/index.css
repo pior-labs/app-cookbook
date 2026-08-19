@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "@pior-labs/design-system/styles.css";
+@import "@pior-labs/design-system/effects.css";
 
 :root {
   font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif;
