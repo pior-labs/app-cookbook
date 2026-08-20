@@ -412,7 +412,8 @@
 /* 4 - Pinned Notes                                                     */
 /* ==================================================================== */
 
-.v-notes {
+.v-notes,
+.v-pcard {
   background: var(--muted);
   background-image: radial-gradient(
     color-mix(in srgb, var(--foreground) 12%, transparent) 1.3px,
@@ -740,6 +741,19 @@
 
 .v-ftk__seam::after {
   bottom: -13px;
+}
+
+/* ==================================================================== */
+/* 8 - Pinned Recipe Card (board of 4 + ruled card of 1)               */
+/* ==================================================================== */
+
+/* lift the recipe card above the pinned scraps (which sit at z-index 1) */
+.v-pcard .v-card__sheet {
+  z-index: 3;
+}
+
+.v-pcard .lv-eyebrow {
+  color: var(--destructive);
 }
 
 /* ==================================================================== */

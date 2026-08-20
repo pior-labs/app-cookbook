@@ -295,6 +295,59 @@ function FrostedTicketLogin() {
   );
 }
 
+/* ------------------------------------------------------------------ */
+/* 8 - Pinned Recipe Card: the board (4) with the ruled card (1).      */
+/* ------------------------------------------------------------------ */
+function PinboardCardLogin() {
+  const flow = useSignInFlow();
+  const errorId = useId();
+
+  return (
+    <div className="lv-variant v-pcard">
+      <div className="v-notes__board">
+        <article className="v-notes__scrap v-notes__scrap--a" aria-hidden="true">
+          <span className="v-notes__pin" />
+          <p className="v-notes__scrap-title">lemon pasta</p>
+          <p className="v-notes__scrap-body">zest + garlic, off the heat</p>
+        </article>
+        <article className="v-notes__scrap v-notes__scrap--b" aria-hidden="true">
+          <span className="v-notes__pin" />
+          <p className="v-notes__scrap-title">sunday soup</p>
+          <p className="v-notes__scrap-body">double it, freeze half</p>
+        </article>
+        <article className="v-notes__scrap v-notes__scrap--c" aria-hidden="true">
+          <span className="v-notes__pin" />
+          <p className="v-notes__scrap-body">buy: basil, lemons, good bread</p>
+        </article>
+
+        <div className="v-card__sheet">
+          <span className="v-notes__pin v-notes__pin--main" />
+          <span className="v-card__tab">Cookbook</span>
+          <header className="v-card__head">
+            <Seal />
+            <span className="lv-wordmark">Pior Labs</span>
+          </header>
+
+          <p className="lv-eyebrow">Household access</p>
+          <h1 className="v-card__title">
+            Welcome back to
+            <br />
+            the <em>kitchen.</em>
+          </h1>
+          <p className="v-card__body">
+            Your household cookbook - every recipe you've saved, the notes that make them yours, and
+            whatever you decide to make tonight.
+          </p>
+
+          <AuthError id={errorId} message={flow.error} />
+          <SignInButton flow={flow} errorId={errorId} />
+          <p className="lv-note">Private by design. Only approved household accounts can enter.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export const LOGIN_VARIANTS: LoginVariant[] = [
   {
     id: 'index-card',
@@ -337,5 +390,11 @@ export const LOGIN_VARIANTS: LoginVariant[] = [
     name: 'Frosted Ticket',
     blurb: 'The perforated pass as frosted glass over drifting mesh.',
     Component: FrostedTicketLogin,
+  },
+  {
+    id: 'pinboard-card',
+    name: 'Pinned Recipe Card',
+    blurb: 'The ruled recipe card pinned to the corkboard of scraps.',
+    Component: PinboardCardLogin,
   },
 ];
