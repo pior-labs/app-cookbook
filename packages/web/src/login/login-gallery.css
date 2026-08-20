@@ -158,7 +158,7 @@
 }
 
 /* ==================================================================== */
-/* 1 - Index Card                                                       */
+/* Shared recipe-card blocks (used by concepts 2 and 3)                 */
 /* ==================================================================== */
 
 .v-card__sheet {
@@ -212,7 +212,6 @@
   margin-bottom: 26px;
 }
 
-.v-card .lv-eyebrow,
 .v-fcard .lv-eyebrow {
   color: var(--destructive);
 }
@@ -239,54 +238,7 @@
 }
 
 /* ==================================================================== */
-/* 2 - Mesh Atmosphere                                                  */
-/* ==================================================================== */
-
-.v-mesh {
-  overflow: hidden;
-}
-
-.v-mesh__card {
-  position: relative;
-  z-index: 2;
-  width: 100%;
-  max-width: 440px;
-  padding: clamp(32px, 4vw, 52px);
-  border-radius: calc(var(--radius) + 10px);
-  text-align: left;
-  animation: lv-rise 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-}
-
-.v-mesh__head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 30px;
-}
-
-.v-mesh__hand {
-  margin: 0;
-  color: var(--foreground);
-  font-family: var(--lv-hand);
-  font-size: clamp(48px, 7vw, 68px);
-  font-weight: 700;
-  line-height: 0.92;
-}
-
-.v-mesh__sub {
-  max-width: 34ch;
-  margin: 20px 0 0;
-  color: var(--muted-foreground);
-  font-size: 15px;
-  line-height: 1.6;
-}
-
-.v-mesh__btn {
-  border-radius: 999px;
-}
-
-/* ==================================================================== */
-/* 3 - Ticket Stub                                                      */
+/* 1 - Ticket Stub                                                      */
 /* ==================================================================== */
 
 .v-ticket__card {
@@ -312,13 +264,8 @@
   );
 }
 
-.v-ticket__brand .lv-eyebrow,
-.v-ftk__brand .lv-eyebrow {
+.v-ticket__brand .lv-eyebrow {
   color: var(--foreground);
-}
-
-.v-ftk__stub .lv-eyebrow {
-  color: var(--primary);
 }
 
 .v-ticket__title {
@@ -409,10 +356,9 @@
 }
 
 /* ==================================================================== */
-/* 4 - Pinned Notes                                                     */
+/* 3 - Pinned Recipe Card (corkboard of scraps + shared recipe card)   */
 /* ==================================================================== */
 
-.v-notes,
 .v-pcard {
   background: var(--muted);
   background-image: radial-gradient(
@@ -431,45 +377,13 @@
   place-items: center;
 }
 
-.v-notes__main {
-  position: relative;
+/* lift the recipe card above the pinned scraps (which sit at z-index 1) */
+.v-pcard .v-card__sheet {
   z-index: 3;
-  width: 100%;
-  max-width: 440px;
-  padding: clamp(30px, 4vw, 46px);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--card);
-  box-shadow: 9px 11px 0 color-mix(in srgb, var(--primary) 22%, var(--card));
-  transform: rotate(-1.4deg);
-  animation: lv-rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
-.v-notes__head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 18px;
-}
-
-.v-notes .lv-eyebrow {
-  color: var(--primary);
-}
-
-.v-notes__title {
-  margin: 8px 0 0;
-  font-family: var(--lv-hand);
-  font-size: clamp(52px, 8vw, 76px);
-  font-weight: 700;
-  line-height: 0.82;
-}
-
-.v-notes__body {
-  margin: 16px 0 0;
-  color: var(--muted-foreground);
-  font-family: var(--lv-hand-body);
-  font-size: 16px;
-  line-height: 1.55;
+.v-pcard .lv-eyebrow {
+  color: var(--destructive);
 }
 
 .v-notes__scrap {
@@ -539,79 +453,7 @@
 }
 
 /* ==================================================================== */
-/* 5 - Bill of Fare                                                     */
-/* ==================================================================== */
-
-.v-menu__sheet {
-  width: 100%;
-  max-width: 560px;
-  text-align: center;
-  animation: lv-rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-}
-
-.v-menu__masthead {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--border);
-}
-
-.v-menu__title {
-  margin: 26px 0 0;
-  font-family: var(--lv-serif);
-  font-size: clamp(52px, 8vw, 84px);
-  font-style: italic;
-  font-weight: 500;
-  letter-spacing: -0.03em;
-  line-height: 0.95;
-}
-
-.v-menu__list {
-  margin: 30px 0 0;
-  padding: 0;
-  list-style: none;
-  text-align: left;
-}
-
-.v-menu__list li {
-  display: flex;
-  align-items: baseline;
-  padding: 13px 0;
-  font-size: 15px;
-}
-
-.v-menu__list li > span:first-child {
-  font-weight: 500;
-}
-
-.v-menu__list li > span:last-child {
-  color: var(--muted-foreground);
-  font-family: var(--lv-serif);
-  font-style: italic;
-  font-size: 17px;
-}
-
-.v-menu__list i {
-  flex: 1;
-  margin: 0 10px;
-  transform: translateY(-4px);
-  border-bottom: 2px dotted var(--border-soft);
-}
-
-.v-menu__btn {
-  margin-top: 34px;
-  border-radius: 999px;
-  justify-content: center;
-  gap: 12px;
-}
-
-.v-menu__error {
-  text-align: left;
-}
-
-/* ==================================================================== */
-/* 6 - Frosted Recipe Card (index card on glass over mesh)              */
+/* 2 - Frosted Recipe Card (shared recipe card on glass over mesh)     */
 /* ==================================================================== */
 
 .v-fcard {
@@ -670,90 +512,6 @@
   background: color-mix(in srgb, var(--accent-1) 82%, transparent);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-}
-
-/* ==================================================================== */
-/* 7 - Frosted Ticket (perforated pass on glass over mesh)              */
-/* ==================================================================== */
-
-.v-ftk {
-  overflow: hidden;
-}
-
-.v-ftk__card {
-  position: relative;
-  z-index: 2;
-  display: grid;
-  grid-template-columns: minmax(0, 1.35fr) 1px minmax(280px, 0.85fr);
-  width: 100%;
-  max-width: 860px;
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius);
-  background: var(--glass-bg);
-  backdrop-filter: blur(24px) saturate(140%);
-  -webkit-backdrop-filter: blur(24px) saturate(140%);
-  box-shadow: var(--glass-shadow), 12px 14px 0 color-mix(in srgb, var(--primary) 55%, transparent);
-  animation: lv-rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-}
-
-.v-ftk__brand {
-  padding: clamp(30px, 4vw, 50px);
-  border-radius: var(--radius) 0 0 var(--radius);
-  background: linear-gradient(
-    150deg,
-    color-mix(in srgb, var(--accent-3) 42%, transparent),
-    color-mix(in srgb, var(--accent-2) 26%, transparent)
-  );
-}
-
-.v-ftk__stub {
-  display: flex;
-  flex-direction: column;
-  padding: clamp(28px, 3.4vw, 44px);
-}
-
-/* perforated seam with cut-out notches */
-.v-ftk__seam {
-  position: relative;
-  background: repeating-linear-gradient(
-    to bottom,
-    color-mix(in srgb, var(--foreground) 28%, transparent) 0 7px,
-    transparent 7px 14px
-  );
-}
-
-.v-ftk__seam::before,
-.v-ftk__seam::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: var(--background);
-  box-shadow: inset 0 1px 3px color-mix(in srgb, var(--foreground) 20%, transparent);
-  transform: translateX(-50%);
-}
-
-.v-ftk__seam::before {
-  top: -13px;
-}
-
-.v-ftk__seam::after {
-  bottom: -13px;
-}
-
-/* ==================================================================== */
-/* 8 - Pinned Recipe Card (board of 4 + ruled card of 1)               */
-/* ==================================================================== */
-
-/* lift the recipe card above the pinned scraps (which sit at z-index 1) */
-.v-pcard .v-card__sheet {
-  z-index: 3;
-}
-
-.v-pcard .lv-eyebrow {
-  color: var(--destructive);
 }
 
 /* ==================================================================== */
@@ -914,33 +672,15 @@
   }
 }
 
-/* keep transforms on the rotated cards after the entrance runs */
-.v-notes__main {
-  animation-name: lv-rise-notes;
-}
-
-@keyframes lv-rise-notes {
-  from {
-    opacity: 0;
-    transform: translateY(14px) rotate(-1.4deg);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) rotate(-1.4deg);
-  }
-}
-
 /* ---- responsive ----------------------------------------------------- */
 
 @media (max-width: 780px) {
-  .v-ticket__card,
-  .v-ftk__card {
+  .v-ticket__card {
     grid-template-columns: 1fr;
     max-width: 460px;
   }
 
-  .v-ticket__brand,
-  .v-ftk__brand {
+  .v-ticket__brand {
     border-radius: var(--radius) var(--radius) 0 0;
   }
 
@@ -953,31 +693,18 @@
     );
   }
 
-  .v-ftk__seam {
-    height: 1px;
-    background: repeating-linear-gradient(
-      to right,
-      color-mix(in srgb, var(--foreground) 28%, transparent) 0 7px,
-      transparent 7px 14px
-    );
-  }
-
   .v-ticket__seam::before,
-  .v-ticket__seam::after,
-  .v-ftk__seam::before,
-  .v-ftk__seam::after {
+  .v-ticket__seam::after {
     left: auto;
     top: 50%;
     transform: translateY(-50%);
   }
 
-  .v-ticket__seam::before,
-  .v-ftk__seam::before {
+  .v-ticket__seam::before {
     left: -13px;
   }
 
-  .v-ticket__seam::after,
-  .v-ftk__seam::after {
+  .v-ticket__seam::after {
     right: -13px;
     bottom: auto;
   }
@@ -1007,8 +734,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .lv-variant *,
-  .v-notes__main {
+  .lv-variant * {
     animation: none !important;
   }
 }
