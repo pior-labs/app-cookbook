@@ -1,7 +1,7 @@
 # Development Status
 
-**Last updated:** 2026-08-16
-**Current stage:** Phase 1 foundation / authentication integrated
+**Last updated:** 2026-08-17
+**Current stage:** Phase 1 technical design proposed
 **Current product phase:** Phase 1 — Core Cookbook
 
 This file records the application's **actual implementation state**.
@@ -14,12 +14,13 @@ Agents and contributors must not infer that a PRD requirement has been implement
 
 ## Current state
 
-The generic web application template has been initialized as Pior Labs Cookbook. The repository has a Cookbook-specific application shell, operational baseline, and working local central SSO flow. The Cookbook recipe domain model and product features have not been implemented.
+The Cookbook scaffold and local central SSO flow are implemented. The product requirements are approved, and the complete Phase 1 technical design is proposed for review. The Cookbook recipe domain model and product features have not been implemented.
 
 ## Completed
 
 - Repository initialized from the Pior Labs paved-road scaffold.
 - Product requirements captured for the Core Cookbook and future phases.
+- Phase 1 product requirements approved on 2026-08-17.
 - Documentation hierarchy established.
 - Existing Pior Labs application/platform conventions available through `AGENTS.md`.
 - Generic package, container alias, metadata, environment, and UI placeholders replaced with Cookbook identity.
@@ -36,19 +37,18 @@ The generic web application template has been initialized as Pior Labs Cookbook.
 
 ## In progress
 
-- Reviewing and approving the remaining Phase 1 recipe-domain technical design.
+- Reviewing the proposed Phase 1 technical design and ADRs 0002–0005.
 
 ## Next
 
 Before substantial Cookbook feature implementation:
 
-1. Review and approve `docs/PRD.md` as the product source of truth.
-2. Complete `docs/TECHNICAL_DESIGN.md` for the Phase 1 recipe domain model.
-3. Register and seed the `cookbook` trusted OAuth client in the production `service-auth` environment.
-4. Provision the Cookbook database, routes, DNS, and connection file in `platform-deploy`.
-5. Record important architectural decisions in `docs/DECISIONS/` as needed.
-6. Break Phase 1 into implementation epics/issues or incremental PRs.
-7. Implement Phase 1 only unless scope is explicitly changed.
+1. Review and approve `docs/TECHNICAL_DESIGN.md` and ADRs 0002–0005.
+2. Mark the approved technical design and proposed ADRs as accepted.
+3. Add the domain package, real recipe schema, and first domain migration.
+4. Confirm the `cookbook` client is seeded in the production `service-auth` environment.
+5. Provision the Cookbook database, image storage, routes, DNS, and connection file in `platform-deploy`.
+6. Implement Phase 1 in the documented vertical slices only.
 
 ## Phase 1 — Core Cookbook
 
