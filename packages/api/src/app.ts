@@ -1,6 +1,7 @@
 import { Hono, type MiddlewareHandler } from 'hono';
 import postgres from 'postgres';
 import { databaseConnection } from './env.js';
+import { checkStorageWritable } from './images/readiness.js';
 import type { AppEnv } from './middleware/context.js';
 import { errorHandler, notFoundHandler } from './middleware/errors.js';
 import { requestContext } from './middleware/request-context.js';
@@ -32,19 +33,34 @@ export function createApp(deps: AppDependencies) {
   app.get('/health', (c) => c.json({ status: 'ok', service: service.slug }));
   app.get('/api/health', (c) => c.json({ status: 'ok', service: service.slug }));
   app.get('/api', (c) => c.json(service));
+  // Readiness covers both halves of the application's persistent state: the
+  // database and the mounted image directory (technical design section 15).
   app.get('/api/readiness', async (c) => {
     const connection = databaseConnection();
     const client = postgres(connection.url, { ...connection.options, max: 1 });
 
+    let database = 'connected';
     try {
       await client`select 1`;
-      return c.json({ status: 'ready', service: service.slug, database: 'connected' });
     } catch (error) {
       console.error('Database readiness check failed', error);
-      return c.json({ status: 'not_ready', service: service.slug, database: 'unavailable' }, 503);
+      database = 'unavailable';
     } finally {
       await client.end();
     }
+
+    const imageStorage = (await checkStorageWritable()) ? 'writable' : 'unavailable';
+    const ready = database === 'connected' && imageStorage === 'writable';
+
+    return c.json(
+      {
+        status: ready ? 'ready' : 'not_ready',
+        service: service.slug,
+        database,
+        imageStorage,
+      },
+      ready ? 200 : 503,
+    );
   });
 
   const { authHandler } = deps;

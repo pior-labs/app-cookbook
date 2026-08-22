@@ -1,5 +1,7 @@
+import { rm } from 'node:fs/promises';
 import { sql } from 'drizzle-orm';
 import { createApp } from '../src/app.js';
+import { storageRoot } from '../src/images/storage.js';
 import { db } from '../src/db/index.js';
 import { categories, tags, users } from '../src/db/schema.js';
 import { createRequireAuth } from '../src/middleware/auth.js';
@@ -33,7 +35,12 @@ const TRUNCATED_TABLES = [
   'users',
 ] as const;
 
+// Resets both halves of the application's persistent state. Truncating alone
+// would leave uploaded files behind, and `restart identity` reuses recipe IDs,
+// so a later test would see a previous test's image folders.
 export async function resetDatabase(): Promise<void> {
+  await rm(storageRoot(), { recursive: true, force: true });
+
   await db.execute(
     sql.raw(
       `truncate table ${TRUNCATED_TABLES.map((table) => `"${table}"`).join(
@@ -106,9 +113,12 @@ export function createTestApp() {
 }
 
 export interface TestClient {
-  get(path: string): Promise<Response>;
+  get(path: string, headers?: Record<string, string>): Promise<Response>;
   post(path: string, body: unknown): Promise<Response>;
   put(path: string, body: unknown): Promise<Response>;
+  // Multipart upload with the body under the field the photo route expects.
+  putFile(path: string, file: Blob, filename?: string, field?: string): Promise<Response>;
+  delete(path: string): Promise<Response>;
   raw(path: string, init: RequestInit): Promise<Response>;
 }
 
@@ -126,9 +136,18 @@ export function asUser(app: AppUnderTest, userId: number | string | null): TestC
     });
 
   return {
-    get: async (path) => app.request(path, { headers: headers() }),
+    get: async (path, extra) => app.request(path, { headers: headers(extra) }),
     post: (path, body) => send(path, 'POST', body),
     put: (path, body) => send(path, 'PUT', body),
+    // `FormData` sets its own multipart boundary, so the content type must come
+    // from the request body rather than from `headers()`.
+    putFile: async (path, file, filename = 'photo.jpg', field = 'photo') => {
+      const form = new FormData();
+      form.append(field, file, filename);
+
+      return app.request(path, { method: 'PUT', headers: headers(), body: form });
+    },
+    delete: async (path) => app.request(path, { method: 'DELETE', headers: headers() }),
     raw: async (path, init) =>
       app.request(path, { ...init, headers: headers(init.headers as Record<string, string>) }),
   };

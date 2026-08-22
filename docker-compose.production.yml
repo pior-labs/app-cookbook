@@ -3,5 +3,8 @@ services:
     environment:
       DATABASE_URL: ""
       DATABASE_URL_FILE: /run/secrets/database_url
+    # PostgreSQL and this directory form one backup and restore set
+    # (technical design section 15). platform-deploy owns the host path.
     volumes:
       - ${PLATFORM_DATABASE_URL_FILE:?Set PLATFORM_DATABASE_URL_FILE to the platform-managed database-url file}:/run/secrets/database_url:ro
+      - ${PLATFORM_IMAGE_STORAGE_DIR:?Set PLATFORM_IMAGE_STORAGE_DIR to the platform-managed recipe image directory}:/var/lib/cookbook/images

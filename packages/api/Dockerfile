@@ -15,7 +15,10 @@ RUN pnpm --filter @cookbook/api... build
 FROM node:22-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
-RUN corepack enable
+# Recipe image storage. Compose mounts a persistent volume here; creating the
+# directory keeps the readiness check meaningful when nothing is mounted yet.
+ENV IMAGE_STORAGE_DIR=/var/lib/cookbook/images
+RUN corepack enable && mkdir -p /var/lib/cookbook/images
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/api/package.json packages/api/package.json

@@ -4,6 +4,7 @@ import type { z } from 'zod';
 import { validationError, zodValidationError } from '../errors.js';
 import type { AppEnv } from '../middleware/context.js';
 import { createRecipe, getRecipe, updateRecipe } from '../services/recipes.js';
+import { registerPhotoRoutes } from './photos.js';
 
 // HTTP parsing and response mapping only. Domain schemas own the rules, and
 // the service owns the transaction (technical design section 3).
@@ -57,3 +58,8 @@ recipesRoute.put('/:id', async (c) => {
 
   return c.json(recipe);
 });
+
+// The primary photo hangs off the recipe path but is replaced independently of
+// the recipe JSON transaction, so an upload failure never discards form data
+// (section 7.4).
+registerPhotoRoutes(recipesRoute, recipeIdParam);

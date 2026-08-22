@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
+    "images:reconcile": "tsx src/images/reconcile.ts",
     "test": "vitest run && pnpm test:auth-config",
     "test:auth-config": "pnpm build && node --test test/auth-cookie-prefix.test.mjs",
     "test:watch": "vitest"
@@ -23,6 +24,7 @@
     "drizzle-orm": "^0.45.2",
     "hono": "^4.7.2",
     "postgres": "^3.4.9",
+    "sharp": "^0.35.3",
     "zod": "^4.4.2"
   },
   "devDependencies": {

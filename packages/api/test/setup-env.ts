@@ -7,3 +7,7 @@ import { inject } from 'vitest';
 // process.
 process.env.DATABASE_URL = inject('testDatabaseUrl');
 delete process.env.DATABASE_URL_FILE;
+
+// Uploads write real files, so they go to the disposable directory the global
+// setup created and removes.
+process.env.IMAGE_STORAGE_DIR = inject('testImageStorageDir');

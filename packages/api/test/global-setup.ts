@@ -1,3 +1,6 @@
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
@@ -13,10 +16,13 @@ import {
 declare module 'vitest' {
   export interface ProvidedContext {
     testDatabaseUrl: string;
+    testImageStorageDir: string;
   }
 }
 
 const migrationsFolder = fileURLToPath(new URL('../drizzle', import.meta.url));
+
+let imageStorageDir: string | undefined;
 
 async function withAdminClient(run: (client: postgres.Sql) => Promise<void>): Promise<void> {
   const admin = connectionOptions(adminDatabaseUrl());
@@ -45,6 +51,11 @@ async function dropTestDatabase(name: string): Promise<void> {
 export async function setup(project: TestProject): Promise<void> {
   const name = testDatabaseName();
 
+  // Image storage is disposable for the same reason the database is: the suite
+  // writes real files and must never touch the development image directory
+  // (technical design section 14.2).
+  imageStorageDir = await mkdtemp(join(tmpdir(), 'cookbook-images-'));
+
   await dropTestDatabase(name);
   await withAdminClient(async (client) => {
     await client.unsafe(`create database "${name}"`);
@@ -60,8 +71,13 @@ export async function setup(project: TestProject): Promise<void> {
   }
 
   project.provide('testDatabaseUrl', testDatabaseUrl());
+  project.provide('testImageStorageDir', imageStorageDir);
 }
 
 export async function teardown(): Promise<void> {
   await dropTestDatabase(testDatabaseName());
+
+  if (imageStorageDir) {
+    await rm(imageStorageDir, { recursive: true, force: true });
+  }
 }

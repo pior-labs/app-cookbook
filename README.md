@@ -49,7 +49,7 @@ The default local endpoints are:
 - web: `http://localhost:5173`
 - API: `http://localhost:3002`
 - API health: `http://localhost:3002/health`
-- database readiness: `http://localhost:3002/api/readiness`
+- database and image-storage readiness: `http://localhost:3002/api/readiness`
 
 Vite proxies `/api/*` to the local API. Pior Labs applications reuse port `5173`
 one at a time and authenticate against the hosted `https://auth.szarans.ca`
@@ -77,13 +77,39 @@ The first migration creates the local user, account, session, and verification t
 
 Production uses `DATABASE_URL_FILE`. `platform-deploy` provisions the database, role, and server-managed connection file; this repository only mounts that file read-only into the API container.
 
+## Recipe images
+
+The primary recipe photo is stored as processed files in an app-owned directory, with metadata in PostgreSQL. There is no object storage or public media server.
+
+Uploads go to `PUT /api/recipes/:id/photo` as a multipart `photo` field. The API verifies the decoded image rather than its filename or declared type, accepts JPEG, PNG, and WebP up to 10 MiB, applies EXIF orientation, strips metadata, and writes `card` and `detail` WebP variants under a generated opaque key. Files are served only through the authenticated `GET /api/recipes/:id/photo/:variant` route, with a content-hash `ETag` and private cache headers. The web container never mounts the image directory.
+
+Configure storage with:
+
+```text
+IMAGE_STORAGE_DIR          # defaults to .data/images in the repository
+IMAGE_MAX_BYTES            # defaults to 10 MiB
+IMAGE_CARD_MAX_WIDTH       # defaults to 800
+IMAGE_DETAIL_MAX_WIDTH     # defaults to 1600
+```
+
+Replacement writes every new file before the database reference moves and removes the replaced files only afterwards, so an interrupted upload always leaves at least one valid image. File cleanup runs after the database commits and is best-effort: a failure leaves an orphaned file rather than a broken recipe. Reconcile the directory against `recipe_images` with:
+
+```bash
+pnpm images:reconcile           # report only
+pnpm images:reconcile -- --delete
+```
+
+The command only ever removes unreferenced files. Metadata pointing at a missing file is reported, never deleted, because that means storage is incomplete rather than stale.
+
+In production the directory must be a persistent mount into the API container, provisioned by `platform-deploy` at `PLATFORM_IMAGE_STORAGE_DIR`. PostgreSQL and that directory form one backup and restore set: back them up together, restore them to a consistent point, and validate a restore with `pnpm images:reconcile` plus a representative image read. `/api/readiness` reports both the database and whether the image directory is writable.
+
 ## Testing
 
 ```bash
 pnpm test
 ```
 
-`@cookbook/domain` runs pure Vitest unit tests. `@cookbook/api` runs Vitest integration tests against a real PostgreSQL database rather than mocked SQL: the suite creates a disposable, per-run `<database>_test_<suffix>` database on the server named by `DATABASE_URL`, applies every migration to it, resets state before each test, and drops it afterwards. Two suites can run at once without colliding. `TEST_DATABASE_URL` points the suite at a specific database instead; it must not name the database in `DATABASE_URL`, and the harness refuses to start if it does, because it drops and recreates whatever it is given.
+`@cookbook/domain` runs pure Vitest unit tests. `@cookbook/api` runs Vitest integration tests against a real PostgreSQL database rather than mocked SQL: the suite creates a disposable, per-run `<database>_test_<suffix>` database on the server named by `DATABASE_URL`, applies every migration to it, resets state before each test, and drops it afterwards. Image tests write real files to a disposable temporary directory created and removed by the same harness, so they never touch `IMAGE_STORAGE_DIR`. Two suites can run at once without colliding. `TEST_DATABASE_URL` points the suite at a specific database instead; it must not name the database in `DATABASE_URL`, and the harness refuses to start if it does, because it drops and recreates whatever it is given.
 
 ## Authentication
 
