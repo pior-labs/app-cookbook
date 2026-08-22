@@ -1,6 +1,6 @@
 # ADR 0002 — Exact ingredient quantities with application units
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-08-17
 
 ## Context

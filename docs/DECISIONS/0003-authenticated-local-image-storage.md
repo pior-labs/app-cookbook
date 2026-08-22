@@ -1,6 +1,6 @@
 # ADR 0003 — Authenticated local recipe image storage
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-08-17
 
 ## Context

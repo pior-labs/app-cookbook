@@ -1,6 +1,6 @@
 # ADR 0005 — Recoverable recipe deletion
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-08-17
 
 ## Context

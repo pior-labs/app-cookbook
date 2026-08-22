@@ -1,7 +1,7 @@
 # Development Status
 
-**Last updated:** 2026-08-17
-**Current stage:** Phase 1 technical design proposed
+**Last updated:** 2026-08-22
+**Current stage:** Phase 1 technical design accepted; recipe domain not yet implemented
 **Current product phase:** Phase 1 — Core Cookbook
 
 This file records the application's **actual implementation state**.
@@ -14,7 +14,7 @@ Agents and contributors must not infer that a PRD requirement has been implement
 
 ## Current state
 
-The Cookbook scaffold and local central SSO flow are implemented. The product requirements are approved, and the complete Phase 1 technical design is proposed for review. The Cookbook recipe domain model and product features have not been implemented.
+The Cookbook scaffold and local central SSO flow are implemented. The product requirements are approved, and the complete Phase 1 technical design and ADRs 0002–0005 are accepted. The Cookbook recipe domain model and product features have not been implemented.
 
 ## Completed
 
@@ -37,18 +37,16 @@ The Cookbook scaffold and local central SSO flow are implemented. The product re
 
 ## In progress
 
-- Reviewing the proposed Phase 1 technical design and ADRs 0002–0005.
+- Preparing to implement Phase 1 slice 1 (domain package, recipe schema, first domain migration).
 
 ## Next
 
 Before substantial Cookbook feature implementation:
 
-1. Review and approve `docs/TECHNICAL_DESIGN.md` and ADRs 0002–0005.
-2. Mark the approved technical design and proposed ADRs as accepted.
-3. Add the domain package, real recipe schema, and first domain migration.
-4. Confirm the `cookbook` client is seeded in the production `service-auth` environment.
-5. Provision the Cookbook database, image storage, routes, DNS, and connection file in `platform-deploy`.
-6. Implement Phase 1 in the documented vertical slices only.
+1. Add the domain package, real recipe schema, and first domain migration.
+2. Confirm the `cookbook` client is seeded in the production `service-auth` environment.
+3. Provision the Cookbook database, image storage, routes, DNS, and connection file in `platform-deploy`.
+4. Implement Phase 1 in the documented vertical slices only.
 
 ## Phase 1 — Core Cookbook
 

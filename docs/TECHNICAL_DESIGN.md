@@ -1,8 +1,8 @@
 # Technical Design
 
-**Document version:** 0.1
-**Status:** Proposed / awaiting approval
-**Last updated:** 2026-08-17
+**Document version:** 1.0
+**Status:** Accepted
+**Last updated:** 2026-08-22
 **Current product scope:** Phase 1 — Core Cookbook
 
 This document defines how the approved Phase 1 requirements in [`PRD.md`](./PRD.md) will be implemented. It deliberately excludes later product phases and MCP implementation.
