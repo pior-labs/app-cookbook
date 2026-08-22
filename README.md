@@ -2,7 +2,7 @@
 
 Pior Labs Cookbook is a private, self-hosted household recipe manager. It is being built as a polished, mobile-friendly place to save, find, scale, and cook the recipes the household wants to keep.
 
-The application is currently in **Phase 1 — Core Cookbook**. The responsive application shell, API baseline, PostgreSQL/Drizzle tooling, container configuration, CI, and local central SSO flow are in place. Recipe features and the final domain model have intentionally not been implemented yet.
+The application is currently in **Phase 1 — Core Cookbook**. The responsive application shell, API baseline, PostgreSQL/Drizzle tooling, container configuration, CI, and local central SSO flow are in place, along with the recipe domain model and the recipe create/read/update API. The product UI, images, discovery, and Trash are still to come.
 
 ## Stack
 
@@ -18,9 +18,10 @@ The application is currently in **Phase 1 — Core Cookbook**. The responsive ap
 ## Repository layout
 
 ```text
-packages/api/   Hono API and Drizzle tooling
-packages/web/   React application and static Caddy runtime
-docs/           product requirements, technical design, status, and decisions
+packages/domain/  pure business rules, validation schemas, and domain types
+packages/api/     Hono API, Drizzle tooling, and integration tests
+packages/web/     React application and static Caddy runtime
+docs/             product requirements, technical design, status, and decisions
 ```
 
 The product source of truth is [`docs/PRD.md`](docs/PRD.md). Check [`docs/STATUS.md`](docs/STATUS.md) before assuming a documented requirement exists in the application.
@@ -70,9 +71,17 @@ pnpm db:generate
 pnpm db:migrate
 ```
 
-The first migration creates the local user, account, session, and verification tables used by authentication. The recipe domain schema does not exist yet; generate its migrations only after the Cookbook technical design defines that model.
+The first migration creates the local user, account, session, and verification tables used by authentication. The second creates the recipe domain: recipes, ingredients, instructions, categories, tags, images, favorites, ratings, and recently viewed history, and seeds the starter categories.
 
 Production uses `DATABASE_URL_FILE`. `platform-deploy` provisions the database, role, and server-managed connection file; this repository only mounts that file read-only into the API container.
+
+## Testing
+
+```bash
+pnpm test
+```
+
+`@cookbook/domain` runs pure Vitest unit tests. `@cookbook/api` runs Vitest integration tests against a real PostgreSQL database rather than mocked SQL: the suite creates a disposable `<database>_test` database on the server named by `DATABASE_URL`, applies every migration to it, resets state before each test, and drops it afterwards. The development database is never touched. Set `TEST_DATABASE_URL` to point the suite somewhere else.
 
 ## Authentication
 
@@ -142,7 +151,7 @@ TLS, ingress, DNS, shared networks, database provisioning, and routes are owned 
 
 ## Validation and deployment
 
-The CI workflow installs dependencies, typechecks, and builds both packages. There are no lint or test commands yet because the template does not include a lint configuration or tests; add them with the first code that needs them.
+The CI workflow installs dependencies, typechecks, runs the unit and integration test suites against a PostgreSQL service container, and builds every package. There is no lint command yet; add one with the first code that needs it.
 
 The deployment workflow remains manual until the production runner and these external dependencies are ready:
 
@@ -153,4 +162,4 @@ The deployment workflow remains manual until the production runner and these ext
 
 ## Scope
 
-This scaffold does not implement recipe CRUD, ingredients, serving scaling, search, categories, tags, favorites, ratings, history, image storage, or recovery. Those are Phase 1 product features whose technical design still needs approval. Meal planning, grocery lists, imports, Recipe Roulette, and MCP are later work and are outside the current phase.
+Phase 1 is being built in vertical slices. Recipe create, read, and update are implemented; images, product UI, search and discovery, favorites, ratings, recently viewed history, and Trash are not yet. Meal planning, grocery lists, imports, Recipe Roulette, and MCP are later work and are outside the current phase. See [`docs/STATUS.md`](docs/STATUS.md) for the authoritative state.

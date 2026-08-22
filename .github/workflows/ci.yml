@@ -12,6 +12,25 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    # API integration tests run against a real migrated PostgreSQL database
+    # rather than mocked SQL, so migration application is validated in CI too
+    # (technical design section 14.2).
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cookbook_ci
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

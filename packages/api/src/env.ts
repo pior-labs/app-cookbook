@@ -2,10 +2,13 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { config } from 'dotenv';
 
-const overrideWithLocalConfig = process.env.NODE_ENV !== 'production';
+const nodeEnv = process.env.NODE_ENV;
+const overrideWithLocalConfig = nodeEnv !== 'production' && nodeEnv !== 'test';
 
 // Local app configuration must beat unrelated shell variables during
-// development. Production keeps the normal process/secrets-first precedence.
+// development. Production keeps the normal process/secrets-first precedence,
+// and tests keep it too so the harness can point the process at its own
+// disposable database without `.env.local` overriding it.
 config({
   path: fileURLToPath(new URL('../../../.env', import.meta.url)),
   override: overrideWithLocalConfig,

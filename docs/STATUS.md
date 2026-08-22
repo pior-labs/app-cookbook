@@ -1,7 +1,7 @@
 # Development Status
 
 **Last updated:** 2026-08-22
-**Current stage:** Phase 1 in progress — domain foundation implemented (slice 1)
+**Current stage:** Phase 1 in progress — recipe aggregate API implemented (slice 2)
 **Current product phase:** Phase 1 — Core Cookbook
 
 This file records the application's **actual implementation state**.
@@ -14,7 +14,7 @@ Agents and contributors must not infer that a PRD requirement has been implement
 
 ## Current state
 
-The Cookbook scaffold and local central SSO flow are implemented. The product requirements are approved, and the complete Phase 1 technical design and ADRs 0002–0005 are accepted. The pure `@cookbook/domain` package, the normalized recipe database schema, and the first domain migration are implemented (implementation sequence slice 1). Recipe API endpoints, images, and product UI have not been implemented.
+The Cookbook scaffold and local central SSO flow are implemented. The product requirements are approved, and the complete Phase 1 technical design and ADRs 0002–0005 are accepted. The pure `@cookbook/domain` package, the normalized recipe database schema, and the first domain migration are implemented (implementation sequence slice 1). Recipe aggregate create, read, and update are implemented behind the authenticated API boundary, with the shared error envelope and API integration tests (slice 2). Recipe images, browse/search, per-user preferences, Trash, and the product UI have not been implemented.
 
 ## Completed
 
@@ -38,10 +38,14 @@ The Cookbook scaffold and local central SSO flow are implemented. The product re
 - Normalized recipe domain Drizzle schema (categories, tags, recipes, ingredients, instructions, recipe/tag joins, images, favorites, ratings, recently viewed) with database checks and indexes.
 - First domain migration with conflict-safe starter-category seed, applied and verified against the local database.
 - Repository foundations: aggregate relations and a shared database-executor seam for transactional writes.
+- Shared API error envelope with field-scoped validation messages, plus request-ID structured request and error logging.
+- Hono application factory with an injected session resolver, so the deny-by-default `/api/*` boundary is exercised in tests.
+- `POST /api/recipes`, `GET /api/recipes/:id`, and `PUT /api/recipes/:id`: one-transaction aggregate writes covering ingredients, instructions, and tag assignments, with server-derived positions, server-derived created-by, and optimistic `version` concurrency.
+- API integration tests against a disposable migrated PostgreSQL database, and a CI PostgreSQL service so migrations and integration tests run on every push.
 
 ## In progress
 
-- Phase 1 slice 2: recipe aggregate create/read/update with validation and optimistic concurrency.
+- Phase 1 slice 3: authenticated recipe image upload, transformation, delivery, replacement, and cleanup.
 
 ## Next
 
@@ -51,7 +55,7 @@ The Cookbook scaffold and local central SSO flow are implemented. The product re
 
 ## Phase 1 — Core Cookbook
 
-**Status:** In progress — authentication foundation complete
+**Status:** In progress — authentication foundation and recipe aggregate API complete
 
 Planned scope includes:
 
