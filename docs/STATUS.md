@@ -1,7 +1,7 @@
 # Development Status
 
 **Last updated:** 2026-08-22
-**Current stage:** Phase 1 technical design accepted; recipe domain not yet implemented
+**Current stage:** Phase 1 in progress — domain foundation implemented (slice 1)
 **Current product phase:** Phase 1 — Core Cookbook
 
 This file records the application's **actual implementation state**.
@@ -14,7 +14,7 @@ Agents and contributors must not infer that a PRD requirement has been implement
 
 ## Current state
 
-The Cookbook scaffold and local central SSO flow are implemented. The product requirements are approved, and the complete Phase 1 technical design and ADRs 0002–0005 are accepted. The Cookbook recipe domain model and product features have not been implemented.
+The Cookbook scaffold and local central SSO flow are implemented. The product requirements are approved, and the complete Phase 1 technical design and ADRs 0002–0005 are accepted. The pure `@cookbook/domain` package, the normalized recipe database schema, and the first domain migration are implemented (implementation sequence slice 1). Recipe API endpoints, images, and product UI have not been implemented.
 
 ## Completed
 
@@ -32,21 +32,22 @@ The Cookbook scaffold and local central SSO flow are implemented. The product re
 - Public health/auth routes and a deny-by-default authenticated `/api/*` boundary implemented.
 - Responsive login, session restoration, authenticated home, and logout states implemented and exercised locally end to end.
 - Static-only web Caddy runtime, private container ports, and health checks confirmed.
-- CI configured to install, typecheck, and build the pnpm workspace.
+- CI configured to install, typecheck, test, and build the pnpm workspace.
 - Manual production deployment workflow retained pending external provisioning.
+- Pure `@cookbook/domain` package with ingredient fraction parsing/reduction/scaling/formatting, unit registry, name normalization, stable domain types, and request validation schemas, covered by unit tests.
+- Normalized recipe domain Drizzle schema (categories, tags, recipes, ingredients, instructions, recipe/tag joins, images, favorites, ratings, recently viewed) with database checks and indexes.
+- First domain migration with conflict-safe starter-category seed, applied and verified against the local database.
+- Repository foundations: aggregate relations and a shared database-executor seam for transactional writes.
 
 ## In progress
 
-- Preparing to implement Phase 1 slice 1 (domain package, recipe schema, first domain migration).
+- Phase 1 slice 2: recipe aggregate create/read/update with validation and optimistic concurrency.
 
 ## Next
 
-Before substantial Cookbook feature implementation:
-
-1. Add the domain package, real recipe schema, and first domain migration.
-2. Confirm the `cookbook` client is seeded in the production `service-auth` environment.
-3. Provision the Cookbook database, image storage, routes, DNS, and connection file in `platform-deploy`.
-4. Implement Phase 1 in the documented vertical slices only.
+1. Confirm the `cookbook` client is seeded in the production `service-auth` environment.
+2. Provision the Cookbook database, image storage, routes, DNS, and connection file in `platform-deploy`.
+3. Continue Phase 1 in the documented vertical slices (recipe CRUD, images, UI, discovery, preferences, Trash, polish).
 
 ## Phase 1 — Core Cookbook
 

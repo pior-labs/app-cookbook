@@ -626,9 +626,9 @@ These deferrals must not be interpreted as permission to add the features during
 Durable decisions are recorded in [`DECISIONS/`](./DECISIONS/README.md):
 
 - [ADR 0001 — Central SSO with application-local sessions](./DECISIONS/0001-central-sso-and-local-sessions.md) — accepted;
-- [ADR 0002 — Exact ingredient quantities with application units](./DECISIONS/0002-exact-ingredient-quantities.md) — proposed;
-- [ADR 0003 — Authenticated local recipe image storage](./DECISIONS/0003-authenticated-local-image-storage.md) — proposed;
-- [ADR 0004 — Household-scale relational search](./DECISIONS/0004-household-scale-relational-search.md) — proposed;
-- [ADR 0005 — Recoverable recipe deletion](./DECISIONS/0005-recoverable-recipe-deletion.md) — proposed.
+- [ADR 0002 — Exact ingredient quantities with application units](./DECISIONS/0002-exact-ingredient-quantities.md) — accepted;
+- [ADR 0003 — Authenticated local recipe image storage](./DECISIONS/0003-authenticated-local-image-storage.md) — accepted;
+- [ADR 0004 — Household-scale relational search](./DECISIONS/0004-household-scale-relational-search.md) — accepted;
+- [ADR 0005 — Recoverable recipe deletion](./DECISIONS/0005-recoverable-recipe-deletion.md) — accepted.
 
-Approval of this technical design accepts ADRs 0002–0005. After approval, update this document and those ADRs to `Accepted` before generating the Phase 1 domain migration.
+This technical design and ADRs 0002–0005 were accepted on 2026-08-22, unblocking the Phase 1 domain migration.
