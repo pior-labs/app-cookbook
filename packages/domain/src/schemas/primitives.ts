@@ -3,15 +3,27 @@ import { tryParseQuantity } from '../ingredients/fractions.js';
 import { isKnownUnitCode } from '../ingredients/units.js';
 import { normalizeWhitespace } from '../text/normalize.js';
 
+// Surrogate keys and stored quantity components are PostgreSQL `serial` /
+// `integer` columns, so anything beyond the signed 32-bit range cannot be
+// stored or compared. Bounding it here turns what would otherwise surface as a
+// database range error into an ordinary field-scoped validation message.
+export const MAX_INT32 = 2_147_483_647;
+
 // The largest denominator a stored quantity may have. Anything more precise is
 // rejected rather than silently rounded. See technical design section 12.
 export const MAX_QUANTITY_DENOMINATOR = 10_000;
 
 // A positive integer surrogate key as it appears in JSON request bodies.
-export const idSchema = z.number().int().positive();
+export const idSchema = z.number().int().positive().max(MAX_INT32);
 
 // A positive integer id as it appears in a route parameter or query string.
-export const idParamSchema = z.coerce.number().int().positive();
+// Plain decimal digits only: coercion alone would also accept `0x1`, `1e0`,
+// `+1`, and `01`, giving every resource a set of equivalent URLs.
+export const idParamSchema = z
+  .string()
+  .regex(/^[1-9][0-9]*$/, { message: 'Expected a numeric ID.' })
+  .transform(Number)
+  .pipe(idSchema);
 
 export const recipeNameSchema = z.string().trim().min(1).max(160);
 export const descriptionSchema = z.string().max(1000);
@@ -91,6 +103,12 @@ export const quantitySchema = z
     }
     if (parsed.denominator > MAX_QUANTITY_DENOMINATOR) {
       ctx.addIssue({ code: 'custom', message: 'Quantity is too precise to store.' });
+      return z.NEVER;
+    }
+    // A mixed number such as `215000 1/10000` reduces to a numerator well past
+    // the storable range even though each written part looks small.
+    if (parsed.numerator > MAX_INT32) {
+      ctx.addIssue({ code: 'custom', message: 'Quantity is too large.' });
       return z.NEVER;
     }
     return parsed;

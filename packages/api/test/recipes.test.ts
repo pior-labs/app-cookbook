@@ -90,6 +90,17 @@ describe('authorization boundary', () => {
     const echoed = await app.request('/health', { headers: { 'x-request-id': 'trace-me' } });
     expect(echoed.headers.get('x-request-id')).toBe('trace-me');
   });
+
+  it('replaces an oversized or unsafe inbound request ID', async () => {
+    for (const supplied of ['x'.repeat(200), 'spaces and "quotes"', '{"json":"blob"}']) {
+      const response = await app.request('/health', { headers: { 'x-request-id': supplied } });
+      const assigned = response.headers.get('x-request-id');
+
+      expect(assigned).toBeTruthy();
+      expect(assigned).not.toBe(supplied);
+      expect(assigned!.length).toBeLessThanOrEqual(128);
+    }
+  });
 });
 
 describe('POST /api/recipes', () => {
@@ -189,6 +200,16 @@ describe('GET /api/recipes/:id', () => {
 
     expect(response.status).toBe(400);
     expect((await response.json()).error.code).toBe('validation_error');
+  });
+
+  it('does not accept alternative spellings of an id', async () => {
+    const created = await createRecipe();
+    expect((await client.get(`/api/recipes/${created.id}`)).status).toBe(200);
+
+    // Numeric coercion alone would treat each of these as the same recipe.
+    for (const alias of ['0x1', '1e0', '+1', '01', '1.0']) {
+      expect((await client.get(`/api/recipes/${alias}`)).status).toBe(400);
+    }
   });
 });
 
@@ -374,6 +395,30 @@ describe('validation', () => {
 
     expect(response.status).toBe(400);
     expect((await response.json()).error.fields.tagIds).toBeDefined();
+  });
+
+  it('rejects out-of-range ids instead of failing on the integer column', async () => {
+    const tooLarge = 99_999_999_999;
+
+    expect((await client.get(`/api/recipes/${tooLarge}`)).status).toBe(400);
+    expect((await client.post('/api/recipes', recipeBody({ categoryId: tooLarge }))).status).toBe(
+      400,
+    );
+    expect((await client.post('/api/recipes', recipeBody({ tagIds: [tooLarge] }))).status).toBe(
+      400,
+    );
+  });
+
+  it('rejects a quantity too large to store', async () => {
+    for (const quantity of ['3000000000', '215000 1/10000']) {
+      const response = await client.post(
+        '/api/recipes',
+        recipeBody({ ingredients: [{ name: 'Flour', quantity }] }),
+      );
+
+      expect(response.status).toBe(400);
+      expect((await response.json()).error.fields['ingredients.0.quantity']).toBeDefined();
+    }
   });
 
   it('rejects a malformed JSON body', async () => {

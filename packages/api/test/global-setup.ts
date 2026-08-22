@@ -1,13 +1,20 @@
+import { fileURLToPath } from 'node:url';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
-import { fileURLToPath } from 'node:url';
+import type { TestProject } from 'vitest/node';
 import {
   adminDatabaseUrl,
   connectionOptions,
   testDatabaseName,
   testDatabaseUrl,
 } from './test-database-url.js';
+
+declare module 'vitest' {
+  export interface ProvidedContext {
+    testDatabaseUrl: string;
+  }
+}
 
 const migrationsFolder = fileURLToPath(new URL('../drizzle', import.meta.url));
 
@@ -24,6 +31,9 @@ async function withAdminClient(run: (client: postgres.Sql) => Promise<void>): Pr
   }
 }
 
+// Only ever names the database this run created, so a suite running in parallel
+// keeps its own. A hard kill (SIGKILL) skips teardown and leaves one behind;
+// they are harmless and safe to drop by hand.
 async function dropTestDatabase(name: string): Promise<void> {
   await withAdminClient(async (client) => {
     await client.unsafe(`drop database if exists "${name}" with (force)`);
@@ -32,7 +42,7 @@ async function dropTestDatabase(name: string): Promise<void> {
 
 // Creating the database from scratch and applying every migration to it makes
 // migration application part of the test run, not just a deployment step.
-export async function setup(): Promise<void> {
+export async function setup(project: TestProject): Promise<void> {
   const name = testDatabaseName();
 
   await dropTestDatabase(name);
@@ -48,6 +58,8 @@ export async function setup(): Promise<void> {
   } finally {
     await client.end();
   }
+
+  project.provide('testDatabaseUrl', testDatabaseUrl());
 }
 
 export async function teardown(): Promise<void> {

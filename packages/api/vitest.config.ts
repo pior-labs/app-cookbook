@@ -1,6 +1,16 @@
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      // `@cookbook/domain` resolves to its build output at runtime, so tests
+      // would otherwise need the package built first. Pointing at the source
+      // keeps a plain `pnpm test` working from a clean checkout and removes any
+      // chance of testing against a stale `dist`.
+      '@cookbook/domain': fileURLToPath(new URL('../domain/src/index.ts', import.meta.url)),
+    },
+  },
   test: {
     environment: 'node',
     include: ['src/**/*.test.ts', 'test/**/*.test.ts'],

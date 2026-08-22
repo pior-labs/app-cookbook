@@ -7,8 +7,24 @@ import type { AppEnv } from './context.js';
 // traced without logging tokens, cookies, secrets, recipe content, or image
 // bytes (technical design section 16).
 
+// An inbound request ID is echoed back and written into every log line for the
+// request, and this middleware runs ahead of authorization. Bounding length and
+// charset stops an anonymous caller from using the log as a dumping ground.
+const MAX_REQUEST_ID_LENGTH = 128;
+const SAFE_REQUEST_ID = /^[A-Za-z0-9._:-]+$/;
+
+function inboundRequestId(value: string | undefined): string | null {
+  const trimmed = value?.trim();
+
+  if (!trimmed || trimmed.length > MAX_REQUEST_ID_LENGTH || !SAFE_REQUEST_ID.test(trimmed)) {
+    return null;
+  }
+
+  return trimmed;
+}
+
 export const requestContext: MiddlewareHandler<AppEnv> = async (c, next) => {
-  const requestId = c.req.header('x-request-id')?.trim() || randomUUID();
+  const requestId = inboundRequestId(c.req.header('x-request-id')) ?? randomUUID();
 
   c.set('requestId', requestId);
   c.header('x-request-id', requestId);

@@ -81,7 +81,7 @@ Production uses `DATABASE_URL_FILE`. `platform-deploy` provisions the database, 
 pnpm test
 ```
 
-`@cookbook/domain` runs pure Vitest unit tests. `@cookbook/api` runs Vitest integration tests against a real PostgreSQL database rather than mocked SQL: the suite creates a disposable `<database>_test` database on the server named by `DATABASE_URL`, applies every migration to it, resets state before each test, and drops it afterwards. The development database is never touched. Set `TEST_DATABASE_URL` to point the suite somewhere else.
+`@cookbook/domain` runs pure Vitest unit tests. `@cookbook/api` runs Vitest integration tests against a real PostgreSQL database rather than mocked SQL: the suite creates a disposable, per-run `<database>_test_<suffix>` database on the server named by `DATABASE_URL`, applies every migration to it, resets state before each test, and drops it afterwards. Two suites can run at once without colliding. `TEST_DATABASE_URL` points the suite at a specific database instead; it must not name the database in `DATABASE_URL`, and the harness refuses to start if it does, because it drops and recreates whatever it is given.
 
 ## Authentication
 

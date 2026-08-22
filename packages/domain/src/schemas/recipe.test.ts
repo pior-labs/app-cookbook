@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { MAX_INT32, idParamSchema, idSchema, quantitySchema } from './primitives.js';
 import { createRecipeSchema, updateRecipeSchema } from './recipe.js';
 
 function baseInput(overrides: Record<string, unknown> = {}) {
@@ -86,5 +87,28 @@ describe('updateRecipeSchema', () => {
   it('requires a version', () => {
     expect(updateRecipeSchema.safeParse(baseInput()).success).toBe(false);
     expect(updateRecipeSchema.safeParse(baseInput({ version: 2 })).success).toBe(true);
+  });
+});
+
+describe('storable bounds', () => {
+  it('rejects a quantity whose reduced numerator exceeds the integer column', () => {
+    expect(quantitySchema.safeParse(String(MAX_INT32)).success).toBe(true);
+    expect(quantitySchema.safeParse(String(MAX_INT32 + 1)).success).toBe(false);
+    // A mixed number reduces to a numerator far larger than either written part.
+    expect(quantitySchema.safeParse('215000 1/10000').success).toBe(false);
+  });
+
+  it('rejects ids beyond the serial column', () => {
+    expect(idSchema.safeParse(MAX_INT32).success).toBe(true);
+    expect(idSchema.safeParse(MAX_INT32 + 1).success).toBe(false);
+    expect(idParamSchema.safeParse(String(MAX_INT32 + 1)).success).toBe(false);
+  });
+
+  it('accepts only plain decimal ids in a route parameter', () => {
+    expect(idParamSchema.safeParse('12').data).toBe(12);
+
+    for (const alias of ['0x1', '1e0', '+1', '01', '1.0', ' 1 ', '', '0']) {
+      expect(idParamSchema.safeParse(alias).success).toBe(false);
+    }
   });
 });
