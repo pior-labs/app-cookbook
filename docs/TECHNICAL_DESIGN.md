@@ -38,7 +38,7 @@ The following are already implemented and are not redesigned here:
 - Hono liveness and PostgreSQL readiness endpoints;
 - `DATABASE_URL` locally and `DATABASE_URL_FILE` in production;
 - Drizzle migrations for application-local auth tables;
-- the `cookbook` OAuth client registered in `service-auth` source with canonical and localhost callbacks;
+- the `cookbook` OAuth client registered in `service-auth` source, with its development callback requiring alignment to shared `localhost:5173`;
 - authorization-code flow with PKCE, issuer validation, an HTTP-only Cookbook session, and deny-by-default `/api/*` authorization;
 - static-only Caddy in the web container, with production API routing owned by platform Caddy.
 
@@ -272,6 +272,8 @@ No automatic `tsp` to `tbsp`, metric/imperial, density, or ingredient-name conve
 Cookbook delegates identity to `service-auth` using OAuth 2.1/OIDC authorization code with PKCE. It is the confidential client `cookbook` and requests `openid profile email offline_access`.
 
 Better Auth's generic OAuth client and Drizzle adapter maintain a Cookbook-local HTTP-only session. The linked OAuth account ID is the stable central subject; local `users.id` is the foreign-key identity used by domain tables. Cookbook has no password, signup, or alternate identity provider.
+
+Local development uses the hosted canonical issuer at `https://auth.szarans.ca/api/auth`; it does not require a local `service-auth` process. Pior Labs applications reuse `http://localhost:5173` one at a time. Cookbook prefixes every Better Auth cookie with `cookbook` so persisted localhost sessions and OAuth state cannot collide with another application.
 
 The authorization boundary remains deny-by-default:
 
@@ -569,7 +571,7 @@ The API image must include the checked-in migrations and image-processing runtim
 - routing `cookbook.szarans.ca/api/*` directly to the API and other traffic to the web container;
 - split-horizon DNS, TLS, ingress, and server restore procedures.
 
-The `cookbook` client already exists in `service-auth` source. Production deployment must still confirm that the current client definition has been seeded with the production secret and that the exact canonical callback succeeds.
+The `cookbook` client already exists in `service-auth` source. Production deployment must still confirm that the current client definition has been seeded with the production secret and that both the canonical callback and `http://localhost:5173/api/auth/oauth2/callback/auth-pior` are registered.
 
 Database migrations run as a one-off step before the updated API starts. Deployments must fail rather than start against an incompatible schema.
 

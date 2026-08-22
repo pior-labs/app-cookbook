@@ -14,7 +14,7 @@ Agents and contributors must not infer that a PRD requirement has been implement
 
 ## Current state
 
-The Cookbook scaffold and local central SSO flow are implemented. The product requirements are approved, and the complete Phase 1 technical design and ADRs 0002–0005 are accepted. The pure `@cookbook/domain` package, the normalized recipe database schema, and the first domain migration are implemented (implementation sequence slice 1). Recipe aggregate create, read, and update are implemented behind the authenticated API boundary, with the shared error envelope and API integration tests (slice 2). Recipe images, browse/search, per-user preferences, Trash, and the product UI have not been implemented.
+The Cookbook scaffold and central SSO integration are implemented and configured to use the hosted issuer. Registering the new shared `localhost:5173` callback in the deployed `service-auth` client remains an external dependency. The product requirements are approved, and the complete Phase 1 technical design and ADRs 0002–0005 are accepted. The pure `@cookbook/domain` package, the normalized recipe database schema, and the first domain migration are implemented (implementation sequence slice 1). Recipe aggregate create, read, and update are implemented behind the authenticated API boundary, with the shared error envelope and API integration tests (slice 2). Recipe images, browse/search, per-user preferences, Trash, and the product UI have not been implemented.
 
 ## Completed
 
@@ -28,7 +28,7 @@ The Cookbook scaffold and local central SSO flow are implemented. The product re
 - Hono liveness, metadata, readiness, not-found, and error-handling baseline established.
 - PostgreSQL and Drizzle configuration retained with production `DATABASE_URL_FILE` support.
 - Generic template database table removed; the first migration contains only the local authentication tables.
-- Central `service-auth` OAuth/OIDC integration implemented with PKCE, issuer validation, and an HTTP-only local session.
+- Central `service-auth` OAuth/OIDC integration implemented with PKCE, issuer validation, an app-specific cookie namespace, and an HTTP-only local session; local configuration now targets the hosted issuer.
 - Public health/auth routes and a deny-by-default authenticated `/api/*` boundary implemented.
 - Responsive login, session restoration, authenticated home, and logout states implemented and exercised locally end to end.
 - Static-only web Caddy runtime, private container ports, and health checks confirmed.
@@ -49,7 +49,7 @@ The Cookbook scaffold and local central SSO flow are implemented. The product re
 
 ## Next
 
-1. Confirm the `cookbook` client is seeded in the production `service-auth` environment.
+1. Register the shared `localhost:5173` callback and reseed the `cookbook` client in the production `service-auth` environment.
 2. Provision the Cookbook database, image storage, routes, DNS, and connection file in `platform-deploy`.
 3. Continue Phase 1 in the documented vertical slices (recipe CRUD, images, UI, discovery, preferences, Trash, polish).
 

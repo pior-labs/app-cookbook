@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../auth';
 
-const GENERIC_ERROR = 'Could not start sign-in. Check that Pior Labs Auth is running.';
+const GENERIC_ERROR = 'Could not start sign-in. Check your connection to Pior Labs Auth.';
 
 /**
  * Shared sign-in flow for every login variant. There is a single SSO provider,

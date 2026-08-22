@@ -60,7 +60,7 @@ export function databaseConnection() {
 }
 
 export function appEnv() {
-  const betterAuthUrl = process.env.BETTER_AUTH_URL?.trim() || 'http://localhost:5175';
+  const betterAuthUrl = process.env.BETTER_AUTH_URL?.trim() || 'http://localhost:5173';
 
   return {
     apiPort: Number(process.env.API_PORT ?? 3002),

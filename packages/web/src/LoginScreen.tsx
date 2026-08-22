@@ -46,7 +46,7 @@ export function LoginScreen() {
       setError(
         signInError instanceof Error
           ? signInError.message
-          : 'Could not start sign-in. Check that Pior Labs Auth is running.',
+          : 'Could not start sign-in. Check your connection to Pior Labs Auth.',
       );
       setSubmitting(false);
     }

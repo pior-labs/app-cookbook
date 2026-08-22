@@ -2,7 +2,7 @@
 
 Pior Labs Cookbook is a private, self-hosted household recipe manager. It is being built as a polished, mobile-friendly place to save, find, scale, and cook the recipes the household wants to keep.
 
-The application is currently in **Phase 1 — Core Cookbook**. The responsive application shell, API baseline, PostgreSQL/Drizzle tooling, container configuration, CI, and local central SSO flow are in place, along with the recipe domain model and the recipe create/read/update API. The product UI, images, discovery, and Trash are still to come.
+The application is currently in **Phase 1 — Core Cookbook**. The responsive application shell, API baseline, PostgreSQL/Drizzle tooling, container configuration, CI, and central SSO integration are in place, along with the recipe domain model and the recipe create/read/update API. The product UI, images, discovery, and Trash are still to come.
 
 ## Stack
 
@@ -46,12 +46,14 @@ pnpm dev
 
 The default local endpoints are:
 
-- web: `http://localhost:5175`
+- web: `http://localhost:5173`
 - API: `http://localhost:3002`
 - API health: `http://localhost:3002/health`
 - database readiness: `http://localhost:3002/api/readiness`
 
-Vite proxies `/api/*` to the local API. The non-default ports allow the Cookbook and a local `service-auth` instance (`:5173` / `:3000`) to run together.
+Vite proxies `/api/*` to the local API. Pior Labs applications reuse port `5173`
+one at a time and authenticate against the hosted `https://auth.szarans.ca`
+issuer, so application development does not require a local `service-auth`.
 
 Run one process at a time when useful:
 
@@ -98,7 +100,11 @@ BETTER_AUTH_URL
 BETTER_AUTH_TRUSTED_ORIGINS
 ```
 
-The OAuth client secret and Cookbook session secret are server-only and must never use `VITE_*` names. Copy `.env.example` to `.env.local`, supply those secrets, run `pnpm db:migrate`, and start both Cookbook and a local `service-auth` instance.
+The OAuth client secret and Cookbook session secret are server-only and must never use `VITE_*` names. Copy `.env.example` to `.env.local`, supply the deployed `cookbook` client secret, run `pnpm db:migrate`, and start Cookbook. Local application development uses the hosted SSO service.
+
+Cookbook prefixes its Better Auth cookies with `cookbook`. Browser cookies are
+scoped by hostname rather than port and persist after a development server
+stops, so every Pior Labs application must use its own cookie prefix.
 
 Before authenticated feature work or production deployment, `service-auth` must register a trusted client with:
 
@@ -106,7 +112,7 @@ Before authenticated feature work or production deployment, `service-auth` must 
 - name: `Pior Labs Cookbook`
 - production URI: `https://cookbook.szarans.ca`
 - production callback: `https://cookbook.szarans.ca/api/auth/oauth2/callback/auth-pior`
-- local callback: `http://localhost:5175/api/auth/oauth2/callback/auth-pior`
+- local callback: `http://localhost:5173/api/auth/oauth2/callback/auth-pior`
 - scopes: `openid profile email offline_access`
 
 The corresponding plaintext client secret belongs in local or server-managed secrets, not source control. The login screen, callback, protected API boundary, session restoration, and logout flow are implemented locally.
