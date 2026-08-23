@@ -9,6 +9,11 @@ services:
       NODE_ENV: production
       API_PORT: 3000
       DATABASE_URL: ${DOCKER_DATABASE_URL:-${DATABASE_URL:-}}
+      IMAGE_STORAGE_DIR: /var/lib/cookbook/images
+    # Recipe images are app-owned persistent state mounted only into the API
+    # container; the web container never sees them (technical design section 8).
+    volumes:
+      - cookbook_images:/var/lib/cookbook/images
     expose:
       - "3000"
     extra_hosts:
@@ -46,6 +51,9 @@ services:
       pior_edge:
         aliases:
           - ${APP_SLUG:-cookbook}-web
+
+volumes:
+  cookbook_images:
 
 networks:
   pior_edge:

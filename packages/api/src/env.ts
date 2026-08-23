@@ -1,11 +1,15 @@
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { config } from 'dotenv';
 
-const overrideWithLocalConfig = process.env.NODE_ENV !== 'production';
+const nodeEnv = process.env.NODE_ENV;
+const overrideWithLocalConfig = nodeEnv !== 'production' && nodeEnv !== 'test';
 
 // Local app configuration must beat unrelated shell variables during
-// development. Production keeps the normal process/secrets-first precedence.
+// development. Production keeps the normal process/secrets-first precedence,
+// and tests keep it too so the harness can point the process at its own
+// disposable database without `.env.local` overriding it.
 config({
   path: fileURLToPath(new URL('../../../.env', import.meta.url)),
   override: overrideWithLocalConfig,
@@ -56,8 +60,35 @@ export function databaseConnection() {
   };
 }
 
+function optionalPositiveInt(name: string, fallback: number): number {
+  const raw = process.env[name]?.trim();
+  if (!raw) return fallback;
+
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value <= 0) {
+    throw new Error(`${name} must be a positive integer`);
+  }
+  return value;
+}
+
+// Recipe image storage (technical design section 8). The directory is a mounted
+// persistent volume in production and an app-local path during development, so
+// it is resolved relative to the repository root rather than the process CWD.
+export function imageEnv() {
+  const configured = process.env.IMAGE_STORAGE_DIR?.trim();
+
+  return {
+    storageDir: configured
+      ? resolve(configured)
+      : fileURLToPath(new URL('../../../.data/images', import.meta.url)),
+    maxBytes: optionalPositiveInt('IMAGE_MAX_BYTES', 10 * 1024 * 1024),
+    cardMaxWidth: optionalPositiveInt('IMAGE_CARD_MAX_WIDTH', 800),
+    detailMaxWidth: optionalPositiveInt('IMAGE_DETAIL_MAX_WIDTH', 1600),
+  } as const;
+}
+
 export function appEnv() {
-  const betterAuthUrl = process.env.BETTER_AUTH_URL?.trim() || 'http://localhost:5175';
+  const betterAuthUrl = process.env.BETTER_AUTH_URL?.trim() || 'http://localhost:5173';
 
   return {
     apiPort: Number(process.env.API_PORT ?? 3002),

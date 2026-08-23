@@ -17,6 +17,12 @@ Cookbook is a confidential OAuth/OIDC client of `service-auth` using
 authorization code with PKCE. Better Auth handles the client callback and
 stores an HTTP-only Cookbook session in PostgreSQL.
 
+Local application development uses the hosted canonical issuer at
+`https://auth.szarans.ca/api/auth` and returns to the shared one-app-at-a-time
+callback origin at `http://localhost:5173`. Cookbook uses the Better Auth cookie
+prefix `cookbook` because localhost cookies persist across applications and are
+not isolated by port.
+
 The application stores a local user row linked through an OAuth account whose
 provider is `auth-pior` and whose account ID is the central subject. Domain
 tables reference the local numeric user ID. Cookbook exposes no local password,
@@ -37,6 +43,10 @@ pattern.
 
 - `service-auth` and Cookbook must share the registered client ID, client
   secret, issuer, scopes, and exact callback URL.
+- The hosted `cookbook` OAuth client must register
+  `http://localhost:5173/api/auth/oauth2/callback/auth-pior` for development.
+- Every Pior Labs application sharing localhost must use a distinct Better Auth
+  cookie prefix.
 - Local and production databases each require the Cookbook auth migration.
 - The Cookbook API database contains session and OAuth token material and must
   be protected and backed up accordingly.

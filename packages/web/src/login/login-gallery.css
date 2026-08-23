@@ -1,0 +1,677 @@
+/*
+ * Login gallery - the single-SSO login concepts built entirely on
+ * @pior-labs/design-system tokens, so every surface flips with the active
+ * theme (bloom / slate). Nothing here hardcodes a palette.
+ */
+
+.login-gallery {
+  --lv-serif: "Fraunces", Georgia, "Times New Roman", serif;
+  --lv-sans: "Outfit", system-ui, -apple-system, sans-serif;
+  --lv-hand: "Caveat", "Segoe Print", cursive;
+  --lv-hand-body: "Kalam", system-ui, cursive;
+  --lv-mono: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--lv-sans);
+}
+
+.lv-stage {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+}
+
+.lv-variant {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 100%;
+  padding: clamp(24px, 5vw, 72px);
+}
+
+/* ---- shared atoms --------------------------------------------------- */
+
+.lv-eyebrow {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-family: var(--lv-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.lv-note {
+  margin: 22px 0 0;
+  color: var(--muted-foreground);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+.lv-wordmark {
+  font-family: var(--lv-serif);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.lv-seal {
+  display: inline-grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  border: 1px solid var(--border);
+  border-radius: 52% 48% 51% 46%;
+  color: var(--foreground);
+  background: var(--accent-1);
+  font-family: var(--lv-serif);
+  font-size: 20px;
+  font-style: italic;
+  font-weight: 600;
+  transform: rotate(-6deg);
+}
+
+.lv-btn {
+  display: flex;
+  width: 100%;
+  min-height: 56px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 28px;
+  padding: 15px 18px 15px 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--primary-foreground);
+  background: var(--primary);
+  font-family: var(--lv-sans);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  box-shadow: 4px 5px 0 var(--border);
+  transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease;
+}
+
+.lv-btn:hover:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 3px 0 var(--border);
+  filter: brightness(1.04);
+}
+
+.lv-btn:focus-visible {
+  outline: 3px solid var(--foreground);
+  outline-offset: 3px;
+}
+
+.lv-btn:disabled {
+  cursor: progress;
+  opacity: 0.72;
+}
+
+.lv-btn svg {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+}
+
+.lv-spin {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+  border: 2px solid color-mix(in srgb, var(--primary-foreground) 40%, transparent);
+  border-top-color: var(--primary-foreground);
+  border-radius: 50%;
+  animation: lv-spin 720ms linear infinite;
+}
+
+.lv-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 22px 0 0;
+  padding: 12px 14px;
+  border-left: 3px solid var(--destructive);
+  border-radius: var(--radius-sm);
+  color: var(--destructive);
+  background: color-mix(in srgb, var(--destructive) 12%, var(--card));
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.lv-error span {
+  display: grid;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--primary-foreground);
+  background: var(--destructive);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+/* ==================================================================== */
+/* Recipe-card blocks (concept 3)                                       */
+/*                                                                      */
+/* Concept 2 was chosen and promoted: it lives in ../login/login.css as */
+/* the real sign-in screen, and the gallery renders that screen itself. */
+/* ==================================================================== */
+
+.v-card__sheet {
+  position: relative;
+  width: 100%;
+  max-width: 468px;
+  margin-top: 18px;
+  padding: clamp(30px, 4vw, 46px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  background-image: repeating-linear-gradient(
+    var(--card) 0 30px,
+    color-mix(in srgb, var(--accent-3) 45%, transparent) 30px 31px
+  );
+  box-shadow: 10px 12px 0 color-mix(in srgb, var(--accent-3) 70%, var(--card));
+  animation: lv-rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.v-card__sheet::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: clamp(20px, 2.6vw, 30px);
+  width: 1.5px;
+  background: color-mix(in srgb, var(--destructive) 45%, transparent);
+}
+
+.v-card__tab {
+  position: absolute;
+  top: -18px;
+  left: clamp(30px, 5vw, 54px);
+  padding: 6px 16px 8px;
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  color: var(--foreground);
+  background: var(--accent-1);
+  font-family: var(--lv-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.v-card__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 26px;
+}
+
+.v-card__title {
+  margin: 14px 0 0;
+  font-family: var(--lv-serif);
+  font-size: clamp(38px, 5vw, 52px);
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  line-height: 0.98;
+}
+
+.v-card__title em {
+  font-style: italic;
+  color: var(--primary);
+}
+
+.v-card__body {
+  margin: 20px 0 0;
+  color: var(--muted-foreground);
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+/* ==================================================================== */
+/* 1 - Ticket Stub                                                      */
+/* ==================================================================== */
+
+.v-ticket__card {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) 1px minmax(280px, 0.85fr);
+  width: 100%;
+  max-width: 860px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  box-shadow: 12px 14px 0 var(--primary);
+  animation: lv-rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.v-ticket__brand {
+  padding: clamp(30px, 4vw, 50px);
+  border-radius: var(--radius) 0 0 var(--radius);
+  background: linear-gradient(
+    150deg,
+    color-mix(in srgb, var(--accent-3) 72%, var(--card)),
+    color-mix(in srgb, var(--accent-2) 55%, var(--card))
+  );
+}
+
+.v-ticket__brand .lv-eyebrow {
+  color: var(--foreground);
+}
+
+.v-ticket__title {
+  margin: 18px 0 0;
+  font-family: var(--lv-serif);
+  font-size: clamp(34px, 4.4vw, 50px);
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  line-height: 0.98;
+}
+
+.v-ticket__lede {
+  max-width: 32ch;
+  margin: 20px 0 0;
+  color: color-mix(in srgb, var(--foreground) 78%, transparent);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.v-ticket__meta {
+  display: flex;
+  gap: 22px;
+  margin-top: clamp(28px, 5vw, 54px);
+  font-family: var(--lv-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--foreground) 60%, transparent);
+}
+
+/* perforated seam */
+.v-ticket__seam {
+  position: relative;
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--border-soft) 0 7px,
+    transparent 7px 14px
+  );
+}
+
+.v-ticket__seam::before,
+.v-ticket__seam::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--background);
+  transform: translateX(-50%);
+}
+
+.v-ticket__seam::before {
+  top: -13px;
+}
+
+.v-ticket__seam::after {
+  bottom: -13px;
+}
+
+.v-ticket__stub {
+  display: flex;
+  flex-direction: column;
+  padding: clamp(28px, 3.4vw, 44px);
+}
+
+.v-ticket__serial {
+  margin: 0 0 auto;
+  padding-bottom: 26px;
+  color: var(--muted-foreground);
+  font-family: var(--lv-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+}
+
+.v-ticket__stub .lv-eyebrow {
+  color: var(--primary);
+}
+
+.v-ticket__subtitle {
+  margin: 12px 0 0;
+  font-family: var(--lv-serif);
+  font-size: clamp(26px, 2.6vw, 32px);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.02;
+}
+
+/* ==================================================================== */
+/* 3 - Pinned Recipe Card (corkboard of scraps + shared recipe card)   */
+/* ==================================================================== */
+
+.v-pcard {
+  background: var(--muted);
+  background-image: radial-gradient(
+    color-mix(in srgb, var(--foreground) 12%, transparent) 1.3px,
+    transparent 1.3px
+  );
+  background-size: 22px 22px;
+}
+
+.v-notes__board {
+  position: relative;
+  width: 100%;
+  max-width: 900px;
+  min-height: min(76vh, 620px);
+  display: grid;
+  place-items: center;
+}
+
+/* lift the recipe card above the pinned scraps (which sit at z-index 1) */
+.v-pcard .v-card__sheet {
+  z-index: 3;
+}
+
+.v-pcard .lv-eyebrow {
+  color: var(--destructive);
+}
+
+.v-notes__scrap {
+  position: absolute;
+  z-index: 1;
+  width: 190px;
+  padding: 20px 18px 22px;
+  border: 1px solid var(--border-soft);
+  border-radius: 4px;
+  box-shadow: 5px 7px 0 color-mix(in srgb, var(--foreground) 14%, transparent);
+}
+
+.v-notes__scrap-title {
+  margin: 0;
+  font-family: var(--lv-hand);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--foreground);
+}
+
+.v-notes__scrap-body {
+  margin: 8px 0 0;
+  font-family: var(--lv-hand-body);
+  font-size: 13px;
+  line-height: 1.4;
+  color: color-mix(in srgb, var(--foreground) 72%, transparent);
+}
+
+.v-notes__scrap--a {
+  top: 4%;
+  left: 2%;
+  background: var(--accent-2);
+  transform: rotate(-7deg);
+}
+
+.v-notes__scrap--b {
+  top: 8%;
+  right: 3%;
+  background: var(--accent-1);
+  transform: rotate(6deg);
+}
+
+.v-notes__scrap--c {
+  bottom: 6%;
+  left: 8%;
+  background: var(--accent-3);
+  transform: rotate(4deg);
+}
+
+.v-notes__pin {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff6, transparent 60%), var(--primary);
+  box-shadow: 0 2px 4px color-mix(in srgb, var(--foreground) 35%, transparent);
+  transform: translateX(-50%);
+}
+
+.v-notes__pin--main {
+  width: 15px;
+  height: 15px;
+  top: -7px;
+}
+
+/* ==================================================================== */
+/* Chrome: caption + control dock                                       */
+/* ==================================================================== */
+
+.lv-caption {
+  position: fixed;
+  top: clamp(18px, 3vw, 30px);
+  left: clamp(18px, 3vw, 34px);
+  z-index: 40;
+  display: grid;
+  gap: 3px;
+  max-width: min(70vw, 320px);
+  pointer-events: none;
+}
+
+.lv-caption__index {
+  color: var(--muted-foreground);
+  font-family: var(--lv-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+}
+
+.lv-caption__name {
+  font-family: var(--lv-serif);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.lv-caption__blurb {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.lv-dock {
+  position: fixed;
+  left: 50%;
+  bottom: clamp(16px, 3vw, 26px);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  box-shadow: 4px 5px 0 var(--border), 0 16px 40px -18px color-mix(in srgb, var(--foreground) 60%, transparent);
+  transform: translateX(-50%);
+}
+
+.lv-dock__group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.lv-dock__divider {
+  width: 1px;
+  height: 24px;
+  background: var(--border-soft);
+}
+
+.lv-pip {
+  width: 30px;
+  height: 30px;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  color: var(--muted-foreground);
+  background: transparent;
+  font-family: var(--lv-mono);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.lv-pip:hover {
+  color: var(--foreground);
+  background: var(--muted);
+}
+
+.lv-pip.is-active {
+  color: var(--primary-foreground);
+  background: var(--primary);
+  border-color: var(--border);
+}
+
+.lv-pip:focus-visible,
+.lv-seg__btn:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 2px;
+}
+
+.lv-seg__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 6px 8px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--muted-foreground);
+  background: transparent;
+  font-family: var(--lv-sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.lv-seg__btn:hover {
+  color: var(--foreground);
+}
+
+.lv-seg__btn.is-active {
+  color: var(--foreground);
+  background: var(--muted);
+  border-color: var(--border-soft);
+}
+
+.lv-seg__swatch {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 999px;
+  background: var(--card);
+  box-shadow: inset 0 0 0 1px var(--border-soft);
+}
+
+.lv-seg__swatch span {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  margin-left: -4px;
+  box-shadow: 0 0 0 1.5px var(--card);
+}
+
+.lv-seg__swatch span:first-child {
+  margin-left: 0;
+}
+
+/* ---- animations ----------------------------------------------------- */
+
+@keyframes lv-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes lv-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---- responsive ----------------------------------------------------- */
+
+@media (max-width: 780px) {
+  .v-ticket__card {
+    grid-template-columns: 1fr;
+    max-width: 460px;
+  }
+
+  .v-ticket__brand {
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+
+  .v-ticket__seam {
+    height: 1px;
+    background: repeating-linear-gradient(
+      to right,
+      var(--border-soft) 0 7px,
+      transparent 7px 14px
+    );
+  }
+
+  .v-ticket__seam::before,
+  .v-ticket__seam::after {
+    left: auto;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .v-ticket__seam::before {
+    left: -13px;
+  }
+
+  .v-ticket__seam::after {
+    right: -13px;
+    bottom: auto;
+  }
+
+  .v-notes__scrap {
+    display: none;
+  }
+
+  .v-notes__board {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 560px) {
+  .lv-caption {
+    display: none;
+  }
+
+  .lv-dock {
+    gap: 6px;
+    padding: 7px 8px;
+  }
+
+  .lv-seg__btn {
+    padding: 6px 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lv-variant * {
+    animation: none !important;
+  }
+}

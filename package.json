@@ -4,12 +4,15 @@
   "private": true,
   "packageManager": "pnpm@10.8.1",
   "scripts": {
-    "dev": "pnpm --parallel --filter @cookbook/api --filter @cookbook/web dev",
+    "dev": "pnpm --filter @cookbook/domain build && pnpm --parallel --filter @cookbook/domain --filter @cookbook/api --filter @cookbook/web dev",
     "dev:api": "pnpm --filter @cookbook/api dev",
     "dev:web": "pnpm --filter @cookbook/web dev",
     "build": "pnpm --recursive build",
     "typecheck": "pnpm --recursive typecheck",
+    "test": "pnpm --recursive test",
+    "test:e2e": "pnpm --filter @cookbook/domain build && pnpm --filter @cookbook/e2e test:e2e",
     "db:generate": "pnpm --filter @cookbook/api db:generate",
-    "db:migrate": "pnpm --filter @cookbook/api db:migrate"
+    "db:migrate": "pnpm --filter @cookbook/api db:migrate",
+    "images:reconcile": "pnpm --filter @cookbook/api images:reconcile"
   }
 }

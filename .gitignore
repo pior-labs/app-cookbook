@@ -9,4 +9,7 @@ dist/
 .DS_Store
 coverage/
 data/
+.data/
 .vite/
+test-results/
+playwright-report/

@@ -9,10 +9,15 @@ export default defineConfig(({ mode }) => {
     envDir: '../..',
     plugins: [react(), tailwindcss()],
     server: {
-      port: 5175,
+      // Explicit IPv4 loopback rather than the `localhost` default. On hosts
+      // that resolve `localhost` to `::1` first - GitHub's runners among them -
+      // the dev server would bind IPv6 only, and everything that reaches it by
+      // address (the browser suite, the API proxy below) would be refused.
+      host: '127.0.0.1',
+      port: Number(env.WEB_PORT || '5173'),
       strictPort: true,
       proxy: {
-        '/api': `http://localhost:${env.API_PORT || '3002'}`,
+        '/api': `http://127.0.0.1:${env.API_PORT || '3002'}`,
       },
     },
   };

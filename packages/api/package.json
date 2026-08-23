@@ -5,26 +5,34 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsx src/db/migrate.ts"
+    "db:migrate": "tsx src/db/migrate.ts",
+    "images:reconcile": "tsx src/images/reconcile.ts",
+    "e2e:server": "tsx test/e2e-server.ts",
+    "test": "vitest run && pnpm test:auth-config",
+    "test:auth-config": "pnpm build && node --test test/auth-cookie-prefix.test.mjs",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "1.6.20",
+    "@cookbook/domain": "workspace:*",
     "@hono/node-server": "^1.14.1",
     "better-auth": "1.6.20",
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.7.2",
     "postgres": "^3.4.9",
+    "sharp": "^0.35.3",
     "zod": "^4.4.2"
   },
   "devDependencies": {
     "@types/node": "^22.13.4",
     "drizzle-kit": "^0.31.10",
     "tsx": "^4.19.3",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
   }
 }
