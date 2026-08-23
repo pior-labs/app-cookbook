@@ -50,6 +50,9 @@ export default defineConfig({
       url: baseURL,
       env: { WEB_PORT, API_PORT },
       reuseExistingServer: !process.env.CI,
+      // Piped like the API's: when the server does not come up, the run has to
+      // say why rather than only that it waited.
+      stdout: 'pipe',
       timeout: 120_000,
     },
   ],
