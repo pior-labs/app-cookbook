@@ -5,7 +5,7 @@ import { checkStorageWritable } from './images/readiness.js';
 import type { AppEnv } from './middleware/context.js';
 import { errorHandler, notFoundHandler } from './middleware/errors.js';
 import { requestContext } from './middleware/request-context.js';
-import { homeRoute } from './routes/home.js';
+import { homeRoute, recentRoute } from './routes/discovery.js';
 import { categoriesRoute, tagsRoute } from './routes/organization.js';
 import { recipesRoute } from './routes/recipes.js';
 
@@ -84,6 +84,7 @@ export function createApp(deps: AppDependencies) {
   );
 
   app.route('/api/home', homeRoute);
+  app.route('/api/recent', recentRoute);
   app.route('/api/recipes', recipesRoute);
   app.route('/api/categories', categoriesRoute);
   app.route('/api/tags', tagsRoute);

@@ -1,5 +1,7 @@
 import type { RecipeSummary } from '@cookbook/domain';
 import { Link } from 'react-router-dom';
+import { FavoriteButton } from '../preferences/controls.jsx';
+import { useRecipePreferences } from '../preferences/usePreferences.js';
 
 // The one recipe card. Home rails and browse results are the same summary
 // shape, so they render through the same component and stay visually identical
@@ -26,6 +28,10 @@ function ratingLabel(recipe: RecipeSummary): string | null {
 export function RecipeCard({ recipe }: { recipe: RecipeSummary }) {
   const time = timeLabel(recipe);
   const rating = ratingLabel(recipe);
+  const preferences = useRecipePreferences(recipe.id, {
+    userState: recipe.userState,
+    rating: recipe.rating,
+  });
 
   return (
     <li className="rc-card">
@@ -50,6 +56,21 @@ export function RecipeCard({ recipe }: { recipe: RecipeSummary }) {
           ) : null}
         </div>
       </Link>
+
+      {/* A sibling of the link rather than a child: a button inside a link is
+          neither valid nor operable. */}
+      <FavoriteButton
+        name={recipe.name}
+        favorite={preferences.userState.favorite}
+        onToggle={preferences.toggleFavorite}
+        size="small"
+      />
+
+      {preferences.error ? (
+        <p className="rc-card__error" role="alert">
+          {preferences.error}
+        </p>
+      ) : null}
     </li>
   );
 }

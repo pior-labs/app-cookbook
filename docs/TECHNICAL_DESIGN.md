@@ -318,6 +318,7 @@ Internal exceptions, SQL details, storage paths, tokens, and secrets are never r
 | Method and path | Purpose |
 | --- | --- |
 | `GET /api/home` | Recently viewed, favorites, highly rated, recently added, and category summaries for the current user. |
+| `GET /api/recent` | The current user's recently viewed recipes, ordered by view time, capped by `limit`. |
 | `GET /api/recipes` | Paginated browse/search with category, tag, favorite, minimum rating, maximum total time, and sort filters. |
 | `POST /api/recipes` | Create one complete recipe aggregate. |
 | `GET /api/recipes/:id` | Return an active recipe with ingredients, instructions, tags, aggregate rating, and current user's preference state. |
@@ -341,6 +342,12 @@ Internal exceptions, SQL details, storage paths, tokens, and secrets are never r
 - `cursor` and `limit`.
 
 Every sort has an `id` tie-breaker for stable pagination.
+
+`GET /api/recent` backs the `/recent` screen. It is deliberately not part of
+`GET /api/recipes`: recently viewed has one inherent order and is bounded by
+what one person has opened, so it takes a `limit` but no cursor and needs no
+sort of its own. Adding a fifth browse sort would have put a per-user ordering
+into the shared keyset pagination for no gain.
 
 ### 7.3 Organization and Trash endpoints
 

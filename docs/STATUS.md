@@ -1,7 +1,7 @@
 # Development Status
 
 **Last updated:** 2026-08-23
-**Current stage:** Phase 1 in progress — browse, search, home discovery, and category/tag management implemented (slice 5)
+**Current stage:** Phase 1 in progress — per-user favorites, ratings, and recently viewed implemented (slice 6)
 **Current product phase:** Phase 1 — Core Cookbook
 
 This file records the application's **actual implementation state**.
@@ -14,7 +14,7 @@ Agents and contributors must not infer that a PRD requirement has been implement
 
 ## Current state
 
-The Cookbook scaffold and central SSO integration are implemented and configured to use the hosted issuer. Registering the new shared `localhost:5173` callback in the deployed `service-auth` client remains an external dependency. The product requirements are approved, and the complete Phase 1 technical design and ADRs 0002–0005 are accepted. The pure `@cookbook/domain` package, the normalized recipe database schema, and the first domain migration are implemented (implementation sequence slice 1). Recipe aggregate create, read, and update are implemented behind the authenticated API boundary, with the shared error envelope and API integration tests (slice 2). The primary recipe photo is implemented end to end on the API: authenticated multipart upload, verified decoding, WebP variant generation, authenticated delivery, replacement, deletion, and orphan reconciliation (slice 3). The recipe creation, detail, edit, and serving-scaling screens are implemented on `@pior-labs/design-system` tokens, together with the category/tag read endpoints and the minimal recent-recipe list they depend on (slice 4). Browse/search with cursor pagination, the home discovery response, full category and tag management, and the `/`, `/recipes`, and `/organize` screens are implemented (slice 5). Per-user preferences (favorites, ratings, recently viewed) and Trash have not been implemented: browse and home already read that state, but nothing can write it yet, so those rails and filters stay empty.
+The Cookbook scaffold and central SSO integration are implemented and configured to use the hosted issuer. Registering the new shared `localhost:5173` callback in the deployed `service-auth` client remains an external dependency. The product requirements are approved, and the complete Phase 1 technical design and ADRs 0002–0005 are accepted. The pure `@cookbook/domain` package, the normalized recipe database schema, and the first domain migration are implemented (implementation sequence slice 1). Recipe aggregate create, read, and update are implemented behind the authenticated API boundary, with the shared error envelope and API integration tests (slice 2). The primary recipe photo is implemented end to end on the API: authenticated multipart upload, verified decoding, WebP variant generation, authenticated delivery, replacement, deletion, and orphan reconciliation (slice 3). The recipe creation, detail, edit, and serving-scaling screens are implemented on `@pior-labs/design-system` tokens, together with the category/tag read endpoints and the minimal recent-recipe list they depend on (slice 4). Browse/search with cursor pagination, the home discovery response, full category and tag management, and the `/`, `/recipes`, and `/organize` screens are implemented (slice 5). Per-user favorites, 1-5 ratings, and recently viewed history are implemented end to end, including the `/favorites` and `/recent` screens and the favorite and rating browse filters (slice 6). Trash has not been implemented: a recipe cannot yet be deleted, restored, or permanently removed.
 
 ## Completed
 
@@ -49,7 +49,7 @@ The Cookbook scaffold and central SSO integration are implemented and configured
 - Readiness verifies the configured image directory is writable in addition to the database, and Compose mounts a persistent image directory into the API container only.
 - Image integration tests covering validation, replacement, delivery, cleanup, and reconciliation against a disposable temporary directory.
 - `GET /api/categories` and `GET /api/tags` with active recipe counts, plus `POST /api/tags` for inline tag creation from the recipe form.
-- Client-side routing for `/`, `/recipes`, `/recipes/new`, `/recipes/:id`, `/recipes/:id/edit`, and `/organize`, mounted only for an authenticated session.
+- Client-side routing for `/`, `/recipes`, `/recipes/new`, `/recipes/:id`, `/recipes/:id/edit`, `/favorites`, `/recent`, and `/organize`, mounted only for an authenticated session.
 - Typed API client returning the shared error envelope, with field-scoped errors, retry, and abort handling shared by every recipe screen.
 - Recipe creation and edit form: structured ingredient and instruction rows with button-based keyboard and touch reordering, unit selection with custom units, inline tag creation, mutually exclusive source fields, and entered values preserved after a failed save.
 - Client-side validation reusing the `@cookbook/domain` schemas, so the same rules produce the same field-scoped messages as the API.
@@ -69,16 +69,24 @@ The Cookbook scaffold and central SSO integration are implemented and configured
 - `/organize` category and tag management: inline rename, create, and confirmed delete, with the in-use conflict explained in the row that caused it and a rejected name left in the box.
 - Shared application shell with section navigation, and one recipe card used by every list.
 - API integration tests for search, filters, all four sorts, full cursor walks, and home sections; React Testing Library coverage for the discovery and organize screens.
+- `POST /api/recipes/:id/view`, `PUT`/`DELETE /api/recipes/:id/favorite`, and `PUT`/`DELETE /api/recipes/:id/rating`: per-user state keyed by the session user, idempotent in both directions, refused for a recipe in Trash, and each answering with the resulting user state and household rating in one transaction.
+- `GET /api/recent`: the acting user's recently viewed recipes, ordered by view time and capped by `limit`, documented in technical design section 7.2 as deliberately cursor-free.
+- Recently viewed is one row per person per recipe: re-opening a recipe moves it back to the top rather than lengthening the list, and the timestamp comes from the database rather than a client clock.
+- Favorite and rating controls on recipe detail and on every recipe card, optimistic per section 11.3: the control flips immediately, a failure restores the previous value and announces why, and the household average always comes from the server rather than being predicted.
+- View recording fires once a recipe detail has loaded and stays silent on failure; a recipe that failed to load is never recorded as opened.
+- `/favorites` and `/recent` screens with their own empty states, plus favorite and minimum-household-rating filters in browse and "see all" links from the home rails.
+- Shared cursor-pagination hook and result renderer behind browse and favorites, so both page, count, empty out, and recover from a failed "load more" identically.
+- API integration tests for favorites, ratings, view recording, and recent history including per-user isolation and Trash exclusion; React Testing Library coverage for the optimistic flip, the revert-and-announce path, and both per-user screens.
 
 ## In progress
 
-- Phase 1 slice 6: favorites, ratings, and recently viewed behavior.
+- Phase 1 slice 7: Trash, restoration, permanent deletion, and recovery tests.
 
 ## Next
 
 1. Register the shared `localhost:5173` callback and reseed the `cookbook` client in the production `service-auth` environment.
 2. Provision the Cookbook database, persistent image directory (`PLATFORM_IMAGE_STORAGE_DIR`), routes, DNS, and connection file in `platform-deploy`.
-3. Continue Phase 1 in the documented vertical slices (preferences, Trash, polish).
+3. Continue Phase 1 in the documented vertical slices (Trash, polish).
 
 ## Phase 1 — Core Cookbook
 

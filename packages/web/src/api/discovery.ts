@@ -12,6 +12,8 @@ export interface BrowseFilters {
   q: string;
   categoryId: number | null;
   tagIds: number[];
+  favorite: boolean;
+  minRating: number | null;
   maxTotalMinutes: number | null;
   sort: RecipeSort;
 }
@@ -20,15 +22,21 @@ export const EMPTY_FILTERS: BrowseFilters = {
   q: '',
   categoryId: null,
   tagIds: [],
+  favorite: false,
+  minRating: null,
   maxTotalMinutes: null,
   sort: 'recentlyAdded',
 };
 
+// Sort is not a filter: changing the order of the same results is not
+// something "clear filters" should undo.
 export function isFiltered(filters: BrowseFilters): boolean {
   return (
     filters.q.trim() !== '' ||
     filters.categoryId != null ||
     filters.tagIds.length > 0 ||
+    filters.favorite ||
+    filters.minRating != null ||
     filters.maxTotalMinutes != null
   );
 }
@@ -41,6 +49,8 @@ export function browseQuery(filters: BrowseFilters, cursor?: string | null): URL
   if (filters.q.trim() !== '') params.set('q', filters.q.trim());
   if (filters.categoryId != null) params.set('categoryId', String(filters.categoryId));
   for (const tagId of filters.tagIds) params.append('tagId', String(tagId));
+  if (filters.favorite) params.set('favorite', 'true');
+  if (filters.minRating != null) params.set('minRating', String(filters.minRating));
   if (filters.maxTotalMinutes != null) {
     params.set('maxTotalMinutes', String(filters.maxTotalMinutes));
   }

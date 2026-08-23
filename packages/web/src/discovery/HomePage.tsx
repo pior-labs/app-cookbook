@@ -107,10 +107,8 @@ export function HomePage() {
           <EmptyCookbook />
         ) : home ? (
           <>
-            {/* `/recent` and `/favorites` arrive with per-user preferences,
-                so these rails have no "see all" target yet. */}
-            <Rail title="Jump back in" recipes={home.recentlyViewed} />
-            <Rail title="Your favorites" recipes={home.favorites} />
+            <Rail title="Jump back in" recipes={home.recentlyViewed} browseTo="/recent" />
+            <Rail title="Your favorites" recipes={home.favorites} browseTo="/favorites" />
             <Rail
               title="Loved in this house"
               recipes={home.highlyRated}

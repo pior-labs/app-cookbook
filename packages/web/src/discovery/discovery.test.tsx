@@ -324,6 +324,35 @@ describe('browse and search', () => {
     expect(screen.getByRole('heading', { name: 'Weeknight Chili' })).toBeInTheDocument();
   });
 
+  it('filters to favorites and a minimum household rating', async () => {
+    const calls = mockApi({
+      ...organization,
+      '/api/recipes': () => jsonResponse({ items: [summary(1, 'Chili')], nextCursor: null }),
+    });
+
+    renderAt('/recipes', <BrowsePage />);
+
+    await userEvent.click(await screen.findByRole('button', { name: '♥ My favorites' }));
+    await userEvent.click(screen.getByRole('button', { name: '4★' }));
+
+    await waitFor(() => expect(calls.at(-1)).toBe('/api/recipes?favorite=true&minRating=4'));
+  });
+
+  it('clears every filter but keeps the chosen sort', async () => {
+    const calls = mockApi({
+      ...organization,
+      '/api/recipes': () => jsonResponse({ items: [summary(1, 'Chili')], nextCursor: null }),
+    });
+
+    renderAt('/recipes?q=chili&favorite=true&minRating=4&sort=name', <BrowsePage />);
+
+    await userEvent.click((await screen.findAllByRole('button', { name: 'Clear filters' }))[0]);
+
+    await waitFor(() => expect(calls.at(-1)).toBe('/api/recipes?sort=name'));
+    expect(screen.getByLabelText('Search recipes')).toHaveValue('');
+    expect(screen.getByLabelText('Sort')).toHaveValue('name');
+  });
+
   it('reports how many recipes matched', async () => {
     mockApi({
       ...organization,

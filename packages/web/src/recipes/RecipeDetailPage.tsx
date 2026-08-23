@@ -3,7 +3,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ApiRequestError } from '../api/client.js';
 import { useApiResource } from '../api/hooks.js';
+import { recordView } from '../api/preferences.js';
 import { getRecipe } from '../api/recipes.js';
+import { FavoriteButton, RatingControl } from '../preferences/controls.jsx';
+import { useRecipePreferences } from '../preferences/usePreferences.js';
 import { IngredientList } from './IngredientList.jsx';
 import { ServingControl } from './ServingControl.jsx';
 import { ErrorState, RecipeSkeleton } from './states.jsx';
@@ -63,6 +66,53 @@ function SourceLine({ recipe }: { recipe: RecipeDetail }) {
   return null;
 }
 
+// Opening a recipe is what "recently viewed" records, so the page reports it
+// once per recipe rather than making a cook press anything. A failure is
+// deliberately silent: the recipe still opened (section 7.2).
+function useRecordView(recipeId: number, loaded: boolean): void {
+  useEffect(() => {
+    if (!loaded) return;
+
+    void recordView(recipeId).catch(() => {});
+  }, [recipeId, loaded]);
+}
+
+// Favorite and rating sit together because they answer the same question: what
+// does this house think of this recipe, and what do I think of it?
+function PreferenceBar({ recipe }: { recipe: RecipeDetail }) {
+  const preferences = useRecipePreferences(recipe.id, {
+    userState: recipe.userState,
+    rating: recipe.rating,
+  });
+
+  return (
+    <div className="rc-preferences">
+      <FavoriteButton
+        name={recipe.name}
+        favorite={preferences.userState.favorite}
+        onToggle={preferences.toggleFavorite}
+      />
+
+      <RatingControl
+        name={recipe.name}
+        rating={preferences.userState.rating}
+        average={preferences.rating.average}
+        count={preferences.rating.count}
+        onRate={preferences.setRating}
+        onClear={preferences.clearRating}
+      />
+
+      {/* A reverted change has to say so, or the control silently snaps back
+          (section 11.3). */}
+      {preferences.error ? (
+        <p className="rc-preferences__error" role="alert">
+          {preferences.error}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 export function RecipeDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -80,6 +130,8 @@ export function RecipeDetailPage() {
     [recipeId, validId],
   );
   const { data: recipe, error, loading, reload } = useApiResource(load, [recipeId]);
+
+  useRecordView(recipeId, validId && recipe != null);
 
   const [servings, setServings] = useState<number | null>(null);
 
@@ -148,6 +200,10 @@ export function RecipeDetailPage() {
 
           <TimeFacts recipe={recipe} />
           <SourceLine recipe={recipe} />
+
+          {/* Keyed by recipe so opening another one starts from its own state
+              instead of inheriting the previous recipe's. */}
+          <PreferenceBar key={recipe.id} recipe={recipe} />
 
           <div className="rc-detail__actions">
             <button

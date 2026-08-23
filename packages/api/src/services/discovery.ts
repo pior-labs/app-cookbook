@@ -85,6 +85,13 @@ export async function searchRecipes(
   }
 }
 
+// The `/recent` screen: the same rail the home screen shows, deeper. It is
+// capped rather than paginated, because recent history is a short list by
+// nature and grows only as fast as one person opens recipes.
+export async function recentlyViewed(userId: number, limit: number): Promise<RecipeSummary[]> {
+  return (await listHomeSection(db, 'recentlyViewed', userId, limit)).map(toSummary);
+}
+
 // The whole home screen in one response. The sections are independent queries
 // and are issued together rather than in sequence (section 7.2).
 export async function homeSections(userId: number): Promise<HomeSections> {

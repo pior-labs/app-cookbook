@@ -8,7 +8,9 @@ import { useAuth } from './auth';
 
 const NAV = [
   { to: '/', label: 'Home', end: true },
-  { to: '/recipes', label: 'Browse', end: false },
+  { to: '/recipes', label: 'Browse', end: true },
+  { to: '/favorites', label: 'Favorites', end: false },
+  { to: '/recent', label: 'Recent', end: false },
   { to: '/organize', label: 'Organize', end: false },
 ] as const;
 

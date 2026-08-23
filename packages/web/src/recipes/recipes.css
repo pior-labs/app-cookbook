@@ -1164,3 +1164,143 @@
   flex: 1 1 200px;
   width: auto;
 }
+
+/* ---- favorites and ratings ------------------------------------------- */
+
+.rc-preferences {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 20px 0 0;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 14px);
+  background: var(--card);
+}
+
+.rc-preferences__error {
+  flex: 1 0 100%;
+  margin: 0;
+  color: var(--destructive);
+  font-size: 14px;
+}
+
+.rc-favorite {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--rc-touch);
+  padding: 0 16px;
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease;
+}
+
+.rc-favorite:hover {
+  border-color: var(--destructive);
+}
+
+.rc-favorite--on {
+  color: var(--destructive);
+  border-color: var(--destructive);
+}
+
+/* On a card the heart floats over the photo, so it needs its own contrast
+   rather than borrowing the card surface. */
+.rc-favorite--small {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: var(--rc-touch);
+  min-height: var(--rc-touch);
+  padding: 0;
+  font-size: 18px;
+  background: var(--card);
+  box-shadow: 0 1px 6px rgb(0 0 0 / 18%);
+}
+
+.rc-favorite:focus-visible,
+.rc-rating__star:focus-visible,
+.rc-rating__clear:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.rc-rating {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.rc-rating__stars {
+  display: flex;
+  gap: 2px;
+}
+
+.rc-rating__star {
+  display: grid;
+  place-items: center;
+  width: var(--rc-touch);
+  height: var(--rc-touch);
+  color: var(--muted-foreground);
+  border: none;
+  border-radius: var(--radius-sm, 10px);
+  background: none;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.rc-rating__star:hover {
+  color: var(--foreground);
+}
+
+.rc-rating__star--on {
+  color: var(--accent-2, var(--primary));
+}
+
+.rc-rating__clear {
+  color: var(--muted-foreground);
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.rc-rating__clear:hover {
+  color: var(--foreground);
+}
+
+.rc-rating__household {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-family: var(--rc-mono);
+  font-size: 12px;
+}
+
+/* The card is the positioning context for its floating favorite control. */
+.rc-card {
+  position: relative;
+}
+
+.rc-card__error {
+  margin: 0;
+  padding: 0 16px 14px;
+  color: var(--destructive);
+  font-size: 13px;
+}
+
+.rc-filters__group--inline {
+  min-width: 0;
+  align-self: flex-end;
+}

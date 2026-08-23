@@ -63,6 +63,15 @@ export interface RecipeRatingSummary {
   count: number;
 }
 
+// What a favorite or rating change returns. The household average moves when
+// one person rates, so the answer carries both halves and an optimistic UI can
+// reconcile against the truth instead of guessing at the new average
+// (technical design section 11.3).
+export interface RecipePreferences {
+  userState: RecipeUserState;
+  rating: RecipeRatingSummary;
+}
+
 export interface RecipeSummary {
   id: number;
   name: string;
