@@ -11,6 +11,7 @@ import {
   userFavorites,
   userRatings,
 } from '../db/schema.js';
+import { decodeCursor, encodeCursor, type CursorPayload } from './cursor.js';
 import { activeRecipe, type DbExecutor } from './shared.js';
 
 // Browse, search, and home discovery reads. Everything here is one query per
@@ -130,48 +131,6 @@ export interface SearchRecipesParams {
   limit: number;
 }
 
-// The opaque cursor from technical design section 7.2. It carries the sort it
-// was issued for, the last row's sort key, and the last row's ID, so a page
-// continues from exactly where the previous one stopped even when rows are
-// added, renamed, or rated in between.
-interface CursorPayload {
-  sort: RecipeSort;
-  key: string;
-  id: number;
-}
-
-export class InvalidCursorError extends Error {}
-
-function encodeCursor(payload: CursorPayload): string {
-  return Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
-}
-
-function decodeCursor(cursor: string, sort: RecipeSort): CursorPayload {
-  let parsed: unknown;
-
-  try {
-    parsed = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8'));
-  } catch {
-    throw new InvalidCursorError('Cursor is not decodable.');
-  }
-
-  const payload = parsed as Partial<CursorPayload> | null;
-
-  if (
-    !payload ||
-    typeof payload.key !== 'string' ||
-    typeof payload.id !== 'number' ||
-    !Number.isSafeInteger(payload.id) ||
-    // A cursor issued for one ordering describes nothing about another, so
-    // changing the sort must restart rather than resume from a stale key.
-    payload.sort !== sort
-  ) {
-    throw new InvalidCursorError('Cursor does not belong to this query.');
-  }
-
-  return { sort, key: payload.key, id: payload.id };
-}
-
 function cursorKey(sort: RecipeSort, row: RecipeSummaryRow): string {
   switch (sort) {
     case 'recentlyAdded':
@@ -203,7 +162,7 @@ function ordering(sort: RecipeSort): SQL[] {
 
 // Row comparison rather than the expanded `a < x or (a = x and b < y)` form:
 // one expression, and it cannot drift out of step with the ordering above.
-function keysetPredicate(payload: CursorPayload): SQL {
+function keysetPredicate(payload: CursorPayload<RecipeSort>): SQL {
   switch (payload.sort) {
     case 'recentlyAdded':
       return sql`(${recipes.createdAt}, ${recipes.id}) < (${payload.key}::timestamptz, ${payload.id}::int)`;

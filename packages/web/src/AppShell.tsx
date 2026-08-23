@@ -12,6 +12,7 @@ const NAV = [
   { to: '/favorites', label: 'Favorites', end: false },
   { to: '/recent', label: 'Recent', end: false },
   { to: '/organize', label: 'Organize', end: false },
+  { to: '/trash', label: 'Trash', end: false },
 ] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {

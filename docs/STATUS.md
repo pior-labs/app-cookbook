@@ -1,7 +1,7 @@
 # Development Status
 
 **Last updated:** 2026-08-23
-**Current stage:** Phase 1 in progress — per-user favorites, ratings, and recently viewed implemented (slice 6)
+**Current stage:** Phase 1 in progress — Trash, restoration, and permanent deletion implemented (slice 7)
 **Current product phase:** Phase 1 — Core Cookbook
 
 This file records the application's **actual implementation state**.
@@ -14,7 +14,7 @@ Agents and contributors must not infer that a PRD requirement has been implement
 
 ## Current state
 
-The Cookbook scaffold and central SSO integration are implemented and configured to use the hosted issuer. Registering the new shared `localhost:5173` callback in the deployed `service-auth` client remains an external dependency. The product requirements are approved, and the complete Phase 1 technical design and ADRs 0002–0005 are accepted. The pure `@cookbook/domain` package, the normalized recipe database schema, and the first domain migration are implemented (implementation sequence slice 1). Recipe aggregate create, read, and update are implemented behind the authenticated API boundary, with the shared error envelope and API integration tests (slice 2). The primary recipe photo is implemented end to end on the API: authenticated multipart upload, verified decoding, WebP variant generation, authenticated delivery, replacement, deletion, and orphan reconciliation (slice 3). The recipe creation, detail, edit, and serving-scaling screens are implemented on `@pior-labs/design-system` tokens, together with the category/tag read endpoints and the minimal recent-recipe list they depend on (slice 4). Browse/search with cursor pagination, the home discovery response, full category and tag management, and the `/`, `/recipes`, and `/organize` screens are implemented (slice 5). Per-user favorites, 1-5 ratings, and recently viewed history are implemented end to end, including the `/favorites` and `/recent` screens and the favorite and rating browse filters (slice 6). Trash has not been implemented: a recipe cannot yet be deleted, restored, or permanently removed.
+The Cookbook scaffold and central SSO integration are implemented and configured to use the hosted issuer. Registering the new shared `localhost:5173` callback in the deployed `service-auth` client remains an external dependency. The product requirements are approved, and the complete Phase 1 technical design and ADRs 0002–0005 are accepted. The pure `@cookbook/domain` package, the normalized recipe database schema, and the first domain migration are implemented (implementation sequence slice 1). Recipe aggregate create, read, and update are implemented behind the authenticated API boundary, with the shared error envelope and API integration tests (slice 2). The primary recipe photo is implemented end to end on the API: authenticated multipart upload, verified decoding, WebP variant generation, authenticated delivery, replacement, deletion, and orphan reconciliation (slice 3). The recipe creation, detail, edit, and serving-scaling screens are implemented on `@pior-labs/design-system` tokens, together with the category/tag read endpoints and the minimal recent-recipe list they depend on (slice 4). Browse/search with cursor pagination, the home discovery response, full category and tag management, and the `/`, `/recipes`, and `/organize` screens are implemented (slice 5). Per-user favorites, 1-5 ratings, and recently viewed history are implemented end to end, including the `/favorites` and `/recent` screens and the favorite and rating browse filters (slice 6). Recoverable deletion is implemented end to end: a recipe moves to Trash without destroying anything, restoration returns it with all of its retained state, and permanent deletion from Trash removes its rows and image files (slice 7). What remains in Phase 1 is mobile and accessibility polish, end-to-end browser coverage, and production provisioning.
 
 ## Completed
 
@@ -49,7 +49,7 @@ The Cookbook scaffold and central SSO integration are implemented and configured
 - Readiness verifies the configured image directory is writable in addition to the database, and Compose mounts a persistent image directory into the API container only.
 - Image integration tests covering validation, replacement, delivery, cleanup, and reconciliation against a disposable temporary directory.
 - `GET /api/categories` and `GET /api/tags` with active recipe counts, plus `POST /api/tags` for inline tag creation from the recipe form.
-- Client-side routing for `/`, `/recipes`, `/recipes/new`, `/recipes/:id`, `/recipes/:id/edit`, `/favorites`, `/recent`, and `/organize`, mounted only for an authenticated session.
+- Client-side routing for `/`, `/recipes`, `/recipes/new`, `/recipes/:id`, `/recipes/:id/edit`, `/favorites`, `/recent`, `/organize`, and `/trash`, mounted only for an authenticated session.
 - Typed API client returning the shared error envelope, with field-scoped errors, retry, and abort handling shared by every recipe screen.
 - Recipe creation and edit form: structured ingredient and instruction rows with button-based keyboard and touch reordering, unit selection with custom units, inline tag creation, mutually exclusive source fields, and entered values preserved after a failed save.
 - Client-side validation reusing the `@cookbook/domain` schemas, so the same rules produce the same field-scoped messages as the API.
@@ -77,20 +77,27 @@ The Cookbook scaffold and central SSO integration are implemented and configured
 - `/favorites` and `/recent` screens with their own empty states, plus favorite and minimum-household-rating filters in browse and "see all" links from the home rails.
 - Shared cursor-pagination hook and result renderer behind browse and favorites, so both page, count, empty out, and recover from a failed "load more" identically.
 - API integration tests for favorites, ratings, view recording, and recent history including per-user isolation and Trash exclusion; React Testing Library coverage for the optimistic flip, the revert-and-announce path, and both per-user screens.
+- `DELETE /api/recipes/:id`, `GET /api/trash`, `POST /api/trash/:id/restore`, and `DELETE /api/trash/:id`: soft deletion records who deleted the recipe and removes no rows or image files, restoration clears only the deletion metadata, and permanent deletion is reachable only for a recipe already in Trash.
+- A separate Trash repository path scoped to deleted recipes, so the active and deleted scopes stay visible in review rather than depending on a hidden default condition.
+- Permanent deletion removes every dependent row through the schema's cascades in one transaction and deletes the image folder only after that has committed, so a failed cleanup leaves an orphan for `pnpm images:reconcile` rather than a recipe pointing at nothing.
+- One shared opaque keyset cursor behind browse and Trash, bound to the ordering it was issued for, so a browse cursor pasted into Trash is a recoverable field-scoped error rather than a wrong page.
+- `/trash` screen: restore in one press, permanent deletion gated on typing the recipe name, per-row failure messages, and its own empty state; `Move to Trash` on recipe detail confirms in place and then follows the recipe to Trash.
+- One shared cursor-pagination hook behind browse, favorites, and Trash, so all three page, extend, and recover from a failed "load more" identically.
+- API integration tests for soft deletion, Trash listing and pagination, restoration with favorites/ratings/history/tags intact, permanent deletion of rows and image files, and the category that a trashed recipe keeps blocked; React Testing Library coverage for restore, the typed-name confirmation, and the recipe-detail delete flow.
 
 ## In progress
 
-- Phase 1 slice 7: Trash, restoration, permanent deletion, and recovery tests.
+- Phase 1 slice 8: mobile/accessibility polish, end-to-end coverage, production provisioning, and restore verification.
 
 ## Next
 
 1. Register the shared `localhost:5173` callback and reseed the `cookbook` client in the production `service-auth` environment.
 2. Provision the Cookbook database, persistent image directory (`PLATFORM_IMAGE_STORAGE_DIR`), routes, DNS, and connection file in `platform-deploy`.
-3. Continue Phase 1 in the documented vertical slices (Trash, polish).
+3. Complete Phase 1 with the final documented slice (polish, end-to-end coverage, restore verification).
 
 ## Phase 1 — Core Cookbook
 
-**Status:** In progress — authentication foundation, recipe aggregate API, image pipeline, and recipe UI complete
+**Status:** In progress — authentication foundation, recipe aggregate API, image pipeline, recipe UI, discovery, per-user state, and Trash complete
 
 Planned scope includes:
 

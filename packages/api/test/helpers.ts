@@ -100,9 +100,10 @@ export async function createTag(name: string): Promise<number> {
   return row.id;
 }
 
-// Favorites, ratings, recent history, and Trash have no endpoints yet: they
-// arrive in slices 6 and 7. Browse and home already read them, so the suite
-// writes the rows directly rather than waiting for the API that will set them.
+// Per-user state and soft deletion have their own endpoints, exercised in
+// `preferences.test.ts` and `trash.test.ts`. These write the rows directly so a
+// suite testing something else can arrange the state it needs in one call
+// instead of walking the API to get there.
 export async function setFavorite(userId: number, recipeId: number): Promise<void> {
   await db.insert(userFavorites).values({ userId, recipeId });
 }

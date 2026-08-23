@@ -15,6 +15,7 @@ import {
   unfavoriteRecipe,
 } from '../services/preferences.js';
 import { createRecipe, getRecipe, updateRecipe } from '../services/recipes.js';
+import { moveRecipeToTrash } from '../services/trash.js';
 import { idParam, parseBody, parseQuery } from './http.js';
 import { registerPhotoRoutes } from './photos.js';
 
@@ -53,6 +54,15 @@ recipesRoute.put('/:id', async (c) => {
   const recipe = await updateRecipe(recipeId, input, c.get('userId'));
 
   return c.json(recipe);
+});
+
+// Deleting a recipe moves it to Trash and destroys nothing. Permanent deletion
+// is a separate action on a separate resource, so a mis-aimed request here is
+// always recoverable (section 10).
+recipesRoute.delete('/:id', async (c) => {
+  await moveRecipeToTrash(recipeIdParam(c), c.get('userId'));
+
+  return c.body(null, 204);
 });
 
 // Per-user state hangs off the recipe path but is never part of the recipe

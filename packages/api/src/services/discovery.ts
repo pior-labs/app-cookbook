@@ -6,15 +6,14 @@ import {
   type RecipeSummary,
 } from '@cookbook/domain';
 import { db } from '../db/index.js';
-import { validationError } from '../errors.js';
 import {
-  InvalidCursorError,
   listCategoriesWithCounts,
   listHomeSection,
   searchRecipes as searchRecipeRows,
   toIso,
   type RecipeSummaryRow,
 } from '../repositories/index.js';
+import { withCursorErrors } from './pagination.js';
 
 // Browse/search and the home screen's sections. Both return the same recipe
 // summary shape, so one card renders every list (technical design
@@ -53,7 +52,7 @@ export async function searchRecipes(
   query: ListRecipesQuery,
   userId: number,
 ): Promise<RecipeListPage> {
-  try {
+  return withCursorErrors(async () => {
     const page = await searchRecipeRows(
       db,
       {
@@ -71,18 +70,7 @@ export async function searchRecipes(
     );
 
     return { items: page.rows.map(toSummary), nextCursor: page.nextCursor };
-  } catch (error) {
-    // A cursor is opaque, so a client cannot repair one. Saying which parameter
-    // is wrong lets the screen drop it and reload the first page instead of
-    // showing a dead end.
-    if (error instanceof InvalidCursorError) {
-      throw validationError('That page link is no longer valid.', {
-        cursor: ['Start from the first page of results.'],
-      });
-    }
-
-    throw error;
-  }
+  });
 }
 
 // The `/recent` screen: the same rail the home screen shows, deeper. It is

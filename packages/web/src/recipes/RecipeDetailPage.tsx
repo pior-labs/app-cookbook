@@ -5,6 +5,7 @@ import { ApiRequestError } from '../api/client.js';
 import { useApiResource } from '../api/hooks.js';
 import { recordView } from '../api/preferences.js';
 import { getRecipe } from '../api/recipes.js';
+import { trashRecipe } from '../api/trash.js';
 import { FavoriteButton, RatingControl } from '../preferences/controls.jsx';
 import { useRecipePreferences } from '../preferences/usePreferences.js';
 import { IngredientList } from './IngredientList.jsx';
@@ -113,6 +114,77 @@ function PreferenceBar({ recipe }: { recipe: RecipeDetail }) {
   );
 }
 
+// Deleting is recoverable, so it asks once and says where the recipe is going
+// rather than warning about a loss that is not happening (technical design
+// section 10). The screen then follows it to Trash, where undoing is one press.
+function DeleteAction({ recipe }: { recipe: RecipeDetail }) {
+  const navigate = useNavigate();
+  const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const remove = async () => {
+    setBusy(true);
+    setError(null);
+
+    try {
+      await trashRecipe(recipe.id);
+      navigate('/trash');
+    } catch (caught) {
+      setError(
+        caught instanceof ApiRequestError ? caught.message : 'Something went wrong. Try again.',
+      );
+      setBusy(false);
+    }
+  };
+
+  if (!confirming) {
+    return (
+      <button
+        className="rc-button rc-button--ghost"
+        type="button"
+        onClick={() => setConfirming(true)}
+      >
+        Move to Trash
+      </button>
+    );
+  }
+
+  return (
+    <div className="rc-detail__confirm">
+      <p className="rc-detail__confirm-text">
+        Move “{recipe.name}” to Trash? You can restore it from there.
+      </p>
+      <div className="rc-detail__confirm-actions">
+        <button
+          className="rc-button rc-button--primary rc-button--small"
+          type="button"
+          disabled={busy}
+          onClick={() => void remove()}
+        >
+          Move to Trash
+        </button>
+        <button
+          className="rc-button rc-button--ghost rc-button--small"
+          type="button"
+          disabled={busy}
+          onClick={() => {
+            setError(null);
+            setConfirming(false);
+          }}
+        >
+          Keep it
+        </button>
+      </div>
+      {error ? (
+        <p className="rc-detail__confirm-error" role="alert">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 export function RecipeDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -213,6 +285,8 @@ export function RecipeDetailPage() {
             >
               Edit recipe
             </button>
+
+            <DeleteAction recipe={recipe} />
           </div>
         </div>
       </header>

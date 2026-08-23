@@ -50,6 +50,14 @@ export function recipeNotFound(): ApiError {
   return notFoundError('recipe_not_found', 'This recipe does not exist.');
 }
 
+// Trash is a separate place, not a flag on the recipe: restoring or
+// permanently deleting something that is not in it is a request against a
+// resource that does not exist, whether the recipe is live or was never there
+// (technical design section 7.3).
+export function recipeNotInTrash(): ApiError {
+  return notFoundError('recipe_not_in_trash', 'This recipe is not in Trash.');
+}
+
 export function recipeVersionConflict(): ApiError {
   return conflictError(
     'recipe_version_conflict',

@@ -10,6 +10,7 @@ import { RecentPage } from './preferences/RecentPage';
 import { EditRecipePage } from './recipes/EditRecipePage';
 import { NewRecipePage } from './recipes/NewRecipePage';
 import { RecipeDetailPage } from './recipes/RecipeDetailPage';
+import { TrashPage } from './trash/TrashPage';
 
 function isGalleryRequested() {
   if (typeof window === 'undefined') return false;
@@ -42,6 +43,7 @@ function AuthenticatedRoutes() {
         <Route path="/favorites" element={<FavoritesPage />} />
         <Route path="/recent" element={<RecentPage />} />
         <Route path="/organize" element={<OrganizePage />} />
+        <Route path="/trash" element={<TrashPage />} />
         <Route path="*" element={<HomePage />} />
       </Routes>
     </BrowserRouter>

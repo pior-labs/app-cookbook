@@ -8,6 +8,7 @@ import { requestContext } from './middleware/request-context.js';
 import { homeRoute, recentRoute } from './routes/discovery.js';
 import { categoriesRoute, tagsRoute } from './routes/organization.js';
 import { recipesRoute } from './routes/recipes.js';
+import { trashRoute } from './routes/trash.js';
 
 export const service = {
   name: 'Pior Labs Cookbook API',
@@ -88,6 +89,7 @@ export function createApp(deps: AppDependencies) {
   app.route('/api/recipes', recipesRoute);
   app.route('/api/categories', categoriesRoute);
   app.route('/api/tags', tagsRoute);
+  app.route('/api/trash', trashRoute);
 
   app.notFound(notFoundHandler);
   app.onError(errorHandler);

@@ -35,7 +35,7 @@ export function RecipeResults({
   emptyBody,
   emptyAction,
 }: RecipeResultsProps) {
-  const { recipes, loading, error, reload, hasMore, loadingMore, moreError, loadMore } = pages;
+  const { items: recipes, loading, error, reload, hasMore, loadingMore, moreError, loadMore } = pages;
 
   return (
     <>

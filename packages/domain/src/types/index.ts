@@ -133,3 +133,26 @@ export interface HomeSections {
   recentlyAdded: RecipeSummary[];
   categories: CategorySummary[];
 }
+
+// One row of Trash. A trashed recipe is not something a cook can open,
+// favorite, or rate, so the row carries only what the decision to restore it
+// needs: what the recipe was, when it went to Trash, and who put it there. Its
+// photo is retained but is not served, because image delivery follows the
+// active recipe path (technical design sections 8 and 10).
+export interface TrashedRecipe {
+  id: number;
+  name: string;
+  description: string;
+  categoryName: string;
+  createdAt: string;
+  deletedAt: string;
+  deletedByUserId: number;
+  deletedByName: string;
+}
+
+// Trash pages the same way browse does, with its own ordering: most recently
+// deleted first (section 7.3).
+export interface TrashListPage {
+  items: TrashedRecipe[];
+  nextCursor: string | null;
+}
