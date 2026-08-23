@@ -9,24 +9,54 @@ theme.
 | # | Concept | Document | Component |
 |---|---------|----------|-----------|
 | 1 | Ticket Stub | [01-ticket-stub.md](01-ticket-stub.md) | `TicketLogin` |
-| 2 | Frosted Recipe Card | [02-frosted-recipe-card.md](02-frosted-recipe-card.md) | `FrostedCardLogin` |
+| 2 | **Frosted Recipe Card (chosen)** | [02-frosted-recipe-card.md](02-frosted-recipe-card.md) | `LoginScreen` |
 | 3 | Pinned Recipe Card | [03-pinned-recipe-card.md](03-pinned-recipe-card.md) | `PinboardCardLogin` |
+
+**Concept 2 was chosen and is now the app's sign-in screen.** It lives with the
+rest of the shipped UI (`login/LoginScreen.tsx`, `login/login.css`) rather than
+in the gallery, and the gallery renders that component in slot 2 so the showcase
+can never drift from the real screen. Concepts 1 and 3 stay as gallery-only
+records of what was considered.
 
 ## Where the code lives
 
 All under `packages/web/src/login/`:
 
-- `variants.tsx` - the three concept components and the `LOGIN_VARIANTS` list.
+- `LoginScreen.tsx` + `login.css` - the shipped sign-in screen (concept 2).
+- `SessionLoading.tsx` - the session-restore screen that precedes it, in the
+  same materials.
+- `useSignInFlow.ts` - the single-SSO sign-in flow, shared by the screen and the
+  gallery concepts.
+- `variants.tsx` - the rejected concepts and the `LOGIN_VARIANTS` list, whose
+  second entry is the real `LoginScreen`.
 - `LoginGallery.tsx` - the showcase shell: variant switcher, theme switcher,
   keyboard navigation, and deep-link handling.
-- `parts.tsx` - shared pieces: `useSignInFlow`, `SignInButton`, `AuthError`,
-  `Seal`, and `MeshBackdrop`.
-- `login-gallery.css` - all styling, 100% derived from design-system tokens.
+- `parts.tsx` - shared pieces: `SignInButton`, `AuthError`, `Seal`, `ArrowIcon`,
+  and `MeshBackdrop`.
+- `login-gallery.css` - styling for the gallery chrome and concepts 1 and 3,
+  100% derived from design-system tokens.
 
-The gallery is a non-invasive overlay; the current `LoginScreen` is untouched.
-Open it at `/?login-gallery`, and deep-link a specific concept and theme with
-`/?login-gallery&v=1&theme=bloom` (`v` is 1-3, `theme` is `bloom` or `slate`).
-Arrow keys and number keys 1-3 also switch concepts.
+The gallery is a non-invasive overlay. Open it at `/?login-gallery`, and
+deep-link a specific concept and theme with `/?login-gallery&v=1&theme=bloom`
+(`v` is 1-3, `theme` is `bloom` or `slate`). Arrow keys and number keys 1-3 also
+switch concepts.
+
+## Beyond the login screen
+
+The chosen concept sets the language for the authenticated app, applied as
+*ambient shell, solid content*:
+
+- the drifting mesh is rendered once for every authenticated screen (`App`), at
+  a lower blob opacity than the sign-in screen, so it is atmosphere rather than
+  colour under the words;
+- the application topbar is glass over it, the same material as the sign-in
+  card;
+- page content sits on its own wash and every card, panel, and field stays
+  opaque - a recipe is read while cooking, and text over moving colour is not;
+- the theme picker appears both on the sign-in screen and in the topbar.
+
+The recipe-card cues - divider tab, margin rule, ruled lines - stay on the
+sign-in card and are not repeated on recipe screens.
 
 ## Shared foundations
 

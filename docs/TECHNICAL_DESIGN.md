@@ -447,6 +447,8 @@ Dedicated Cooking Mode remains a Phase 1.x candidate and is not required by this
 
 ### 11.2 Interaction principles
 
+- The visual system follows the chosen login concept, "Frosted Recipe Card" ([`design/02-frosted-recipe-card.md`](./design/02-frosted-recipe-card.md)): the design system's drifting mesh is the ambient layer behind every screen, chrome that floats on it - the sign-in card, the application topbar - is glass, and everything a cook reads sits on an opaque surface above it. Long recipe text is never set over moving colour.
+- The active theme (Bloom / Slate) is a per-person preference offered on the sign-in screen and in the topbar, persisted by the design system.
 - Home and browse use visual cards, not data tables.
 - Recipe detail prioritizes photo, name, time, servings, ingredients, and instructions. Edit and delete actions remain secondary.
 - Serving changes are local view state. The original serving count stays visible, and returning to it is one action.

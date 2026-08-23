@@ -1,5 +1,7 @@
 import { useId, type ReactElement } from 'react';
-import { AuthError, MeshBackdrop, Seal, SignInButton, useSignInFlow } from './parts';
+import { LoginScreen } from './LoginScreen';
+import { AuthError, Seal, SignInButton } from './parts';
+import { useSignInFlow } from './useSignInFlow';
 
 export interface LoginVariant {
   id: string;
@@ -44,46 +46,6 @@ function TicketLogin() {
           <AuthError id={errorId} message={flow.error} />
           <SignInButton flow={flow} className="v-ticket__btn" errorId={errorId} />
           <p className="lv-note">Approved household accounts only.</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* 2 - Frosted Recipe Card: a ruled recipe card floated on glass over */
-/*     the drifting mesh.                                             */
-/* ------------------------------------------------------------------ */
-function FrostedCardLogin() {
-  const flow = useSignInFlow();
-  const errorId = useId();
-
-  return (
-    <div className="lv-variant v-fcard">
-      <MeshBackdrop />
-
-      <div className="v-fcard__sheet">
-        <span className="v-card__tab">Cookbook</span>
-        <div className="v-fcard__inner">
-          <header className="v-card__head">
-            <Seal />
-            <span className="lv-wordmark">Pior Labs</span>
-          </header>
-
-          <p className="lv-eyebrow">Household access</p>
-          <h1 className="v-card__title">
-            Welcome back to
-            <br />
-            the <em>kitchen.</em>
-          </h1>
-          <p className="v-card__body">
-            Your household cookbook - every recipe you've saved, the notes that make them yours, and
-            whatever you decide to make tonight.
-          </p>
-
-          <AuthError id={errorId} message={flow.error} />
-          <SignInButton flow={flow} errorId={errorId} />
-          <p className="lv-note">Private by design. Only approved household accounts can enter.</p>
         </div>
       </div>
     </div>
@@ -153,9 +115,11 @@ export const LOGIN_VARIANTS: LoginVariant[] = [
   },
   {
     id: 'frosted-card',
-    name: 'Frosted Recipe Card',
-    blurb: 'The ruled recipe card floated as glass over drifting mesh.',
-    Component: FrostedCardLogin,
+    name: 'Frosted Recipe Card (live)',
+    // The chosen concept, so the gallery shows the real sign-in screen rather
+    // than a copy of it that could drift away from what people actually see.
+    blurb: 'The ruled recipe card floated as glass over drifting mesh. Shipped as the login screen.',
+    Component: LoginScreen,
   },
   {
     id: 'pinboard-card',

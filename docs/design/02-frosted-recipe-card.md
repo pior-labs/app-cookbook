@@ -1,5 +1,8 @@
 # Concept 2 - Frosted Recipe Card
 
+**Chosen and shipped.** This is the Cookbook's live sign-in screen; the other
+two concepts remain in the gallery as the rejected alternatives.
+
 The household recipe index card, made airy. The tactile recipe-card identity -
 divider tab, margin rule, ruled lines - is preserved, but the card is rendered
 as frosted glass and floated over the design system's drifting mesh and grain.
@@ -16,6 +19,9 @@ typography, and the sign-in flow common to all three concepts.
 - **Signature:** a ruled recipe card rendered in glass - tab and margin rule
   included - over a living mesh.
 - **Mood:** calm, soft, contemporary.
+- **Continuity:** the mesh, the glass, and the Fraunces display are the same
+  materials the central `service-auth` sign-in page uses, so leaving for SSO and
+  coming back reads as one product rather than two.
 
 ## Layout and structure
 
@@ -55,8 +61,9 @@ A frosted card centered over the mesh backdrop.
 
 ## Typography
 
-- Headline: **Fraunces**, weight 500; the emphasized word is italic in
-  `--primary`.
+- Headline: **Fraunces**, weight 500, `clamp(34px, 4.2vw, 43px)` - capped so
+  "Welcome back to" stays on one line inside the 468px card; the emphasized word
+  is italic in `--primary`.
 - Body: **Outfit**.
 - Tab and eyebrow: monospace, uppercase.
 
@@ -82,7 +89,7 @@ the drifting colors change together when the theme flips.
 Two layers, both reduced-motion aware:
 
 - **Ambient:** the mesh blobs drift continuously (the package's `theme-drift`).
-- **Entrance:** the card runs `lv-rise` once.
+- **Entrance:** the card runs `login-rise` once.
 
 Under `prefers-reduced-motion`, both are disabled.
 
@@ -98,19 +105,29 @@ Under `prefers-reduced-motion`, both are disabled.
 ## Responsive
 
 The card holds its max width and centers on all sizes; the mesh is full-bleed at
-every breakpoint. No layout changes are needed.
+every breakpoint. Below 560px the screen and card padding tighten and the tab
+moves in to 22px, so the card keeps its margins on a phone; nothing else about
+the layout changes.
 
 ## Implementation
 
-- Component: `FrostedCardLogin` in `packages/web/src/login/variants.tsx`.
+- Component: `LoginScreen` in `packages/web/src/login/LoginScreen.tsx`, rendered
+  by `App` for any unauthenticated session.
+- Sign-in: `useSignInFlow` in `packages/web/src/login/useSignInFlow.ts`, one
+  button through `startSignIn` to the central SSO.
 - Backdrop: `MeshBackdrop` in `packages/web/src/login/parts.tsx`.
-- Styles: the `.v-fcard*` block plus the shared `.v-card__*` recipe-card blocks
-  in `packages/web/src/login/login-gallery.css`. The glass and mesh classes come
-  from `@pior-labs/design-system/effects.css`, imported in
-  `packages/web/src/index.css`.
-- Preview: `/?login-gallery&v=2` (add `&theme=slate` for the cool theme).
+- Styles: the `.login-*` blocks in `packages/web/src/login/login.css`, imported
+  from `packages/web/src/index.css`. The mesh and grain classes come from
+  `@pior-labs/design-system/effects.css`.
+- Session restore: `SessionLoading` in
+  `packages/web/src/login/SessionLoading.tsx` wears the same mesh and glass, so
+  the moment before the login screen never flashes a foreign surface.
+- Preview: the app's root URL while signed out. The concept gallery still runs at
+  `/?login-gallery&v=2` (add `&theme=slate` for the cool theme) and renders this
+  same component, so the gallery cannot drift from what people actually see.
 
 ## Notes
 
-The shared `.v-card__*` classes (tab, head, title, body) are also used by
-concept 3. Changing them affects both concepts.
+The gallery's `.v-card__*` classes are now concept 3's alone. This concept no
+longer shares them: promoting it moved its styles to `login.css` under
+`.login-*`, where they are free to evolve with the shipped screen.

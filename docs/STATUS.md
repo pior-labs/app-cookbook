@@ -31,6 +31,9 @@ The Cookbook scaffold and central SSO integration are implemented and configured
 - Central `service-auth` OAuth/OIDC integration implemented with PKCE, issuer validation, an app-specific cookie namespace, and an HTTP-only local session; local configuration now targets the hosted issuer.
 - Public health/auth routes and a deny-by-default authenticated `/api/*` boundary implemented.
 - Responsive login, session restoration, authenticated home, and logout states implemented and exercised locally end to end.
+- Authenticated screens carry the same language as *ambient shell, solid content*: the mesh drifts behind every screen (rendered once in `App`, at a lower blob opacity), the topbar is glass over it, page content sits on its own wash, and cards, panels, and fields stay opaque so recipe text is never set over moving colour.
+- Bloom / Slate theme picker on the sign-in card and in the topbar, persisted by the design system; component tests mount screens through a theme-aware `render` helper.
+- Login and session-restore screens rebuilt to the chosen login concept, "Frosted Recipe Card" ([`design/02-frosted-recipe-card.md`](./design/02-frosted-recipe-card.md)): a ruled recipe card in glass over the design system's drifting mesh, in the same materials as the central `service-auth` sign-in page. The concept gallery now renders the real screen in slot 2, and the template's leftover login palette and dead placeholder styles are gone from `index.css`.
 - Static-only web Caddy runtime, private container ports, and health checks confirmed.
 - CI configured to install, typecheck, test, and build the pnpm workspace.
 - Manual production deployment workflow retained pending external provisioning.

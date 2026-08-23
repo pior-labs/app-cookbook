@@ -4,6 +4,14 @@
  * active theme (bloom / slate). Nothing here hardcodes a palette.
  */
 
+/* Wraps the ambient mesh and every authenticated screen. The blobs drift at a
+   little under the sign-in screen's strength: content sits on its own wash
+   above them, so this is atmosphere in the margins rather than colour under
+   the words. */
+.rc-app {
+  --blob-opacity: 0.6;
+}
+
 .rc-shell,
 .rc-page {
   --rc-serif: "Fraunces", Georgia, "Times New Roman", serif;
@@ -14,14 +22,20 @@
 }
 
 .rc-shell {
+  /* Transparent, and above the ambient layer: the mesh and grain `App` renders
+     are fixed at z-index 0 and 1, so every content surface takes 2. */
+  position: relative;
+  z-index: 2;
   min-height: 100dvh;
   color: var(--foreground);
-  background: var(--background);
+  background: transparent;
   font-family: var(--rc-sans);
 }
 
 /* ---- layout ---------------------------------------------------------- */
 
+/* Glass, like the sign-in card: the bar floats on the mesh rather than capping
+   it with an opaque slab. */
 .rc-topbar {
   display: flex;
   align-items: center;
@@ -29,8 +43,11 @@
   gap: 16px;
   flex-wrap: wrap;
   padding: 18px clamp(16px, 4vw, 48px);
-  border-bottom: 1px solid var(--border-soft, var(--border));
-  background: var(--card);
+  border-bottom: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  box-shadow: var(--glass-shadow);
 }
 
 .rc-topbar__actions {
@@ -82,12 +99,21 @@
   outline: none;
 }
 
+/* A wash rather than a slab: enough of the page surface to keep long recipe
+   text readable, thin enough that the mesh still tints it and shows fully in
+   the gutters beside it. Positioned for the same reason as .rc-shell - the
+   recipe screens render a page with no shell around it. */
 .rc-page {
+  position: relative;
+  z-index: 2;
   max-width: 1080px;
   margin: 0 auto;
   padding: clamp(20px, 4vw, 44px) clamp(16px, 4vw, 48px) 80px;
   color: var(--foreground);
-  background: var(--background);
+  background: color-mix(in srgb, var(--background) 80%, transparent);
+  /* A soft edge where the sheet meets the mesh, so the column reads as paper
+     laid on the atmosphere rather than as a hard crop of it. */
+  box-shadow: 0 0 64px -28px color-mix(in srgb, var(--foreground) 55%, transparent);
   font-family: var(--rc-sans);
 }
 

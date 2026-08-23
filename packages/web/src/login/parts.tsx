@@ -1,33 +1,4 @@
-import { useState } from 'react';
-import { useAuth } from '../auth';
-
-const GENERIC_ERROR = 'Could not start sign-in. Check your connection to Pior Labs Auth.';
-
-/**
- * Shared sign-in flow for every login variant. There is a single SSO provider,
- * so each page only needs one button wired to this.
- */
-export function useSignInFlow() {
-  const { startSignIn } = useAuth();
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function handleSignIn() {
-    setError(null);
-    setSubmitting(true);
-
-    try {
-      await startSignIn();
-    } catch (signInError) {
-      setError(signInError instanceof Error ? signInError.message : GENERIC_ERROR);
-      setSubmitting(false);
-    }
-  }
-
-  return { submitting, error, handleSignIn };
-}
-
-export type SignInFlow = ReturnType<typeof useSignInFlow>;
+import type { SignInFlow } from './useSignInFlow';
 
 export function ArrowIcon() {
   return (
@@ -50,22 +21,6 @@ function Spinner() {
 /** The wordmark seal, styled entirely from theme tokens so it flips with the theme. */
 export function Seal({ className }: { className?: string }) {
   return <span className={className ? `lv-seal ${className}` : 'lv-seal'}>C</span>;
-}
-
-/** Drifting mesh blobs + grain from the design system's effects.css. */
-export function MeshBackdrop() {
-  return (
-    <>
-      <div className="theme-mesh" aria-hidden="true">
-        <div className="theme-blob b1" />
-        <div className="theme-blob b2" />
-        <div className="theme-blob b3" />
-        <div className="theme-blob b4" />
-        <div className="theme-blob b5" />
-      </div>
-      <div className="theme-grain" aria-hidden="true" />
-    </>
-  );
 }
 
 interface SignInButtonProps {
