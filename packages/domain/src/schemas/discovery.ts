@@ -11,6 +11,11 @@ export const RECIPE_SORTS = [
 export const DEFAULT_RECIPE_LIMIT = 24;
 export const MAX_RECIPE_LIMIT = 100;
 
+// Tag filtering is match-all, so each tag adds a predicate to the query. A
+// household narrows with a handful of tags; anything past this is a malformed
+// or hostile URL rather than a real filter.
+export const MAX_TAG_FILTERS = 20;
+
 // Normalizes a repeatable query parameter (`tagId=1&tagId=2`) into an array,
 // whether the framework hands it over as a single value or an array.
 const repeatableIds = z
@@ -19,7 +24,11 @@ const repeatableIds = z
   .transform((value) => {
     if (value == null) return [] as number[];
     return Array.isArray(value) ? value : [value];
-  });
+  })
+  // Duplicates are collapsed: `tagId=3&tagId=3` is the same filter as `tagId=3`
+  // and must not cost two predicates.
+  .transform((value) => [...new Set(value)])
+  .pipe(z.array(z.number()).max(MAX_TAG_FILTERS, { message: 'Too many tag filters.' }));
 
 // Query parameters for `GET /api/recipes`. Every filter is optional and
 // composes with the others; every sort has an implicit `id` tie-breaker for

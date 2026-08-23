@@ -870,3 +870,297 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+/* ---- section navigation ---------------------------------------------- */
+
+.rc-nav {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  /* The nav takes the middle of the topbar on a desktop and drops to its own
+     line on a phone rather than squeezing the actions. */
+  flex: 1 1 auto;
+  justify-content: center;
+}
+
+.rc-nav__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--rc-touch);
+  padding: 0 14px;
+  color: var(--muted-foreground);
+  border-radius: var(--radius-sm, 10px);
+  font-size: 15px;
+  text-decoration: none;
+}
+
+.rc-nav__link:hover {
+  color: var(--foreground);
+  background: var(--accent-soft, var(--muted));
+}
+
+.rc-nav__link--active {
+  color: var(--foreground);
+  background: var(--accent-soft, var(--muted));
+  font-weight: 600;
+}
+
+.rc-nav__link:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* ---- home rails ------------------------------------------------------ */
+
+.rc-rail {
+  margin-top: 36px;
+}
+
+.rc-rail__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.rc-rail__header .rc-section-heading {
+  margin-bottom: 0;
+}
+
+.rc-rail__more {
+  color: var(--muted-foreground);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.rc-rail__more:hover {
+  color: var(--foreground);
+}
+
+/* A rail scrolls sideways instead of wrapping, so a section stays one row and
+   the page keeps its shape as sections appear and disappear. */
+.rc-rail__track {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(240px, 280px);
+  gap: 20px;
+  margin: 14px 0 0;
+  padding: 4px 4px 12px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  list-style: none;
+}
+
+.rc-rail__track > .rc-card {
+  scroll-snap-align: start;
+}
+
+.rc-home__categories {
+  margin-top: 40px;
+}
+
+.rc-chip--link,
+.rc-chip--button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  color: var(--foreground);
+  background: var(--card);
+  font: inherit;
+  font-size: 13px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.rc-chip--link:hover,
+.rc-chip--button:hover {
+  background: var(--accent-soft, var(--muted));
+}
+
+.rc-chip--on {
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+  background: var(--primary);
+}
+
+.rc-chip--on:hover {
+  background: var(--primary);
+  filter: brightness(0.94);
+}
+
+.rc-chip__count {
+  color: var(--muted-foreground);
+  font-family: var(--rc-mono);
+  font-size: 11px;
+}
+
+.rc-chip--link:focus-visible,
+.rc-chip--button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* ---- browse ---------------------------------------------------------- */
+
+.rc-search {
+  max-width: 520px;
+  margin: 20px 0 4px;
+}
+
+.rc-filters {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin: 16px 0 0;
+}
+
+.rc-filters__group {
+  min-width: 180px;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.rc-filters__group legend {
+  padding: 0;
+}
+
+.rc-filters__choices {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.rc-input--select {
+  /* A select is not a text box: it should hug its content, not the column. */
+  width: auto;
+  min-width: 180px;
+}
+
+.rc-filters__tags {
+  margin: 20px 0 0;
+  padding: 0;
+  border: none;
+}
+
+.rc-filters__tags legend {
+  padding: 0;
+}
+
+.rc-results__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-soft, var(--border));
+}
+
+.rc-results__count {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-family: var(--rc-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.rc-results__more {
+  display: flex;
+  justify-content: center;
+  margin-top: 28px;
+}
+
+/* ---- organize -------------------------------------------------------- */
+
+.rc-manage {
+  margin-top: 32px;
+}
+
+.rc-manage__list {
+  margin: 0 0 20px;
+  padding: 0;
+  list-style: none;
+}
+
+.rc-manage__row {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 10px);
+  background: var(--card);
+}
+
+.rc-manage__row + .rc-manage__row {
+  margin-top: 10px;
+}
+
+.rc-manage__main,
+.rc-manage__rename {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.rc-manage__name {
+  flex: 1 1 auto;
+  min-width: 120px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.rc-manage__count {
+  color: var(--muted-foreground);
+  font-family: var(--rc-mono);
+  font-size: 12px;
+}
+
+.rc-manage__rename .rc-input {
+  flex: 1 1 200px;
+  width: auto;
+}
+
+.rc-manage__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.rc-manage__confirm {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-soft, var(--border));
+}
+
+.rc-manage__warning {
+  margin: 0 0 10px;
+  color: var(--muted-foreground);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.rc-manage__message {
+  margin: 10px 0 0;
+  color: var(--destructive);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.rc-manage__create {
+  margin-top: 8px;
+}
+
+.rc-manage__create-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.rc-manage__create-row .rc-input {
+  flex: 1 1 200px;
+  width: auto;
+}

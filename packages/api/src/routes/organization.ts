@@ -1,33 +1,69 @@
-import { createTagSchema } from '@cookbook/domain';
+import {
+  createCategorySchema,
+  createTagSchema,
+  renameCategorySchema,
+  renameTagSchema,
+} from '@cookbook/domain';
 import { Hono } from 'hono';
-import { validationError, zodValidationError } from '../errors.js';
 import type { AppEnv } from '../middleware/context.js';
-import { createTag, listCategories, listTags } from '../services/organization.js';
+import { idParam, parseBody } from './http.js';
+import {
+  createCategory,
+  createTag,
+  listCategories,
+  listTags,
+  removeCategory,
+  removeTag,
+  renameCategory,
+  renameTag,
+} from '../services/organization.js';
 
-// Read access to categories and tags for the recipe form, plus inline tag
-// creation (technical design section 7.3). Rename and delete arrive with
-// `/organize`.
+// Categories and tags for the recipe form and for `/organize`
+// (technical design section 7.3). HTTP parsing only; the service owns the
+// uniqueness and in-use rules.
 
 export const categoriesRoute = new Hono<AppEnv>();
 
 categoriesRoute.get('/', async (c) => c.json(await listCategories()));
+
+categoriesRoute.post('/', async (c) => {
+  const input = await parseBody(c, createCategorySchema);
+
+  return c.json(await createCategory(input.name), 201);
+});
+
+categoriesRoute.put('/:id', async (c) => {
+  const categoryId = idParam(c, 'category');
+  const input = await parseBody(c, renameCategorySchema);
+
+  return c.json(await renameCategory(categoryId, input.name));
+});
+
+categoriesRoute.delete('/:id', async (c) => {
+  await removeCategory(idParam(c, 'category'));
+
+  return c.body(null, 204);
+});
 
 export const tagsRoute = new Hono<AppEnv>();
 
 tagsRoute.get('/', async (c) => c.json(await listTags()));
 
 tagsRoute.post('/', async (c) => {
-  let raw: unknown;
-  try {
-    raw = await c.req.json();
-  } catch {
-    throw validationError('Send a JSON request body.');
-  }
+  const input = await parseBody(c, createTagSchema);
 
-  const parsed = createTagSchema.safeParse(raw);
-  if (!parsed.success) {
-    throw zodValidationError(parsed.error);
-  }
+  return c.json(await createTag(input.name), 201);
+});
 
-  return c.json(await createTag(parsed.data.name), 201);
+tagsRoute.put('/:id', async (c) => {
+  const tagId = idParam(c, 'tag');
+  const input = await parseBody(c, renameTagSchema);
+
+  return c.json(await renameTag(tagId, input.name));
+});
+
+tagsRoute.delete('/:id', async (c) => {
+  await removeTag(idParam(c, 'tag'));
+
+  return c.body(null, 204);
 });

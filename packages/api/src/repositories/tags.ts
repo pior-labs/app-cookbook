@@ -56,3 +56,36 @@ export async function insertTag(exec: DbExecutor, name: string): Promise<TagReco
 
   return row;
 }
+
+export async function findTagById(exec: DbExecutor, id: number): Promise<TagRecord | null> {
+  const [row] = await exec
+    .select({ id: tags.id, name: tags.name })
+    .from(tags)
+    .where(eq(tags.id, id))
+    .limit(1);
+
+  return row ?? null;
+}
+
+export async function updateTagName(
+  exec: DbExecutor,
+  id: number,
+  name: string,
+): Promise<TagRecord | null> {
+  const [row] = await exec
+    .update(tags)
+    .set({ name, normalizedName: normalizeName(name), updatedAt: new Date() })
+    .where(eq(tags.id, id))
+    .returning({ id: tags.id, name: tags.name });
+
+  return row ?? null;
+}
+
+// Deleting a tag removes it from every recipe: `recipe_tags` cascades. Unlike a
+// category, a tag carries no recipe data, so this is allowed rather than
+// blocked (section 7.3).
+export async function deleteTag(exec: DbExecutor, id: number): Promise<boolean> {
+  const rows = await exec.delete(tags).where(eq(tags.id, id)).returning({ id: tags.id });
+
+  return rows.length > 0;
+}

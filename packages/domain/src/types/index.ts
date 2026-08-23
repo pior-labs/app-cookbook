@@ -103,3 +103,24 @@ export function totalMinutes(
   }
   return (prepMinutes ?? 0) + (cookMinutes ?? 0);
 }
+
+// One page of browse/search results. The cursor is opaque to the client: it
+// encodes the sort key of the last row so the next page continues from exactly
+// there, and it is null when the last page has been reached
+// (technical design section 7.2).
+export interface RecipeListPage {
+  items: RecipeSummary[];
+  nextCursor: string | null;
+}
+
+// The home screen's discovery sections for the current user. Per-user sections
+// are empty until that user has favorited, rated, or opened anything, and the
+// screen hides an empty section rather than showing a blank rail
+// (section 11.1).
+export interface HomeSections {
+  recentlyViewed: RecipeSummary[];
+  favorites: RecipeSummary[];
+  highlyRated: RecipeSummary[];
+  recentlyAdded: RecipeSummary[];
+  categories: CategorySummary[];
+}

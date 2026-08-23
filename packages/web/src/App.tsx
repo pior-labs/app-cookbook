@@ -1,8 +1,10 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { useAuth } from './auth';
-import { CookbookHome } from './CookbookHome';
+import { BrowsePage } from './discovery/BrowsePage';
+import { HomePage } from './discovery/HomePage';
 import { LoginScreen } from './LoginScreen';
 import { LoginGallery } from './login/LoginGallery';
+import { OrganizePage } from './organize/OrganizePage';
 import { EditRecipePage } from './recipes/EditRecipePage';
 import { NewRecipePage } from './recipes/NewRecipePage';
 import { RecipeDetailPage } from './recipes/RecipeDetailPage';
@@ -30,11 +32,13 @@ function AuthenticatedRoutes() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<CookbookHome />} />
+        <Route path="/" element={<HomePage />} />
+        <Route path="/recipes" element={<BrowsePage />} />
         <Route path="/recipes/new" element={<NewRecipePage />} />
         <Route path="/recipes/:id" element={<RecipeDetailPage />} />
         <Route path="/recipes/:id/edit" element={<EditRecipePage />} />
-        <Route path="*" element={<CookbookHome />} />
+        <Route path="/organize" element={<OrganizePage />} />
+        <Route path="*" element={<HomePage />} />
       </Routes>
     </BrowserRouter>
   );

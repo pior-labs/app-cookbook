@@ -1,9 +1,17 @@
 import { rm } from 'node:fs/promises';
-import { sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { createApp } from '../src/app.js';
 import { storageRoot } from '../src/images/storage.js';
 import { db } from '../src/db/index.js';
-import { categories, tags, users } from '../src/db/schema.js';
+import {
+  categories,
+  recentlyViewedRecipes,
+  recipes,
+  tags,
+  userFavorites,
+  userRatings,
+  users,
+} from '../src/db/schema.js';
 import { createRequireAuth } from '../src/middleware/auth.js';
 
 // The starter categories the first domain migration seeds. `resetDatabase`
@@ -90,6 +98,36 @@ export async function createTag(name: string): Promise<number> {
     .returning({ id: tags.id });
 
   return row.id;
+}
+
+// Favorites, ratings, recent history, and Trash have no endpoints yet: they
+// arrive in slices 6 and 7. Browse and home already read them, so the suite
+// writes the rows directly rather than waiting for the API that will set them.
+export async function setFavorite(userId: number, recipeId: number): Promise<void> {
+  await db.insert(userFavorites).values({ userId, recipeId });
+}
+
+export async function setRating(
+  userId: number,
+  recipeId: number,
+  rating: number,
+): Promise<void> {
+  await db.insert(userRatings).values({ userId, recipeId, rating });
+}
+
+export async function setLastViewed(
+  userId: number,
+  recipeId: number,
+  lastViewedAt: Date,
+): Promise<void> {
+  await db.insert(recentlyViewedRecipes).values({ userId, recipeId, lastViewedAt });
+}
+
+export async function softDeleteRecipe(recipeId: number, userId: number): Promise<void> {
+  await db
+    .update(recipes)
+    .set({ deletedAt: new Date(), deletedByUserId: userId })
+    .where(eq(recipes.id, recipeId));
 }
 
 // The test app uses the real authorization middleware with a stub session
