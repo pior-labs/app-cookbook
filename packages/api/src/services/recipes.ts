@@ -5,6 +5,7 @@ import {
   type RecipeImage,
   type RecipeIngredient,
   type RecipeInstruction,
+  type RecipeSummary,
   type UpdateRecipeInput,
 } from '@cookbook/domain';
 import { db } from '../db/index.js';
@@ -25,6 +26,7 @@ import {
   type DbExecutor,
   type RecipeAggregateRow,
   type RecipeParentValues,
+  listRecentRecipes as listRecentRecipesRows,
 } from '../repositories/index.js';
 
 // Orchestration for the recipe aggregate. The recipe, its ingredients, its
@@ -165,6 +167,34 @@ async function loadDetail(
       .sort((a, b) => a.name.localeCompare(b.name)),
     image: toImage(row),
   };
+}
+
+// The home list. Ratings and per-user state are looked up per row; at
+// household scale (tens of recipes) this stays well inside the performance
+// budget, and browse/search will replace it with a single aggregate query.
+export async function listRecentRecipes(
+  limit: number,
+  userId: number,
+): Promise<RecipeSummary[]> {
+  const rows = await listRecentRecipesRows(db, limit);
+
+  return Promise.all(
+    rows.map(async (row) => ({
+      id: row.id,
+      name: row.name,
+      description: row.description,
+      categoryId: row.categoryId,
+      categoryName: row.category.name,
+      prepMinutes: row.prepMinutes,
+      cookMinutes: row.cookMinutes,
+      totalMinutes: totalMinutes(row.prepMinutes, row.cookMinutes),
+      rating: await findRatingSummary(db, row.id),
+      hasImage: row.image != null,
+      createdAt: toIso(row.createdAt),
+      updatedAt: toIso(row.updatedAt),
+      userState: await findUserRecipeState(db, row.id, userId),
+    })),
+  );
 }
 
 export async function createRecipe(

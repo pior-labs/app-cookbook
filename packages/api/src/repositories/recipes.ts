@@ -1,5 +1,5 @@
 import type { Fraction } from '@cookbook/domain';
-import { and, asc, eq, isNull, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, isNull, sql } from 'drizzle-orm';
 import {
   recipeIngredients,
   recipeInstructions,
@@ -148,6 +148,22 @@ export async function replaceTags(
 
   await exec.insert(recipeTags).values(tagIds.map((tagId) => ({ recipeId, tagId })));
 }
+
+// Recent recipes for the home entry point. This is deliberately the narrow
+// case: text search, filters, and cursor pagination arrive with browse/search
+// (technical design section 9) and are not implemented here.
+export async function listRecentRecipes(exec: DbExecutor, limit: number) {
+  return exec.query.recipes.findMany({
+    where: isNull(recipes.deletedAt),
+    with: { category: true, image: true },
+    // `id` is the tie-breaker so recipes created in the same transaction still
+    // have a stable order.
+    orderBy: [desc(recipes.createdAt), desc(recipes.id)],
+    limit,
+  });
+}
+
+export type RecipeListRow = Awaited<ReturnType<typeof listRecentRecipes>>[number];
 
 export async function findRecipeAggregate(exec: DbExecutor, recipeId: number) {
   const row = await exec.query.recipes.findFirst({

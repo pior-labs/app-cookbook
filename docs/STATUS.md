@@ -1,7 +1,7 @@
 # Development Status
 
 **Last updated:** 2026-08-22
-**Current stage:** Phase 1 in progress — recipe image pipeline implemented (slice 3)
+**Current stage:** Phase 1 in progress — recipe creation, detail, edit, and serving-scaling UI implemented (slice 4)
 **Current product phase:** Phase 1 — Core Cookbook
 
 This file records the application's **actual implementation state**.
@@ -14,7 +14,7 @@ Agents and contributors must not infer that a PRD requirement has been implement
 
 ## Current state
 
-The Cookbook scaffold and central SSO integration are implemented and configured to use the hosted issuer. Registering the new shared `localhost:5173` callback in the deployed `service-auth` client remains an external dependency. The product requirements are approved, and the complete Phase 1 technical design and ADRs 0002–0005 are accepted. The pure `@cookbook/domain` package, the normalized recipe database schema, and the first domain migration are implemented (implementation sequence slice 1). Recipe aggregate create, read, and update are implemented behind the authenticated API boundary, with the shared error envelope and API integration tests (slice 2). The primary recipe photo is implemented end to end on the API: authenticated multipart upload, verified decoding, WebP variant generation, authenticated delivery, replacement, deletion, and orphan reconciliation (slice 3). Browse/search, per-user preferences, Trash, and the product UI have not been implemented.
+The Cookbook scaffold and central SSO integration are implemented and configured to use the hosted issuer. Registering the new shared `localhost:5173` callback in the deployed `service-auth` client remains an external dependency. The product requirements are approved, and the complete Phase 1 technical design and ADRs 0002–0005 are accepted. The pure `@cookbook/domain` package, the normalized recipe database schema, and the first domain migration are implemented (implementation sequence slice 1). Recipe aggregate create, read, and update are implemented behind the authenticated API boundary, with the shared error envelope and API integration tests (slice 2). The primary recipe photo is implemented end to end on the API: authenticated multipart upload, verified decoding, WebP variant generation, authenticated delivery, replacement, deletion, and orphan reconciliation (slice 3). The recipe creation, detail, edit, and serving-scaling screens are implemented on `@pior-labs/design-system` tokens, together with the category/tag read endpoints and the minimal recent-recipe list they depend on (slice 4). Browse/search, home discovery, per-user preferences, and Trash have not been implemented.
 
 ## Completed
 
@@ -48,20 +48,31 @@ The Cookbook scaffold and central SSO integration are implemented and configured
 - `pnpm images:reconcile` orphan-cleanup maintenance command, reporting by default and removing unreferenced files with `--delete`, and reporting rather than discarding metadata whose files are missing.
 - Readiness verifies the configured image directory is writable in addition to the database, and Compose mounts a persistent image directory into the API container only.
 - Image integration tests covering validation, replacement, delivery, cleanup, and reconciliation against a disposable temporary directory.
+- `GET /api/categories` and `GET /api/tags` with active recipe counts, plus `POST /api/tags` for inline tag creation from the recipe form.
+- `GET /api/recipes` limited to recent recipes: `sort` and `limit` only, rejecting search and filter parameters rather than silently returning an unfiltered list.
+- Client-side routing for `/`, `/recipes/new`, `/recipes/:id`, and `/recipes/:id/edit`, mounted only for an authenticated session.
+- Typed API client returning the shared error envelope, with field-scoped errors, retry, and abort handling shared by every recipe screen.
+- Recipe creation and edit form: structured ingredient and instruction rows with button-based keyboard and touch reordering, unit selection with custom units, inline tag creation, mutually exclusive source fields, and entered values preserved after a failed save.
+- Client-side validation reusing the `@cookbook/domain` schemas, so the same rules produce the same field-scoped messages as the API.
+- Recipe detail with serving scaling: exact fraction arithmetic, unit labels agreeing with the scaled amount, the base serving count always visible, and one-action reset. Serving changes never touch the saved recipe.
+- Photo upload, replacement, and removal wired into the edit flow and offered after a recipe is first saved.
+- Optimistic-concurrency conflict handling: a version conflict explains what happened and offers reload or a separate copy without discarding the edit.
+- Loading skeletons, empty states, network-error retry, and a browser guard on leaving a dirty form.
+- React Testing Library suite covering serving controls and scaled display, form validation and ordered-row editing, accessible labelling, and page-level error and conflict states.
 
 ## In progress
 
-- Phase 1 slice 4: recipe creation, detail, edit, and serving-scaling UI.
+- Phase 1 slice 5: browse, search, filtering, home discovery, and category/tag management.
 
 ## Next
 
 1. Register the shared `localhost:5173` callback and reseed the `cookbook` client in the production `service-auth` environment.
 2. Provision the Cookbook database, persistent image directory (`PLATFORM_IMAGE_STORAGE_DIR`), routes, DNS, and connection file in `platform-deploy`.
-3. Continue Phase 1 in the documented vertical slices (UI, discovery, preferences, Trash, polish).
+3. Continue Phase 1 in the documented vertical slices (discovery, preferences, Trash, polish).
 
 ## Phase 1 — Core Cookbook
 
-**Status:** In progress — authentication foundation, recipe aggregate API, and recipe image pipeline complete
+**Status:** In progress — authentication foundation, recipe aggregate API, image pipeline, and recipe UI complete
 
 Planned scope includes:
 

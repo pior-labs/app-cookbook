@@ -1,7 +1,11 @@
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { useAuth } from './auth';
 import { CookbookHome } from './CookbookHome';
 import { LoginScreen } from './LoginScreen';
 import { LoginGallery } from './login/LoginGallery';
+import { EditRecipePage } from './recipes/EditRecipePage';
+import { NewRecipePage } from './recipes/NewRecipePage';
+import { RecipeDetailPage } from './recipes/RecipeDetailPage';
 
 function isGalleryRequested() {
   if (typeof window === 'undefined') return false;
@@ -19,6 +23,23 @@ function SessionLoading() {
   );
 }
 
+// Routes are only mounted for an authenticated session, so losing the session
+// returns to login rather than rendering a protected shell
+// (technical design section 11.3).
+function AuthenticatedRoutes() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<CookbookHome />} />
+        <Route path="/recipes/new" element={<NewRecipePage />} />
+        <Route path="/recipes/:id" element={<RecipeDetailPage />} />
+        <Route path="/recipes/:id/edit" element={<EditRecipePage />} />
+        <Route path="*" element={<CookbookHome />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
 export function App() {
   const { loading, user } = useAuth();
 
@@ -26,5 +47,5 @@ export function App() {
 
   if (loading) return <SessionLoading />;
   if (!user) return <LoginScreen />;
-  return <CookbookHome />;
+  return <AuthenticatedRoutes />;
 }

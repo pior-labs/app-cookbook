@@ -1,0 +1,872 @@
+/*
+ * Recipe screens. Every surface, border, and accent reads from
+ * @pior-labs/design-system semantic tokens, so the whole flow reskins with the
+ * active theme (bloom / slate). Nothing here hardcodes a palette.
+ */
+
+.rc-shell,
+.rc-page {
+  --rc-serif: "Fraunces", Georgia, "Times New Roman", serif;
+  --rc-sans: "Outfit", system-ui, -apple-system, sans-serif;
+  --rc-mono: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+  /* Comfortably above the 44px touch target floor in section 11.2. */
+  --rc-touch: 44px;
+}
+
+.rc-shell {
+  min-height: 100dvh;
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--rc-sans);
+}
+
+/* ---- layout ---------------------------------------------------------- */
+
+.rc-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 18px clamp(16px, 4vw, 48px);
+  border-bottom: 1px solid var(--border-soft, var(--border));
+  background: var(--card);
+}
+
+.rc-topbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rc-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--foreground);
+  font-family: var(--rc-serif);
+  font-size: 18px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.rc-wordmark__seal {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--border);
+  border-radius: 52% 48% 51% 46%;
+  font-size: 15px;
+}
+
+.rc-page {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: clamp(20px, 4vw, 44px) clamp(16px, 4vw, 48px) 80px;
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--rc-sans);
+}
+
+.rc-page--narrow {
+  max-width: 760px;
+}
+
+.rc-page__title {
+  margin: 0 0 8px;
+  font-family: var(--rc-serif);
+  font-size: clamp(28px, 4vw, 40px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.rc-page__lede {
+  margin: 0 0 24px;
+  color: var(--muted-foreground);
+}
+
+.rc-eyebrow {
+  margin: 0 0 6px;
+  color: var(--muted-foreground);
+  font-family: var(--rc-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.rc-section-heading {
+  margin: 0 0 14px;
+  font-family: var(--rc-serif);
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.rc-section-heading--small {
+  font-size: 17px;
+}
+
+.rc-breadcrumb {
+  margin-bottom: 18px;
+  font-size: 14px;
+}
+
+.rc-breadcrumb a {
+  color: var(--muted-foreground);
+  text-decoration: none;
+}
+
+.rc-breadcrumb a:hover {
+  color: var(--foreground);
+}
+
+/* ---- buttons --------------------------------------------------------- */
+
+.rc-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--rc-touch);
+  padding: 0 18px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm, 10px);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.rc-button--primary {
+  color: var(--primary-foreground);
+  background: var(--primary);
+}
+
+.rc-button--primary:hover:not(:disabled) {
+  filter: brightness(0.94);
+}
+
+.rc-button--ghost {
+  color: var(--foreground);
+  border-color: var(--border);
+  background: var(--card);
+}
+
+.rc-button--ghost:hover:not(:disabled) {
+  background: var(--accent-soft, var(--muted));
+}
+
+.rc-button--small {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+.rc-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.rc-icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: var(--rc-touch);
+  height: var(--rc-touch);
+  color: var(--muted-foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 10px);
+  background: var(--card);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.rc-icon-button:hover:not(:disabled) {
+  color: var(--foreground);
+  background: var(--accent-soft, var(--muted));
+}
+
+.rc-icon-button--danger:hover:not(:disabled) {
+  color: var(--destructive);
+  border-color: var(--destructive);
+}
+
+.rc-icon-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Focus is never removed, only restyled, so keyboard users keep a clear ring. */
+.rc-button:focus-visible,
+.rc-icon-button:focus-visible,
+.rc-input:focus-visible,
+.rc-card__link:focus-visible,
+.rc-servings__step:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* ---- cards ----------------------------------------------------------- */
+
+.rc-card-grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rc-card {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 14px);
+  background: var(--card);
+}
+
+.rc-card__link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.rc-card__photo {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.rc-card__photo--empty {
+  background: var(--muted);
+}
+
+.rc-card__body {
+  padding: 14px 16px 18px;
+}
+
+.rc-card__title {
+  margin: 0 0 6px;
+  font-family: var(--rc-serif);
+  font-size: 19px;
+  font-weight: 600;
+}
+
+.rc-card__description {
+  margin: 0 0 8px;
+  color: var(--muted-foreground);
+  font-size: 14px;
+  line-height: 1.5;
+  /* Two lines keeps every card the same height without truncating mid-word. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.rc-card__meta {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-family: var(--rc-mono);
+  font-size: 12px;
+}
+
+/* ---- recipe detail --------------------------------------------------- */
+
+.rc-detail__header {
+  display: grid;
+  gap: 28px;
+  margin-bottom: 40px;
+}
+
+.rc-detail__photo {
+  display: block;
+  width: 100%;
+  max-height: 460px;
+  border-radius: var(--radius, 14px);
+  object-fit: cover;
+}
+
+.rc-detail__title {
+  margin: 0 0 10px;
+  font-family: var(--rc-serif);
+  font-size: clamp(30px, 5vw, 46px);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.rc-detail__lede {
+  margin: 0 0 16px;
+  max-width: 60ch;
+  color: var(--muted-foreground);
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+.rc-detail__actions {
+  margin-top: 20px;
+}
+
+.rc-detail__body {
+  display: grid;
+  gap: 40px;
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 900px) {
+  .rc-detail__body {
+    grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+  }
+
+  /* The ingredient column follows the cook down a long instruction list. */
+  .rc-detail__ingredients {
+    position: sticky;
+    top: 24px;
+  }
+}
+
+.rc-facts {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin: 0 0 12px;
+}
+
+.rc-facts__item dt {
+  color: var(--muted-foreground);
+  font-family: var(--rc-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.rc-facts__item dd {
+  margin: 2px 0 0;
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.rc-source {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 14px;
+}
+
+.rc-source a {
+  color: var(--primary);
+}
+
+.rc-tag-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.rc-chip {
+  padding: 4px 12px;
+  color: var(--muted-foreground);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 13px;
+}
+
+/* ---- servings -------------------------------------------------------- */
+
+.rc-servings {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 14px);
+  background: var(--card);
+}
+
+.rc-servings__control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rc-servings__step {
+  display: grid;
+  place-items: center;
+  width: var(--rc-touch);
+  height: var(--rc-touch);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--background);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.rc-servings__step:hover:not(:disabled) {
+  background: var(--accent-soft, var(--muted));
+}
+
+.rc-servings__step:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.rc-servings__value {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.rc-servings__label {
+  color: var(--muted-foreground);
+  font-family: var(--rc-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.rc-servings__input {
+  width: 64px;
+  padding: 2px;
+  color: var(--foreground);
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 22px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.rc-servings__state {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+
+.rc-servings__factor {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+/* ---- ingredients and steps ------------------------------------------- */
+
+.rc-ingredients {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rc-ingredient {
+  display: flex;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-soft, var(--border));
+  line-height: 1.5;
+}
+
+.rc-ingredient__amount {
+  flex: 0 0 auto;
+  min-width: 84px;
+}
+
+.rc-ingredient__number {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.rc-ingredient__unit {
+  color: var(--muted-foreground);
+}
+
+.rc-ingredient__to-taste {
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-style: italic;
+}
+
+.rc-ingredient__prep {
+  color: var(--muted-foreground);
+}
+
+.rc-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.rc-step {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.rc-step__number {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  color: var(--primary-foreground);
+  border-radius: 50%;
+  background: var(--primary);
+  font-family: var(--rc-mono);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.rc-step__body {
+  margin: 4px 0 0;
+  max-width: 65ch;
+  line-height: 1.65;
+}
+
+.rc-notes {
+  margin-top: 28px;
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent-1, var(--primary));
+  border-radius: var(--radius-sm, 10px);
+  background: var(--card);
+}
+
+.rc-notes p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* ---- forms ----------------------------------------------------------- */
+
+.rc-form__section {
+  margin-bottom: 36px;
+  padding-bottom: 28px;
+  border-bottom: 1px solid var(--border-soft, var(--border));
+}
+
+.rc-form__heading {
+  margin: 0 0 18px;
+  font-family: var(--rc-serif);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.rc-form__grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.rc-form__actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.rc-form__banner {
+  margin: 0 0 20px;
+  padding: 12px 16px;
+  color: var(--destructive);
+  border: 1px solid var(--destructive);
+  border-radius: var(--radius-sm, 10px);
+}
+
+.rc-field {
+  margin-bottom: 16px;
+}
+
+.rc-field__label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.rc-field__hint {
+  margin: 0 0 6px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+
+.rc-field__error {
+  margin: 6px 0 0;
+  color: var(--destructive);
+  font-size: 13px;
+}
+
+.rc-input {
+  width: 100%;
+  min-height: var(--rc-touch);
+  padding: 10px 12px;
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 10px);
+  background: var(--background);
+  font: inherit;
+  font-size: 15px;
+}
+
+.rc-input--area {
+  min-height: 80px;
+  line-height: 1.55;
+  resize: vertical;
+}
+
+.rc-field--invalid .rc-input {
+  border-color: var(--destructive);
+}
+
+/* ---- ordered rows ---------------------------------------------------- */
+
+.rc-rows {
+  margin: 0 0 20px;
+  padding: 0;
+  border: none;
+}
+
+.rc-rows__legend {
+  margin-bottom: 10px;
+  padding: 0;
+  font-family: var(--rc-serif);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.rc-rows__list {
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+}
+
+.rc-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 10px);
+  background: var(--card);
+}
+
+.rc-row__fields {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.rc-row__fields--ingredient {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.rc-row__fields .rc-field {
+  margin-bottom: 0;
+}
+
+.rc-row__controls {
+  display: flex;
+  gap: 6px;
+  flex: 0 0 auto;
+  /* Controls wrap under the fields on a phone rather than squeezing them. */
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 100px;
+}
+
+/* ---- tags and choices ------------------------------------------------ */
+
+.rc-tag-list {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.rc-tag,
+.rc-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 4px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.rc-tag:has(input:checked),
+.rc-choice:has(input:checked) {
+  border-color: var(--primary);
+  background: var(--accent-soft, var(--muted));
+}
+
+.rc-tag-create__row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.rc-choice-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+/* ---- photo ----------------------------------------------------------- */
+
+.rc-photo__preview,
+.rc-photo__empty {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  aspect-ratio: 4 / 3;
+  margin-bottom: 12px;
+  border-radius: var(--radius-sm, 10px);
+  object-fit: cover;
+}
+
+.rc-photo__empty {
+  display: grid;
+  place-items: center;
+  color: var(--muted-foreground);
+  border: 1px dashed var(--border);
+  background: var(--muted);
+  font-size: 13px;
+}
+
+.rc-photo__actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.rc-photo__busy {
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+
+/* ---- states ---------------------------------------------------------- */
+
+.rc-state {
+  padding: 32px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 14px);
+  background: var(--card);
+  text-align: center;
+}
+
+.rc-state__title {
+  margin: 0 0 8px;
+  font-family: var(--rc-serif);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.rc-state__body {
+  margin: 0 0 20px;
+  color: var(--muted-foreground);
+}
+
+.rc-state__actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.rc-conflict {
+  margin-bottom: 24px;
+  padding: 20px;
+  border: 1px solid var(--accent-2, var(--border));
+  border-radius: var(--radius, 14px);
+  background: var(--card);
+}
+
+.rc-conflict__title {
+  margin: 0 0 8px;
+  font-weight: 600;
+}
+
+.rc-conflict__body {
+  margin: 0 0 16px;
+  color: var(--muted-foreground);
+  line-height: 1.55;
+}
+
+.rc-conflict .rc-state__actions {
+  justify-content: flex-start;
+}
+
+/* ---- skeletons ------------------------------------------------------- */
+
+.rc-skeleton__photo,
+.rc-skeleton__line {
+  border-radius: var(--radius-sm, 10px);
+  background: var(--muted);
+  animation: rc-pulse 1.5s ease-in-out infinite;
+}
+
+.rc-skeleton__photo {
+  height: clamp(180px, 30vw, 320px);
+  margin-bottom: 24px;
+}
+
+.rc-skeleton__line {
+  height: 14px;
+  margin-bottom: 12px;
+}
+
+.rc-skeleton__line--title {
+  height: 34px;
+  width: 60%;
+}
+
+.rc-skeleton__columns {
+  display: grid;
+  gap: 32px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  margin-top: 28px;
+}
+
+@keyframes rc-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rc-skeleton__photo,
+  .rc-skeleton__line {
+    animation: none;
+  }
+}
+
+.rc-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

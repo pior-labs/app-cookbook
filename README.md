@@ -77,6 +77,25 @@ The first migration creates the local user, account, session, and verification t
 
 Production uses `DATABASE_URL_FILE`. `platform-deploy` provisions the database, role, and server-managed connection file; this repository only mounts that file read-only into the API container.
 
+## Recipe screens
+
+The web app uses client-side routing with these authenticated routes:
+
+| Route | Purpose |
+| --- | --- |
+| `/` | Recent recipes and the entry point to add one. |
+| `/recipes/new` | Recipe creation. |
+| `/recipes/:id` | Recipe detail and serving adjustment. |
+| `/recipes/:id/edit` | Edit the full recipe aggregate. |
+
+Routes mount only for an authenticated session, so losing the session returns to login rather than showing stale protected data. The web container serves the SPA with a `try_files` fallback, so deep links resolve.
+
+Recipe screens are styled entirely from `@pior-labs/design-system` semantic tokens, so they reskin with the active theme. The older `LoginScreen` and the login gallery keep their own styling for now.
+
+Serving adjustment is local view state: it scales displayed quantities using the exact fraction arithmetic in `@cookbook/domain` and never modifies the saved recipe. Validation reuses the same domain schemas the API enforces, so client feedback and server errors carry identical field-scoped messages.
+
+Browse, search, filtering, home discovery, favorites, ratings, and Trash are not implemented yet. `GET /api/recipes` currently accepts only `sort=recentlyAdded` and `limit`, and rejects search or filter parameters rather than returning an unfiltered list that would look like a search result.
+
 ## Recipe images
 
 The primary recipe photo is stored as processed files in an app-owned directory, with metadata in PostgreSQL. There is no object storage or public media server.
@@ -109,7 +128,7 @@ In production the directory must be a persistent mount into the API container, p
 pnpm test
 ```
 
-`@cookbook/domain` runs pure Vitest unit tests. `@cookbook/api` runs Vitest integration tests against a real PostgreSQL database rather than mocked SQL: the suite creates a disposable, per-run `<database>_test_<suffix>` database on the server named by `DATABASE_URL`, applies every migration to it, resets state before each test, and drops it afterwards. Image tests write real files to a disposable temporary directory created and removed by the same harness, so they never touch `IMAGE_STORAGE_DIR`. Two suites can run at once without colliding. `TEST_DATABASE_URL` points the suite at a specific database instead; it must not name the database in `DATABASE_URL`, and the harness refuses to start if it does, because it drops and recreates whatever it is given.
+`@cookbook/domain` runs pure Vitest unit tests. `@cookbook/web` runs React Testing Library tests in jsdom for serving controls and scaled ingredient display, recipe form validation and ordered-row editing, accessible labelling, and page-level error and conflict states. `@cookbook/api` runs Vitest integration tests against a real PostgreSQL database rather than mocked SQL: the suite creates a disposable, per-run `<database>_test_<suffix>` database on the server named by `DATABASE_URL`, applies every migration to it, resets state before each test, and drops it afterwards. Image tests write real files to a disposable temporary directory created and removed by the same harness, so they never touch `IMAGE_STORAGE_DIR`. Two suites can run at once without colliding. `TEST_DATABASE_URL` points the suite at a specific database instead; it must not name the database in `DATABASE_URL`, and the harness refuses to start if it does, because it drops and recreates whatever it is given.
 
 ## Authentication
 

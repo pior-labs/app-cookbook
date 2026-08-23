@@ -5,6 +5,7 @@ import { checkStorageWritable } from './images/readiness.js';
 import type { AppEnv } from './middleware/context.js';
 import { errorHandler, notFoundHandler } from './middleware/errors.js';
 import { requestContext } from './middleware/request-context.js';
+import { categoriesRoute, tagsRoute } from './routes/organization.js';
 import { recipesRoute } from './routes/recipes.js';
 
 export const service = {
@@ -82,6 +83,8 @@ export function createApp(deps: AppDependencies) {
   );
 
   app.route('/api/recipes', recipesRoute);
+  app.route('/api/categories', categoriesRoute);
+  app.route('/api/tags', tagsRoute);
 
   app.notFound(notFoundHandler);
   app.onError(errorHandler);

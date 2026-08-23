@@ -1,4 +1,4 @@
-import type { RecipeDetail } from '@cookbook/domain';
+import type { RecipeDetail, RecipeSummary } from '@cookbook/domain';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { closeDatabase } from '../src/db/index.js';
 import {
@@ -444,5 +444,54 @@ describe('validation', () => {
     expect(recipe.description).toBe('');
     expect(recipe.totalMinutes).toBeNull();
     expect(recipe.notes).toBeNull();
+  });
+});
+
+describe('GET /api/recipes', () => {
+  it('returns an empty list before anything is saved', async () => {
+    expect(await (await client.get('/api/recipes')).json()).toEqual([]);
+  });
+
+  it('lists recipes newest first with derived total time', async () => {
+    await createRecipe({ name: 'First' });
+    const second = await createRecipe({ name: 'Second' });
+
+    const response = await client.get('/api/recipes');
+    expect(response.status).toBe(200);
+
+    const recipes = (await response.json()) as RecipeSummary[];
+    expect(recipes.map((recipe) => recipe.name)).toEqual(['Second', 'First']);
+    expect(recipes[0].id).toBe(second.id);
+    expect(recipes[0].totalMinutes).toBe(60);
+    expect(recipes[0].categoryName).toBe('Dinner');
+    expect(recipes[0].hasImage).toBe(false);
+  });
+
+  it('honours the limit', async () => {
+    await createRecipe({ name: 'First' });
+    await createRecipe({ name: 'Second' });
+
+    const recipes = (await (await client.get('/api/recipes?limit=1')).json()) as RecipeSummary[];
+    expect(recipes).toHaveLength(1);
+    expect(recipes[0].name).toBe('Second');
+  });
+
+  it('rejects a search or filter parameter rather than ignoring it', async () => {
+    // Silently returning an unfiltered list would look like a search result
+    // with wrong contents; browse/search implements these for real.
+    expect((await client.get('/api/recipes?q=chili')).status).toBe(400);
+    expect((await client.get('/api/recipes?categoryId=1')).status).toBe(400);
+  });
+
+  it('rejects a sort it does not implement yet', async () => {
+    const response = await client.get('/api/recipes?sort=name');
+
+    expect(response.status).toBe(400);
+    const body = (await response.json()) as { error: { fields: Record<string, string[]> } };
+    expect(body.error.fields.sort).toBeDefined();
+  });
+
+  it('requires authentication', async () => {
+    expect((await asUser(app, null).get('/api/recipes')).status).toBe(401);
   });
 });
