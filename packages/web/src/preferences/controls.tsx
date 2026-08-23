@@ -1,3 +1,5 @@
+import { useRef } from 'react';
+
 // Favorite and rating controls (technical design sections 11.2 and 11.3).
 // Both are toggles a cook uses while cooking, so they carry a full touch
 // target and say what they do rather than relying on the icon alone.
@@ -46,17 +48,61 @@ export function RatingControl({
   onRate: (value: number) => void;
   onClear: () => void;
 }) {
+  const stars = useRef<(HTMLButtonElement | null)[]>([]);
+
+  // Choosing with the keyboard moves and selects in one press, the way a radio
+  // group does. Focus follows the choice, or the arrow key would move the
+  // selection out from under the cook.
+  const choose = (value: number) => {
+    onRate(value);
+    stars.current[value - 1]?.focus();
+  };
+
+  const step = (delta: number) => {
+    if (rating == null) {
+      choose(delta > 0 ? STARS[0] : STARS[STARS.length - 1]);
+      return;
+    }
+
+    choose(STARS[(rating - 1 + delta + STARS.length) % STARS.length]);
+  };
+
+  const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const moves: Record<string, () => void> = {
+      ArrowRight: () => step(1),
+      ArrowDown: () => step(1),
+      ArrowLeft: () => step(-1),
+      ArrowUp: () => step(-1),
+      Home: () => choose(STARS[0]),
+      End: () => choose(STARS[STARS.length - 1]),
+    };
+
+    const move = moves[event.key];
+    if (!move) return;
+
+    event.preventDefault();
+    move();
+  };
+
   return (
     <div className="rc-rating">
       {/* A radio group, not five buttons: the stars are one choice, so arrow
           keys move between them and only the chosen one is a tab stop. */}
-      <div className="rc-rating__stars" role="radiogroup" aria-label={`Your rating for ${name}`}>
-        {STARS.map((value) => (
+      <div
+        className="rc-rating__stars"
+        role="radiogroup"
+        aria-label={`Your rating for ${name}`}
+        onKeyDown={onKeyDown}
+      >
+        {STARS.map((value, index) => (
           <button
             className={`rc-rating__star${
               rating != null && value <= rating ? ' rc-rating__star--on' : ''
             }`}
             key={value}
+            ref={(element) => {
+              stars.current[index] = element;
+            }}
             type="button"
             role="radio"
             aria-checked={rating === value}

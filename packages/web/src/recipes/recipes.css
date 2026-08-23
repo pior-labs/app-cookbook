@@ -60,6 +60,28 @@
   font-size: 15px;
 }
 
+/* Off-screen until focused, then anchored where a cook will see it. */
+.rc-skip-link {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 10;
+  padding: 10px 16px;
+  color: var(--primary-foreground);
+  border-radius: var(--radius-sm, 10px);
+  background: var(--primary);
+  text-decoration: none;
+  transform: translateY(-200%);
+}
+
+.rc-skip-link:focus-visible {
+  transform: translateY(0);
+}
+
+#cookbook-main:focus {
+  outline: none;
+}
+
 .rc-page {
   max-width: 1080px;
   margin: 0 auto;
@@ -135,6 +157,7 @@
   font-size: 15px;
   font-weight: 500;
   text-decoration: none;
+  white-space: nowrap;
   cursor: pointer;
   transition: background-color 120ms ease, border-color 120ms ease;
 }
@@ -169,10 +192,20 @@
   filter: brightness(0.94);
 }
 
+/* Dense rows - organize, trash - use a smaller control, but a finger is the
+   same size everywhere, so a touch device gets the full target back
+   (section 11.2). */
 .rc-button--small {
   min-height: 34px;
   padding: 0 12px;
   font-size: 13px;
+}
+
+@media (pointer: coarse) {
+  .rc-button--small {
+    min-height: var(--rc-touch);
+    padding: 0 16px;
+  }
 }
 
 .rc-button:disabled {
@@ -1306,8 +1339,10 @@
   color: var(--foreground);
 }
 
+/* The chosen rating has to read as chosen at a glance: the soft accent this
+   used to borrow was almost invisible against the card. */
 .rc-rating__star--on {
-  color: var(--accent-2, var(--primary));
+  color: var(--primary);
 }
 
 .rc-rating__clear {
@@ -1440,4 +1475,44 @@
   color: var(--destructive);
   font-size: 14px;
   line-height: 1.5;
+}
+
+/* ---- narrow screens ---------------------------------------------------- */
+
+/* The nav wrapped onto two centred rows on a phone, which pushed the recipe
+   itself below the fold. One scrollable strip under the actions keeps every
+   section reachable and gives the content the top of the screen back. */
+@media (max-width: 760px) {
+  .rc-topbar {
+    gap: 12px;
+    padding-bottom: 12px;
+  }
+
+  .rc-nav {
+    order: 3;
+    flex-basis: 100%;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    margin: 0 calc(-1 * clamp(16px, 4vw, 48px));
+    padding: 0 clamp(16px, 4vw, 48px);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .rc-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .rc-nav__link {
+    flex: 0 0 auto;
+  }
+}
+
+/* A recipe with no photo reserved a 4:3 block of nothing on every card, which
+   on a phone is most of the screen. The card keeps a photo-shaped band so the
+   grid stays even, just not a whole screen of it. */
+@media (max-width: 560px) {
+  .rc-card__photo--empty {
+    aspect-ratio: 16 / 5;
+  }
 }

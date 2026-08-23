@@ -104,6 +104,7 @@ export function RecipeForm({
             className="rc-input"
             id="recipe-name"
             value={draft.name}
+            aria-required="true"
             maxLength={160}
             onChange={(event) => set('name', event.target.value)}
             aria-describedby={describedBy('recipe-name', undefined, fieldError(fields, 'name'))}
@@ -143,6 +144,7 @@ export function RecipeForm({
               className="rc-input"
               id="recipe-category"
               value={draft.categoryId}
+              aria-required="true"
               onChange={(event) => set('categoryId', event.target.value)}
               aria-invalid={fieldError(fields, 'categoryId') ? true : undefined}
             >
@@ -166,6 +168,7 @@ export function RecipeForm({
               className="rc-input"
               id="recipe-servings"
               type="number"
+              aria-required="true"
               min={1}
               max={100}
               inputMode="numeric"
@@ -287,6 +290,7 @@ export function RecipeForm({
                       className="rc-input"
                       id={`ingredient-${ingredient.key}-name`}
                       value={ingredient.name}
+                      aria-required="true"
                       maxLength={160}
                       onChange={(event) => setIngredient(index, { name: event.target.value })}
                       aria-invalid={nameError ? true : undefined}
@@ -349,6 +353,7 @@ export function RecipeForm({
                       className="rc-input rc-input--area"
                       id={`instruction-${instruction.key}`}
                       rows={2}
+                      aria-required="true"
                       maxLength={5000}
                       value={instruction.body}
                       onChange={(event) => setInstruction(index, { body: event.target.value })}

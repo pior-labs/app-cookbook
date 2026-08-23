@@ -202,7 +202,14 @@ TLS, ingress, DNS, shared networks, database provisioning, and routes are owned 
 
 ## Validation and deployment
 
-The CI workflow installs dependencies, typechecks, runs the unit and integration test suites against a PostgreSQL service container, and builds every package. There is no lint command yet; add one with the first code that needs it.
+The CI workflow installs dependencies, typechecks, runs the unit and integration test suites against a PostgreSQL service container, and builds every package. A second job runs the Playwright critical-path suite in a real browser against a real migrated database. There is no lint command yet; add one with the first code that needs it.
+
+```bash
+pnpm test       # domain, API integration, and component suites
+pnpm test:e2e   # browser critical path; starts its own API and web servers
+```
+
+The browser suite runs against `packages/api/test/e2e-server.ts`, which is the real application with the central-SSO session replaced by a cookie the test sets. It lives in `test/`, which the build excludes, so nothing in the shipped image can reach it.
 
 The deployment workflow remains manual until the production runner and these external dependencies are ready:
 
@@ -211,6 +218,8 @@ The deployment workflow remains manual until the production runner and these ext
 3. Point `cookbook.szarans.ca` at the platform through split-horizon DNS.
 4. Configure the repository production environment, `APP_ENV` secret, and `DEPLOY_DIR` variable.
 
+[`docs/OPERATIONS.md`](docs/OPERATIONS.md) carries the full provisioning checklist and the backup and restore procedure.
+
 ## Scope
 
-Phase 1 is being built in vertical slices. Recipe create, read, and update are implemented; images, product UI, search and discovery, favorites, ratings, recently viewed history, and Trash are not yet. Meal planning, grocery lists, imports, Recipe Roulette, and MCP are later work and are outside the current phase. See [`docs/STATUS.md`](docs/STATUS.md) for the authoritative state.
+Phase 1 is feature-complete: recipes, images, the product UI, search and discovery, categories and tags, favorites, ratings, recently viewed history, and Trash are implemented and covered by tests. What remains is external - the OAuth client, database, image directory, and routes listed above. Meal planning, grocery lists, imports, Recipe Roulette, and MCP are later work and are outside the current phase. See [`docs/STATUS.md`](docs/STATUS.md) for the authoritative state.

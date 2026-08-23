@@ -199,6 +199,30 @@ describe('rating from recipe detail', () => {
     ).toEqual({ rating: 4 });
   });
 
+  // A radio group is a single choice, so the arrow keys move it and the press
+  // that moves it is the press that chooses.
+  it('rates with the arrow keys', async () => {
+    const calls = mockApi((call) =>
+      call.method === 'PUT' && call.path.endsWith('/rating')
+        ? jsonResponse({
+            userState: { favorite: false, rating: 1 },
+            rating: { average: 1, count: 1 },
+          })
+        : undefined,
+    );
+    renderDetail();
+
+    // Nothing is chosen yet, so the first star is the group's tab stop.
+    (await screen.findByRole('radio', { name: '1 star' })).focus();
+    await userEvent.keyboard('{ArrowRight}');
+
+    expect(await screen.findByText('1.0 average from 1 rating')).toBeInTheDocument();
+    expect(
+      calls.find((call) => call.method === 'PUT' && call.path === '/api/recipes/12/rating')?.body,
+    ).toEqual({ rating: 1 });
+    expect(screen.getByRole('radio', { name: '1 star' })).toHaveFocus();
+  });
+
   it('offers to clear only once a rating exists, and clears it', async () => {
     const calls = mockApi((call) => {
       if (call.method === 'PUT' && call.path.endsWith('/rating')) {

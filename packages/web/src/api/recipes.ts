@@ -1,10 +1,10 @@
 import type {
   CategorySummary,
-  CreateRecipeInput,
+  CreateRecipeRequest,
   RecipeDetail,
   RecipeImage,
   TagSummary,
-  UpdateRecipeInput,
+  UpdateRecipeRequest,
 } from '@cookbook/domain';
 import { apiGet, apiSend, apiUpload } from './client.js';
 
@@ -15,11 +15,11 @@ export function getRecipe(id: number, signal?: AbortSignal): Promise<RecipeDetai
   return apiGet<RecipeDetail>(`/api/recipes/${id}`, signal);
 }
 
-export function createRecipe(input: CreateRecipeInput): Promise<RecipeDetail> {
+export function createRecipe(input: CreateRecipeRequest): Promise<RecipeDetail> {
   return apiSend<RecipeDetail>('/api/recipes', 'POST', input);
 }
 
-export function updateRecipe(id: number, input: UpdateRecipeInput): Promise<RecipeDetail> {
+export function updateRecipe(id: number, input: UpdateRecipeRequest): Promise<RecipeDetail> {
   return apiSend<RecipeDetail>(`/api/recipes/${id}`, 'PUT', input);
 }
 

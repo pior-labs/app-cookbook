@@ -11,3 +11,5 @@ coverage/
 data/
 .data/
 .vite/
+test-results/
+playwright-report/

@@ -1,9 +1,9 @@
 import {
   createRecipeSchema,
   updateRecipeSchema,
-  type CreateRecipeInput,
+  type CreateRecipeRequest,
   type RecipeDetail,
-  type UpdateRecipeInput,
+  type UpdateRecipeRequest,
 } from '@cookbook/domain';
 import { formatQuantity } from '@cookbook/domain';
 import type { ErrorFields } from '../api/client.js';
@@ -121,7 +121,11 @@ function optionalNumber(value: string): number | null | undefined {
   return Number.isNaN(parsed) ? (Number.NaN as number) : parsed;
 }
 
-function toInput(draft: RecipeDraft): Record<string, unknown> {
+// The request body, not the parsed result. The schemas transform on the way in
+// - a typed quantity becomes an exact fraction - so what a cook typed is what
+// the API must receive; sending the parsed value back would post an object
+// where a string belongs (section 12).
+function toRequest(draft: RecipeDraft): CreateRecipeRequest {
   return {
     name: draft.name,
     description: draft.description,
@@ -164,17 +168,23 @@ export type ValidationResult<T> =
   | { ok: true; input: T }
   | { ok: false; fields: ErrorFields };
 
-export function validateCreate(draft: RecipeDraft): ValidationResult<CreateRecipeInput> {
-  const parsed = createRecipeSchema.safeParse(toInput(draft));
-  return parsed.success ? { ok: true, input: parsed.data } : { ok: false, fields: fieldsFromZod(parsed.error) };
+// Validation and the payload are deliberately separate: the schema decides
+// whether the draft is sendable, and what gets sent is the draft it approved.
+export function validateCreate(draft: RecipeDraft): ValidationResult<CreateRecipeRequest> {
+  const request = toRequest(draft);
+  const parsed = createRecipeSchema.safeParse(request);
+
+  return parsed.success ? { ok: true, input: request } : { ok: false, fields: fieldsFromZod(parsed.error) };
 }
 
 export function validateUpdate(
   draft: RecipeDraft,
   version: number,
-): ValidationResult<UpdateRecipeInput> {
-  const parsed = updateRecipeSchema.safeParse({ ...toInput(draft), version });
-  return parsed.success ? { ok: true, input: parsed.data } : { ok: false, fields: fieldsFromZod(parsed.error) };
+): ValidationResult<UpdateRecipeRequest> {
+  const request = { ...toRequest(draft), version };
+  const parsed = updateRecipeSchema.safeParse(request);
+
+  return parsed.success ? { ok: true, input: request } : { ok: false, fields: fieldsFromZod(parsed.error) };
 }
 
 // Reordering is an array move rather than a swap, so a row dragged or keyed

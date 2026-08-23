@@ -20,6 +20,13 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="rc-shell">
+      {/* Six section links and two actions sit ahead of the content on every
+          screen, so a keyboard or screen-reader user gets one press past them
+          (technical design section 11.2). */}
+      <a className="rc-skip-link" href="#cookbook-main">
+        Skip to content
+      </a>
+
       <header className="rc-topbar">
         <Link className="rc-wordmark" to="/">
           <span className="rc-wordmark__seal" aria-hidden="true">
@@ -55,7 +62,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      {children}
+      <div id="cookbook-main" tabIndex={-1}>
+        {children}
+      </div>
     </div>
   );
 }

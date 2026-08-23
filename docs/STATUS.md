@@ -1,7 +1,7 @@
 # Development Status
 
 **Last updated:** 2026-08-23
-**Current stage:** Phase 1 in progress — Trash, restoration, and permanent deletion implemented (slice 7)
+**Current stage:** Phase 1 feature-complete — polish and end-to-end coverage implemented (slice 8); production provisioning outstanding
 **Current product phase:** Phase 1 — Core Cookbook
 
 This file records the application's **actual implementation state**.
@@ -14,7 +14,7 @@ Agents and contributors must not infer that a PRD requirement has been implement
 
 ## Current state
 
-The Cookbook scaffold and central SSO integration are implemented and configured to use the hosted issuer. Registering the new shared `localhost:5173` callback in the deployed `service-auth` client remains an external dependency. The product requirements are approved, and the complete Phase 1 technical design and ADRs 0002–0005 are accepted. The pure `@cookbook/domain` package, the normalized recipe database schema, and the first domain migration are implemented (implementation sequence slice 1). Recipe aggregate create, read, and update are implemented behind the authenticated API boundary, with the shared error envelope and API integration tests (slice 2). The primary recipe photo is implemented end to end on the API: authenticated multipart upload, verified decoding, WebP variant generation, authenticated delivery, replacement, deletion, and orphan reconciliation (slice 3). The recipe creation, detail, edit, and serving-scaling screens are implemented on `@pior-labs/design-system` tokens, together with the category/tag read endpoints and the minimal recent-recipe list they depend on (slice 4). Browse/search with cursor pagination, the home discovery response, full category and tag management, and the `/`, `/recipes`, and `/organize` screens are implemented (slice 5). Per-user favorites, 1-5 ratings, and recently viewed history are implemented end to end, including the `/favorites` and `/recent` screens and the favorite and rating browse filters (slice 6). Recoverable deletion is implemented end to end: a recipe moves to Trash without destroying anything, restoration returns it with all of its retained state, and permanent deletion from Trash removes its rows and image files (slice 7). What remains in Phase 1 is mobile and accessibility polish, end-to-end browser coverage, and production provisioning.
+The Cookbook scaffold and central SSO integration are implemented and configured to use the hosted issuer. Registering the new shared `localhost:5173` callback in the deployed `service-auth` client remains an external dependency. The product requirements are approved, and the complete Phase 1 technical design and ADRs 0002–0005 are accepted. The pure `@cookbook/domain` package, the normalized recipe database schema, and the first domain migration are implemented (implementation sequence slice 1). Recipe aggregate create, read, and update are implemented behind the authenticated API boundary, with the shared error envelope and API integration tests (slice 2). The primary recipe photo is implemented end to end on the API: authenticated multipart upload, verified decoding, WebP variant generation, authenticated delivery, replacement, deletion, and orphan reconciliation (slice 3). The recipe creation, detail, edit, and serving-scaling screens are implemented on `@pior-labs/design-system` tokens, together with the category/tag read endpoints and the minimal recent-recipe list they depend on (slice 4). Browse/search with cursor pagination, the home discovery response, full category and tag management, and the `/`, `/recipes`, and `/organize` screens are implemented (slice 5). Per-user favorites, 1-5 ratings, and recently viewed history are implemented end to end, including the `/favorites` and `/recent` screens and the favorite and rating browse filters (slice 6). Recoverable deletion is implemented end to end: a recipe moves to Trash without destroying anything, restoration returns it with all of its retained state, and permanent deletion from Trash removes its rows and image files (slice 7). Mobile and accessibility polish and the Playwright critical-path suite are implemented, and the provisioning and restore procedures are documented in [`OPERATIONS.md`](./OPERATIONS.md) (slice 8). Every Phase 1 capability is now implemented and covered by tests. What remains is external and cannot be done from this repository: registering the OAuth client in `service-auth`, provisioning the database, image directory, routes, and DNS in `platform-deploy`, and running the documented restore verification against that environment once it exists.
 
 ## Completed
 
@@ -84,20 +84,29 @@ The Cookbook scaffold and central SSO integration are implemented and configured
 - `/trash` screen: restore in one press, permanent deletion gated on typing the recipe name, per-row failure messages, and its own empty state; `Move to Trash` on recipe detail confirms in place and then follows the recipe to Trash.
 - One shared cursor-pagination hook behind browse, favorites, and Trash, so all three page, extend, and recover from a failed "load more" identically.
 - API integration tests for soft deletion, Trash listing and pagination, restoration with favorites/ratings/history/tags intact, permanent deletion of rows and image files, and the category that a trashed recipe keeps blocked; React Testing Library coverage for restore, the typed-name confirmation, and the recipe-detail delete flow.
+- Playwright critical-path suite in `@cookbook/e2e`: create and view a recipe, scale its servings and prove the saved recipe is untouched, edit it, find it by ingredient, favorite and rate it as one cook without affecting another, and move it to Trash and restore it - plus the skip-link focus order.
+- End-to-end API harness (`packages/api/test/e2e-server.ts`): the real application against a real migrated disposable database, with the central-SSO session replaced by a cookie the test sets. It lives in `test/`, which the build excludes.
+- A second CI job runs the browser suite against a PostgreSQL service container and uploads the Playwright report when it fails.
+- Fixed a bug the browser suite caught immediately: the web app posted the *parsed* recipe body, so every recipe saved with an ingredient quantity was rejected by the API. Request and parsed types are now distinct in `@cookbook/domain`, and the client sends what it validated.
+- Accessibility pass: arrow-key and Home/End selection in the rating radio group with focus following the choice, `aria-required` on every required control, a skip link past the eight-item topbar, and a readable colour for the chosen rating, which was previously near-invisible against the card.
+- Mobile pass: the section navigation is one scrollable strip instead of two wrapped rows, photo-less recipe cards no longer reserve a screen of blank space, small controls take a full 44px target on touch devices, and button labels no longer wrap mid-word.
+- `docs/OPERATIONS.md`: provisioning checklist for `service-auth`, `platform-deploy`, and this repository; the database-and-images backup set; the restore procedure with its reconciliation and image-read verification; and routine maintenance.
 
 ## In progress
 
-- Phase 1 slice 8: mobile/accessibility polish, end-to-end coverage, production provisioning, and restore verification.
+- Nothing in this repository. Phase 1 is feature-complete; the remaining work is
+  external provisioning, listed under **Next**.
 
 ## Next
 
 1. Register the shared `localhost:5173` callback and reseed the `cookbook` client in the production `service-auth` environment.
 2. Provision the Cookbook database, persistent image directory (`PLATFORM_IMAGE_STORAGE_DIR`), routes, DNS, and connection file in `platform-deploy`.
-3. Complete Phase 1 with the final documented slice (polish, end-to-end coverage, restore verification).
+3. Run the documented restore verification (`OPERATIONS.md` section 4) against the provisioned environment, then enable the deployment workflow's push trigger.
+4. Once Phase 1 is deployed and stable, begin MCP v1.
 
 ## Phase 1 — Core Cookbook
 
-**Status:** In progress — authentication foundation, recipe aggregate API, image pipeline, recipe UI, discovery, per-user state, and Trash complete
+**Status:** Feature-complete — every listed capability is implemented and tested; production provisioning is the only outstanding work
 
 Planned scope includes:
 

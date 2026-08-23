@@ -21,6 +21,32 @@ function developmentDatabaseName(): string {
   return databaseNameOf(databaseUrl()) || 'cookbook';
 }
 
+// Whatever resolves through here is dropped and recreated, so a URL that
+// happens to name the database in `DATABASE_URL` would destroy real data.
+// Refuse outright rather than trusting the operator to have noticed.
+function assertDisposable(url: string, source: string): string {
+  if (databaseNameOf(url) === developmentDatabaseName()) {
+    throw new Error(
+      `Refusing to run tests against "${developmentDatabaseName()}": the test database must ` +
+        `not be the database named by DATABASE_URL. Unset or change ${source}.`,
+    );
+  }
+
+  return url;
+}
+
+// A disposable database with a name the caller chooses, for a harness that
+// needs a stable target rather than a per-run one. The end-to-end server uses
+// it so a failed run can still be inspected afterwards.
+export function namedDatabaseUrl(name: string, override?: string): string {
+  const chosen = override?.trim();
+
+  return assertDisposable(
+    chosen || withDatabaseName(databaseUrl(), name),
+    chosen ? 'the override' : 'the database name',
+  );
+}
+
 function computeTestDatabaseUrl(): string {
   const override = process.env.TEST_DATABASE_URL?.trim();
   const resolved =
@@ -32,18 +58,7 @@ function computeTestDatabaseUrl(): string {
         .slice(-4)}`,
     );
 
-  // The global setup drops and recreates whatever this resolves to. A
-  // hand-supplied `TEST_DATABASE_URL` that happens to name the database in
-  // `DATABASE_URL` would therefore destroy real data, so refuse outright rather
-  // than trusting the operator to have noticed.
-  if (databaseNameOf(resolved) === developmentDatabaseName()) {
-    throw new Error(
-      `Refusing to run tests against "${developmentDatabaseName()}": the test database must ` +
-        'not be the database named by DATABASE_URL. Unset or change TEST_DATABASE_URL.',
-    );
-  }
-
-  return resolved;
+  return assertDisposable(resolved, 'TEST_DATABASE_URL');
 }
 
 // Memoized so the name is decided once per process. Only the global setup file

@@ -19,6 +19,9 @@ interface FieldProps {
   children: ReactNode;
 }
 
+// A required field is marked visually with an asterisk and programmatically
+// with `aria-required` on its own control, because the asterisk is decoration
+// a screen reader is right to skip.
 export function Field({ id, label, hint, error, required, children }: FieldProps) {
   const hintId = hint ? `${id}-hint` : undefined;
   const errorId = error ? `${id}-error` : undefined;

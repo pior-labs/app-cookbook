@@ -208,7 +208,10 @@ describe('draft validation', () => {
     expect(result.fields['ingredients.0.quantity']).toBeDefined();
   });
 
-  it('accepts a complete draft and derives the API payload', () => {
+  // The payload is what the API parses, not what the schema parsed. Sending the
+  // parsed value back would post `{ numerator, denominator }` where a typed
+  // quantity belongs, and every recipe with a quantity would fail to save.
+  it('accepts a complete draft and sends what the API can parse', () => {
     const draft = emptyDraft();
     draft.name = 'Chili';
     draft.categoryId = '1';
@@ -227,7 +230,7 @@ describe('draft validation', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
 
-    expect(result.input.ingredients[0].quantity).toEqual({ numerator: 3, denominator: 2 });
+    expect(result.input.ingredients[0].quantity).toBe('1 1/2');
     expect(result.input.ingredients[0].unitCode).toBe('lb');
     expect(result.input.prepMinutes).toBe(15);
     expect(result.input.cookMinutes).toBeNull();

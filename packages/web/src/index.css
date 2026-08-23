@@ -6,7 +6,10 @@
 :root {
   font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif;
   color: #1f1826;
-  background: #271d34;
+  /* The cookbook's own background, so a screen shorter than the viewport ends
+     in paper rather than in the sign-in screen's dark panel. The sign-in screen
+     paints its own full-height surface. */
+  background: var(--background);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }

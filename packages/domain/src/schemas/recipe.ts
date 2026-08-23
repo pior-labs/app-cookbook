@@ -85,5 +85,14 @@ export const updateRecipeSchema = refineRecipeAggregate(
 
 export type IngredientInput = z.infer<typeof ingredientInputSchema>;
 export type InstructionInput = z.infer<typeof instructionInputSchema>;
+// What the API works with after parsing: quantities are exact fractions,
+// omitted optionals are null.
 export type CreateRecipeInput = z.infer<typeof createRecipeSchema>;
 export type UpdateRecipeInput = z.infer<typeof updateRecipeSchema>;
+
+// What a client sends, which is not the same thing. These schemas transform on
+// the way in, so the parsed value is not a valid request body: posting it back
+// would send `{ numerator, denominator }` where the API expects "1 1/2". A
+// client validates with the schema and sends what it validated.
+export type CreateRecipeRequest = z.input<typeof createRecipeSchema>;
+export type UpdateRecipeRequest = z.input<typeof updateRecipeSchema>;
