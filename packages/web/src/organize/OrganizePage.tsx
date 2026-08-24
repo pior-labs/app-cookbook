@@ -297,7 +297,7 @@ export function OrganizePage() {
   const loading = categories.loading || tags.loading;
 
   return (
-    <div className="cb-rise flex min-w-0 max-w-3xl flex-col gap-7">
+    <div className="cb-rise flex min-w-0 flex-col gap-7">
       <PageHeader
         title="Organize"
         lede="Categories file a recipe in exactly one place. Tags describe it in as many ways as you like."

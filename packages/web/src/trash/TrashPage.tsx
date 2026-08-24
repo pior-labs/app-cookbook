@@ -182,7 +182,7 @@ export function TrashPage() {
   };
 
   return (
-    <div className="cb-rise flex min-w-0 max-w-4xl flex-col gap-7">
+    <div className="cb-rise flex min-w-0 flex-col gap-7">
       <PageHeader
         title="Trash"
         lede="Deleted recipes stay here until someone removes them for good. Restoring one brings back its ingredients, photo, tags, and every rating it had."

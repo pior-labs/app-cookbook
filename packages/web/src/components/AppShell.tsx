@@ -200,8 +200,13 @@ export function AppShell() {
             : 'pt-[calc(68px+env(safe-area-inset-top))] md:grid-cols-[236px_1fr] md:gap-7 md:px-8 md:pt-6 md:pb-15',
         ].join(' ')}
       >
+        {/* The rail is a card that hugs its contents, not a full-height panel:
+            it carries seven links and an account row, and stretching it to the
+            viewport would be a column of empty glass under them. `max-h` keeps
+            it honest on a short window, where the scroll is a safety valve
+            rather than the normal case. */}
         {!cooking ? (
-          <aside className="hidden flex-col gap-1.5 rounded-4xl border border-frost/80 bg-[rgba(var(--surface-rgb),0.55)] px-4 pt-[22px] pb-[18px] shadow-[0_8px_32px_color-mix(in_srgb,var(--ink)_8%,transparent),inset_0_0_0_1px_rgba(var(--frost-rgb),0.5)] backdrop-blur-xl backdrop-saturate-150 md:sticky md:top-6 md:flex md:h-[calc(100dvh-3rem)] md:self-start md:overflow-y-auto">
+          <aside className="hidden flex-col gap-1.5 rounded-4xl border border-frost/80 bg-[rgba(var(--surface-rgb),0.55)] px-4 pt-[22px] pb-[18px] shadow-[0_8px_32px_color-mix(in_srgb,var(--ink)_8%,transparent),inset_0_0_0_1px_rgba(var(--frost-rgb),0.5)] backdrop-blur-xl backdrop-saturate-150 md:sticky md:top-6 md:flex md:max-h-[calc(100dvh-3rem)] md:self-start md:overflow-y-auto">
             <Link
               className={`mb-2 flex items-center gap-3 border-b border-dashed border-ink/10 px-2 pb-3.5 ${focusRing}`}
               to="/"
@@ -224,7 +229,10 @@ export function AppShell() {
               ))}
             </nav>
 
-            <div className="min-h-4 flex-1" />
+            {/* The rail is only as tall as what is in it, so this is a plain
+                gap before the action and the account row rather than a spring
+                pushing them to the bottom of the screen. */}
+            <div className="h-4" />
 
             <Link className={buttonClass('primary', 'default', 'w-full')} to="/recipes/new">
               <Plus aria-hidden="true" className="h-4 w-4" strokeWidth={2.4} />
