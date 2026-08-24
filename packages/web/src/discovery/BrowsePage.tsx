@@ -1,9 +1,18 @@
 import { RECIPE_SORTS, type RecipeSort } from '@cookbook/domain';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Heart, Search } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { browseQuery, EMPTY_FILTERS, isFiltered, type BrowseFilters } from '../api/discovery.js';
-import { AppShell } from '../AppShell.js';
 import { useOrganization } from '../recipes/useRecipeEditor.js';
+import {
+  FieldHint,
+  FieldLabel,
+  PageHeader,
+  Panel,
+  Select,
+  chipClass,
+  focusRing,
+} from '@/components/ui';
 import { RecipeResults } from './RecipeResults.jsx';
 import { useRecipePages } from './useRecipePages.js';
 
@@ -61,6 +70,17 @@ function useDebounced<T>(value: T, delay: number): T {
   return settled;
 }
 
+// Each filter row carries its own label, so the meaning of a pill is never
+// only in the pill.
+function FilterGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <fieldset className="m-0 min-w-0 border-0 p-0">
+      <legend className="mb-2 p-0 text-[13px] font-medium text-ink-2">{label}</legend>
+      <div className="flex flex-wrap gap-2">{children}</div>
+    </fieldset>
+  );
+}
+
 export function BrowsePage() {
   const [params, setParams] = useSearchParams();
   const filters = useMemo(() => readFilters(params), [params]);
@@ -113,31 +133,37 @@ export function BrowsePage() {
   };
 
   return (
-    <AppShell>
-      <main className="rc-page">
-        <h1 className="rc-page__title">Browse</h1>
+    <div className="cb-rise flex min-w-0 flex-col gap-7">
+      <PageHeader title="Browse" lede="Everything on the shelf, narrowed down however you like." />
 
-        <form className="rc-search" role="search" onSubmit={(event) => event.preventDefault()}>
-          <label className="rc-field__label" htmlFor="browse-q">
-            Search recipes
-          </label>
-          <input
-            className="rc-input"
-            id="browse-q"
-            type="search"
-            value={queryText}
-            placeholder="Name, ingredient, tag…"
-            onChange={(event) => setQueryText(event.target.value)}
-          />
-        </form>
+      <Panel className="p-4 sm:p-5">
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)_minmax(0,1fr)]">
+          <form className="min-w-0" role="search" onSubmit={(event) => event.preventDefault()}>
+            <FieldLabel className="mb-1.5" htmlFor="browse-q">
+              Search recipes
+            </FieldLabel>
+            <span className="relative block">
+              <Search
+                aria-hidden="true"
+                className="pointer-events-none absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-ink-3"
+                strokeWidth={2.1}
+              />
+              <input
+                className={`min-h-11 w-full rounded-2xl border border-frost/80 bg-[rgba(var(--surface-rgb),0.92)] py-2.5 pr-4 pl-10 text-[15px] text-ink shadow-[inset_0_0_0_1px_rgba(var(--frost-rgb),0.5)] transition-[border-color,box-shadow] duration-200 placeholder:text-ink-3 focus:border-accent/45 focus:shadow-[var(--cb-focus-shadow)] focus:outline-none ${focusRing}`}
+                id="browse-q"
+                type="search"
+                value={queryText}
+                placeholder="Name, ingredient, tag…"
+                onChange={(event) => setQueryText(event.target.value)}
+              />
+            </span>
+          </form>
 
-        <div className="rc-filters">
-          <div className="rc-filters__group">
-            <label className="rc-field__label" htmlFor="browse-category">
+          <div className="min-w-0">
+            <FieldLabel className="mb-1.5" htmlFor="browse-category">
               Category
-            </label>
-            <select
-              className="rc-input rc-input--select"
+            </FieldLabel>
+            <Select
               id="browse-category"
               value={filters.categoryId ?? ''}
               onChange={(event) =>
@@ -150,15 +176,14 @@ export function BrowsePage() {
                   {category.name}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
-          <div className="rc-filters__group">
-            <label className="rc-field__label" htmlFor="browse-sort">
+          <div className="min-w-0">
+            <FieldLabel className="mb-1.5" htmlFor="browse-sort">
               Sort
-            </label>
-            <select
-              className="rc-input rc-input--select"
+            </FieldLabel>
+            <Select
               id="browse-sort"
               value={filters.sort}
               onChange={(event) => update({ sort: event.target.value as RecipeSort })}
@@ -168,76 +193,69 @@ export function BrowsePage() {
                   {SORT_LABELS[sort]}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
+        </div>
 
-          <fieldset className="rc-filters__group">
-            <legend className="rc-field__label">Ready in</legend>
-            <div className="rc-filters__choices">
-              {TIME_CHOICES.map((minutes) => (
-                <button
-                  className={`rc-chip rc-chip--button${
-                    filters.maxTotalMinutes === minutes ? ' rc-chip--on' : ''
-                  }`}
-                  key={minutes}
-                  type="button"
-                  aria-pressed={filters.maxTotalMinutes === minutes}
-                  onClick={() =>
-                    update({
-                      maxTotalMinutes: filters.maxTotalMinutes === minutes ? null : minutes,
-                    })
-                  }
-                >
-                  {minutes} min or less
-                </button>
-              ))}
-            </div>
-          </fieldset>
+        <div className="mt-4 flex flex-wrap items-start gap-x-8 gap-y-4 border-t border-dashed border-ink/10 pt-4">
+          <FilterGroup label="Ready in">
+            {TIME_CHOICES.map((minutes) => (
+              <button
+                className={chipClass(filters.maxTotalMinutes === minutes)}
+                key={minutes}
+                type="button"
+                aria-pressed={filters.maxTotalMinutes === minutes}
+                onClick={() =>
+                  update({ maxTotalMinutes: filters.maxTotalMinutes === minutes ? null : minutes })
+                }
+              >
+                {minutes} min or less
+              </button>
+            ))}
+          </FilterGroup>
 
           {/* The rating filter reads the household average, not the cook's own
               rating: "what does this house think is good". */}
-          <fieldset className="rc-filters__group">
-            <legend className="rc-field__label">Rated at least</legend>
-            <div className="rc-filters__choices">
-              {RATING_CHOICES.map((stars) => (
-                <button
-                  className={`rc-chip rc-chip--button${
-                    filters.minRating === stars ? ' rc-chip--on' : ''
-                  }`}
-                  key={stars}
-                  type="button"
-                  aria-pressed={filters.minRating === stars}
-                  onClick={() => update({ minRating: filters.minRating === stars ? null : stars })}
-                >
-                  {stars}★
-                </button>
-              ))}
-            </div>
-          </fieldset>
+          <FilterGroup label="Rated at least">
+            {RATING_CHOICES.map((stars) => (
+              <button
+                className={chipClass(filters.minRating === stars)}
+                key={stars}
+                type="button"
+                aria-pressed={filters.minRating === stars}
+                onClick={() => update({ minRating: filters.minRating === stars ? null : stars })}
+              >
+                {stars}★
+              </button>
+            ))}
+          </FilterGroup>
 
-          <div className="rc-filters__group rc-filters__group--inline">
+          <FilterGroup label="Mine">
             <button
-              className={`rc-chip rc-chip--button${filters.favorite ? ' rc-chip--on' : ''}`}
+              className={chipClass(filters.favorite)}
               type="button"
               aria-pressed={filters.favorite}
               onClick={() => update({ favorite: !filters.favorite })}
             >
-              ♥ My favorites
+              <Heart
+                aria-hidden="true"
+                className={`h-3.5 w-3.5 ${filters.favorite ? 'fill-current' : ''}`}
+                strokeWidth={2}
+              />
+              My favorites
             </button>
-          </div>
+          </FilterGroup>
         </div>
 
         {organization.tags.length > 0 ? (
-          <fieldset className="rc-filters__tags">
-            <legend className="rc-field__label">Tags</legend>
-            <p className="rc-field__hint">A recipe must carry every tag you pick.</p>
-            <ul className="rc-tag-list">
+          <fieldset className="m-0 mt-4 border-0 border-t border-dashed border-ink/10 p-0 pt-4">
+            <legend className="mb-1 p-0 text-[13px] font-medium text-ink-2">Tags</legend>
+            <FieldHint>A recipe must carry every tag you pick.</FieldHint>
+            <ul className="m-0 mt-2.5 flex list-none flex-wrap gap-2 p-0">
               {organization.tags.map((tag) => (
                 <li key={tag.id}>
                   <button
-                    className={`rc-chip rc-chip--button${
-                      filters.tagIds.includes(tag.id) ? ' rc-chip--on' : ''
-                    }`}
+                    className={chipClass(filters.tagIds.includes(tag.id))}
                     type="button"
                     aria-pressed={filters.tagIds.includes(tag.id)}
                     onClick={() => toggleTag(tag.id)}
@@ -249,14 +267,14 @@ export function BrowsePage() {
             </ul>
           </fieldset>
         ) : null}
+      </Panel>
 
-        <RecipeResults
-          pages={pages}
-          filtered={isFiltered(filters)}
-          loadingLabel="Searching recipes…"
-          onClearFilters={clearFilters}
-        />
-      </main>
-    </AppShell>
+      <RecipeResults
+        pages={pages}
+        filtered={isFiltered(filters)}
+        loadingLabel="Searching recipes…"
+        onClearFilters={clearFilters}
+      />
+    </div>
   );
 }

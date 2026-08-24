@@ -161,7 +161,7 @@ describe('home discovery', () => {
 
     renderAt('/', <HomePage />);
 
-    expect(await screen.findByText('No recipes yet.')).toBeInTheDocument();
+    expect(await screen.findByText('Nothing on the shelf yet.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Add a recipe' })).toBeInTheDocument();
   });
 
@@ -333,7 +333,7 @@ describe('browse and search', () => {
 
     renderAt('/recipes', <BrowsePage />);
 
-    await userEvent.click(await screen.findByRole('button', { name: '♥ My favorites' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'My favorites' }));
     await userEvent.click(screen.getByRole('button', { name: '4★' }));
 
     await waitFor(() => expect(calls.at(-1)).toBe('/api/recipes?favorite=true&minRating=4'));
@@ -380,7 +380,9 @@ describe('browse and search', () => {
 
     const card = (await screen.findByRole('heading', { name: 'Weeknight Chili' })).closest('li')!;
     expect(within(card).getByText('Dinner')).toBeInTheDocument();
-    expect(within(card).getByText('30 min · 4.5 ★ (2)')).toBeInTheDocument();
+    expect(within(card).getByText('30 min')).toBeInTheDocument();
+    expect(within(card).getByText('4.5')).toBeInTheDocument();
+    expect(within(card).getByText('(2)')).toBeInTheDocument();
     expect(within(card).getByRole('link')).toHaveAttribute('href', '/recipes/1');
   });
 });

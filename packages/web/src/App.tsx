@@ -1,5 +1,7 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { useAuth } from './auth';
+import { AppShell } from '@/components/AppShell';
+import { CookModeProvider, useCookMode } from '@/components/CookMode';
 import { BrowsePage } from './discovery/BrowsePage';
 import { HomePage } from './discovery/HomePage';
 import { MeshBackdrop } from './MeshBackdrop';
@@ -23,25 +25,30 @@ function isGalleryRequested() {
 // returns to login rather than rendering a protected shell
 // (technical design section 11.3).
 //
-// The ambient mesh is rendered once here rather than inside `AppShell`: the
-// recipe detail, create, and edit screens deliberately drop the topbar, and the
-// atmosphere should not disappear with it.
+// Every screen is a child of one layout route, so the navigation rail is
+// mounted once and does not remount between sections. The ambient mesh sits
+// outside the router for the same reason: cook mode drops the rail, and the
+// atmosphere should not blink when it does.
 function AuthenticatedRoutes() {
+  const { cooking } = useCookMode();
+
   return (
-    <div className="rc-app">
+    <div className="cb-app" data-cooking={cooking ? 'true' : 'false'}>
       <MeshBackdrop />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/recipes" element={<BrowsePage />} />
-          <Route path="/recipes/new" element={<NewRecipePage />} />
-          <Route path="/recipes/:id" element={<RecipeDetailPage />} />
-          <Route path="/recipes/:id/edit" element={<EditRecipePage />} />
-          <Route path="/favorites" element={<FavoritesPage />} />
-          <Route path="/recent" element={<RecentPage />} />
-          <Route path="/organize" element={<OrganizePage />} />
-          <Route path="/trash" element={<TrashPage />} />
-          <Route path="*" element={<HomePage />} />
+          <Route element={<AppShell />}>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/recipes" element={<BrowsePage />} />
+            <Route path="/recipes/new" element={<NewRecipePage />} />
+            <Route path="/recipes/:id" element={<RecipeDetailPage />} />
+            <Route path="/recipes/:id/edit" element={<EditRecipePage />} />
+            <Route path="/favorites" element={<FavoritesPage />} />
+            <Route path="/recent" element={<RecentPage />} />
+            <Route path="/organize" element={<OrganizePage />} />
+            <Route path="/trash" element={<TrashPage />} />
+            <Route path="*" element={<HomePage />} />
+          </Route>
         </Routes>
       </BrowserRouter>
     </div>
@@ -55,5 +62,10 @@ export function App() {
 
   if (loading) return <SessionLoading />;
   if (!user) return <LoginScreen />;
-  return <AuthenticatedRoutes />;
+
+  return (
+    <CookModeProvider>
+      <AuthenticatedRoutes />
+    </CookModeProvider>
+  );
 }

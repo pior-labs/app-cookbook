@@ -1,8 +1,9 @@
 import type { RecipeImage } from '@cookbook/domain';
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useMutation } from '../api/hooks.js';
 import { createRecipe } from '../api/recipes.js';
+import { Breadcrumb, ButtonLink, PageHeader, Panel } from '@/components/ui';
 import { PhotoField } from './PhotoField.jsx';
 import { RecipeForm } from './RecipeForm.jsx';
 import { emptyDraft, validateCreate, type RecipeDraft } from './form-state.js';
@@ -61,28 +62,35 @@ export function NewRecipePage() {
 
   if (savedId != null) {
     return (
-      <main className="rc-page rc-page--narrow">
-        <h1 className="rc-page__title">Recipe saved</h1>
-        <p className="rc-page__lede">Add a photo now, or go straight to the recipe.</p>
+      <div className="cb-rise flex min-w-0 max-w-3xl flex-col gap-7">
+        <PageHeader
+          title={
+            <>
+              Recipe <em className="font-light text-accent">saved</em>
+            </>
+          }
+          lede="Add a photo now, or go straight to the recipe."
+        />
 
-        <PhotoField recipeId={savedId} image={image} onChange={setImage} />
+        <Panel>
+          <PhotoField recipeId={savedId} image={image} onChange={setImage} />
+        </Panel>
 
-        <div className="rc-form__actions">
-          <Link className="rc-button rc-button--primary" to={`/recipes/${savedId}`}>
+        <div className="flex flex-wrap gap-2.5">
+          <ButtonLink to={`/recipes/${savedId}`} variant="primary">
             View recipe
-          </Link>
+          </ButtonLink>
+          <ButtonLink to="/recipes/new">Add another</ButtonLink>
         </div>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="rc-page rc-page--narrow">
-      <nav className="rc-breadcrumb">
-        <Link to="/">← Cookbook</Link>
-      </nav>
+    <div className="cb-rise flex min-w-0 max-w-3xl flex-col gap-6">
+      <Breadcrumb to="/">Cookbook</Breadcrumb>
 
-      <h1 className="rc-page__title">Add a recipe</h1>
+      <PageHeader title="Add a recipe" lede="Write it down once and this house has it for good." />
 
       {save.error && Object.keys(save.error.fields).length === 0 ? (
         <FormErrorBanner error={save.error} />
@@ -100,6 +108,6 @@ export function NewRecipePage() {
         onCancel={handleCancel}
         onCreateTag={organization.addTag}
       />
-    </main>
+    </div>
   );
 }

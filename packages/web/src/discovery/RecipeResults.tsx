@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
-import { ErrorState } from '../recipes/states.jsx';
+import { Button, ButtonLink } from '@/components/ui';
+import { Banner, EmptyState, ErrorState } from '../recipes/states.jsx';
 import { RecipeCardGrid, RecipeCardSkeleton } from './RecipeCard.jsx';
 import type { RecipePages } from './useRecipePages.js';
 
@@ -38,19 +38,15 @@ export function RecipeResults({
   const { items: recipes, loading, error, reload, hasMore, loadingMore, moreError, loadMore } = pages;
 
   return (
-    <>
-      <div className="rc-results__bar">
-        <p className="rc-results__count" role="status">
+    <div className="flex flex-col gap-5">
+      <div className="flex items-center justify-between gap-4 px-0.5">
+        <p className="m-0 font-serif text-[15px] italic text-ink-2" role="status">
           {loading ? 'Loading…' : resultLabel(recipes.length, hasMore)}
         </p>
         {filtered && onClearFilters ? (
-          <button
-            className="rc-button rc-button--ghost rc-button--small"
-            type="button"
-            onClick={onClearFilters}
-          >
+          <Button size="small" variant="quiet" onClick={onClearFilters}>
             Clear filters
-          </button>
+          </Button>
         ) : null}
       </div>
 
@@ -61,55 +57,43 @@ export function RecipeResults({
       ) : recipes.length === 0 ? (
         // A search that found nothing keeps its query and offers a way out;
         // an unfiltered empty list is a different problem (section 11.3).
-        <div className="rc-state">
-          <p className="rc-state__title">
-            {filtered ? 'Nothing matches that yet.' : (emptyTitle ?? 'No recipes yet.')}
-          </p>
-          <p className="rc-state__body">
-            {filtered
+        <EmptyState
+          title={filtered ? 'Nothing matches that yet.' : (emptyTitle ?? 'No recipes yet.')}
+          body={
+            filtered
               ? 'Try fewer filters or a different word.'
-              : (emptyBody ?? 'Add the first one and it will show up here.')}
-          </p>
-          <div className="rc-state__actions">
-            {filtered && onClearFilters ? (
-              <button className="rc-button rc-button--primary" type="button" onClick={onClearFilters}>
-                Clear filters
-              </button>
-            ) : (
-              (emptyAction ?? (
-                <Link className="rc-button rc-button--primary" to="/recipes/new">
-                  Add a recipe
-                </Link>
-              ))
-            )}
-          </div>
-        </div>
+              : (emptyBody ?? 'Add the first one and it will show up here.')
+          }
+        >
+          {filtered && onClearFilters ? (
+            <Button variant="primary" onClick={onClearFilters}>
+              Clear filters
+            </Button>
+          ) : (
+            (emptyAction ?? (
+              <ButtonLink to="/recipes/new" variant="primary">
+                Add a recipe
+              </ButtonLink>
+            ))
+          )}
+        </EmptyState>
       ) : (
         <>
           <RecipeCardGrid recipes={recipes} />
 
           {/* A failed extension keeps the pages already on screen: a cook is
               reading them. */}
-          {moreError ? (
-            <p className="rc-form__banner" role="alert">
-              {moreError.message}
-            </p>
-          ) : null}
+          {moreError ? <Banner>{moreError.message}</Banner> : null}
 
           {hasMore ? (
-            <div className="rc-results__more">
-              <button
-                className="rc-button rc-button--ghost"
-                type="button"
-                disabled={loadingMore}
-                onClick={loadMore}
-              >
+            <div className="flex justify-center pt-1">
+              <Button disabled={loadingMore} onClick={loadMore}>
                 {loadingMore ? 'Loading…' : 'Load more'}
-              </button>
+              </Button>
             </div>
           ) : null}
         </>
       )}
-    </>
+    </div>
   );
 }

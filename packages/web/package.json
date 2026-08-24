@@ -14,9 +14,12 @@
   "dependencies": {
     "@cookbook/domain": "workspace:^",
     "@pior-labs/design-system": "1.0.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.16.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-router-dom": "^7.18.2"
+    "react-router-dom": "^7.18.2",
+    "tailwind-merge": "^2.6.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.1.11",

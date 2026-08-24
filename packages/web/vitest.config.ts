@@ -9,6 +9,7 @@ export default defineConfig({
       // Same reason as the API suite: point at domain source so a clean
       // checkout can run tests without building the package first.
       '@cookbook/domain': fileURLToPath(new URL('../domain/src/index.ts', import.meta.url)),
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
   test: {

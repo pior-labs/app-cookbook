@@ -1,4 +1,7 @@
+import { Heart, Star } from 'lucide-react';
 import { useRef } from 'react';
+import { cn } from '@/lib/utils';
+import { focusRing } from '@/components/ui';
 
 // Favorite and rating controls (technical design sections 11.2 and 11.3).
 // Both are toggles a cook uses while cooking, so they carry a full touch
@@ -11,24 +14,42 @@ export function FavoriteButton({
   favorite,
   onToggle,
   size = 'default',
+  className,
 }: {
   name: string;
   favorite: boolean;
   onToggle: () => void;
   size?: 'default' | 'small';
+  className?: string;
 }) {
+  const compact = size === 'small';
+
   return (
     <button
-      className={`rc-favorite${favorite ? ' rc-favorite--on' : ''}${
-        size === 'small' ? ' rc-favorite--small' : ''
-      }`}
+      className={cn(
+        'inline-flex cursor-pointer items-center justify-center gap-2 rounded-full border font-medium',
+        'backdrop-blur-md transition-[background-color,color,transform] duration-200 ease-out',
+        'hover:-translate-y-px motion-reduce:hover:translate-y-0',
+        focusRing,
+        // Small sits on top of a photograph, so it keeps its own frosted disc
+        // rather than trusting whatever was photographed underneath it.
+        compact
+          ? 'h-9 w-9 border-frost/70 bg-[rgba(var(--surface-rgb),0.86)] shadow-[0_6px_16px_-8px_color-mix(in_srgb,var(--ink)_50%,transparent)]'
+          : 'min-h-11 border-ink/12 bg-frost/55 px-5 py-2 text-[15px]',
+        favorite ? 'text-accent' : 'text-ink-2 hover:text-ink',
+        className,
+      )}
       type="button"
       aria-pressed={favorite}
       aria-label={favorite ? `Remove ${name} from your favorites` : `Add ${name} to your favorites`}
       onClick={onToggle}
     >
-      <span aria-hidden="true">{favorite ? '♥' : '♡'}</span>
-      {size === 'default' ? <span>{favorite ? 'Favorited' : 'Favorite'}</span> : null}
+      <Heart
+        aria-hidden="true"
+        className={cn(compact ? 'h-[18px] w-[18px]' : 'h-[18px] w-[18px]', favorite && 'fill-current')}
+        strokeWidth={2}
+      />
+      {compact ? null : <span>{favorite ? 'Favorited' : 'Favorite'}</span>}
     </button>
   );
 }
@@ -85,43 +106,60 @@ export function RatingControl({
   };
 
   return (
-    <div className="rc-rating">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
       {/* A radio group, not five buttons: the stars are one choice, so arrow
           keys move between them and only the chosen one is a tab stop. */}
       <div
-        className="rc-rating__stars"
+        className="flex items-center"
         role="radiogroup"
         aria-label={`Your rating for ${name}`}
         onKeyDown={onKeyDown}
       >
-        {STARS.map((value, index) => (
-          <button
-            className={`rc-rating__star${
-              rating != null && value <= rating ? ' rc-rating__star--on' : ''
-            }`}
-            key={value}
-            ref={(element) => {
-              stars.current[index] = element;
-            }}
-            type="button"
-            role="radio"
-            aria-checked={rating === value}
-            aria-label={value === 1 ? '1 star' : `${value} stars`}
-            tabIndex={rating === value || (rating == null && value === 1) ? 0 : -1}
-            onClick={() => onRate(value)}
-          >
-            <span aria-hidden="true">{rating != null && value <= rating ? '★' : '☆'}</span>
-          </button>
-        ))}
+        {STARS.map((value, index) => {
+          const on = rating != null && value <= rating;
+
+          return (
+            <button
+              className={cn(
+                'inline-grid h-11 w-9 cursor-pointer place-items-center rounded-xl border-0 bg-transparent transition-colors',
+                focusRing,
+                on ? 'text-accent' : 'text-ink-3 hover:text-ink-2',
+              )}
+              key={value}
+              ref={(element) => {
+                stars.current[index] = element;
+              }}
+              type="button"
+              role="radio"
+              aria-checked={rating === value}
+              aria-label={value === 1 ? '1 star' : `${value} stars`}
+              tabIndex={rating === value || (rating == null && value === 1) ? 0 : -1}
+              onClick={() => onRate(value)}
+            >
+              <Star
+                aria-hidden="true"
+                className={cn('h-[21px] w-[21px]', on && 'fill-current')}
+                strokeWidth={1.9}
+              />
+            </button>
+          );
+        })}
       </div>
 
       {rating != null ? (
-        <button className="rc-rating__clear" type="button" onClick={onClear}>
-          Clear<span className="rc-visually-hidden"> your rating for {name}</span>
+        <button
+          className={cn(
+            'cursor-pointer rounded-full border-0 bg-transparent px-2 py-1 font-serif text-[13px] italic text-ink-2 underline decoration-dotted underline-offset-4 transition-colors hover:text-ink',
+            focusRing,
+          )}
+          type="button"
+          onClick={onClear}
+        >
+          Clear<span className="sr-only"> your rating for {name}</span>
         </button>
       ) : null}
 
-      <p className="rc-rating__household">
+      <p className="m-0 font-serif text-[13px] italic text-ink-3">
         {count === 0 || average == null
           ? 'Not rated in this house yet'
           : `${average.toFixed(1)} average from ${count === 1 ? '1 rating' : `${count} ratings`}`}

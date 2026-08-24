@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react';
+import { ArrowDown, ArrowUp, Plus, X } from 'lucide-react';
+import { Button, FieldError, IconButton, SectionHeading } from '@/components/ui';
 
 // Ordered ingredient and instruction rows. Position comes from array order and
 // is derived server-side, so reordering here only moves array entries
@@ -28,34 +30,34 @@ export function RowControls({
   const position = `${label} ${index + 1}`;
 
   return (
-    <div className="rc-row__controls">
-      <button
-        className="rc-icon-button"
-        type="button"
+    // Always a horizontal cluster. Stacked, three 44px buttons stand taller
+    // than the fields they belong to and leave the row mostly dead space. On a
+    // phone the row turns into a column and this sits under the fields; from
+    // `sm` up it sits beside them, pushed down past the field label so it
+    // lines up with the inputs rather than with their captions.
+    <div className="flex shrink-0 justify-end gap-1.5 sm:self-start sm:pt-[26px]">
+      <IconButton
         onClick={() => onMove(index, index - 1)}
         disabled={index === 0}
         aria-label={`Move ${position} up`}
       >
-        <span aria-hidden="true">↑</span>
-      </button>
-      <button
-        className="rc-icon-button"
-        type="button"
+        <ArrowUp aria-hidden="true" className="h-4 w-4" strokeWidth={2.1} />
+      </IconButton>
+      <IconButton
         onClick={() => onMove(index, index + 1)}
         disabled={index === total - 1}
         aria-label={`Move ${position} down`}
       >
-        <span aria-hidden="true">↓</span>
-      </button>
-      <button
-        className="rc-icon-button rc-icon-button--danger"
-        type="button"
+        <ArrowDown aria-hidden="true" className="h-4 w-4" strokeWidth={2.1} />
+      </IconButton>
+      <IconButton
+        tone="danger"
         onClick={() => onRemove(index)}
         disabled={!canRemove}
         aria-label={`Remove ${position}`}
       >
-        <span aria-hidden="true">×</span>
-      </button>
+        <X aria-hidden="true" className="h-4 w-4" strokeWidth={2.1} />
+      </IconButton>
     </div>
   );
 }
@@ -71,18 +73,18 @@ interface RowListProps {
 
 export function RowList({ legend, hint, error, addLabel, onAdd, children }: RowListProps) {
   return (
-    <fieldset className="rc-rows">
-      <legend className="rc-rows__legend">{legend}</legend>
-      {hint ? <p className="rc-field__hint">{hint}</p> : null}
-      {error ? (
-        <p className="rc-field__error" role="alert">
-          {error}
-        </p>
-      ) : null}
-      <ol className="rc-rows__list">{children}</ol>
-      <button className="rc-button rc-button--ghost" type="button" onClick={onAdd}>
+    <fieldset className="m-0 min-w-0 border-0 p-0">
+      <legend className="mb-3 p-0">
+        <SectionHeading sub={hint}>{legend}</SectionHeading>
+      </legend>
+      {/* The hint is rendered inside the legend above for sighted readers; an
+          error is separate so it can carry its own alert role. */}
+      {error ? <FieldError>{error}</FieldError> : null}
+      <ol className="m-0 flex list-none flex-col gap-3 p-0">{children}</ol>
+      <Button className="mt-3.5" onClick={onAdd}>
+        <Plus aria-hidden="true" className="h-4 w-4" strokeWidth={2.3} />
         {addLabel}
-      </button>
+      </Button>
     </fieldset>
   );
 }

@@ -1,6 +1,10 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
+
+const currentDir = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '../..', '');
@@ -8,6 +12,14 @@ export default defineConfig(({ mode }) => {
   return {
     envDir: '../..',
     plugins: [react(), tailwindcss()],
+    resolve: {
+      // Cross-cutting modules (`@/components`, `@/lib`) import by alias, the
+      // way the rest of the Pior Labs web apps do. Imports inside one feature
+      // folder stay relative.
+      alias: {
+        '@': path.resolve(currentDir, './src'),
+      },
+    },
     server: {
       // Explicit IPv4 loopback rather than the `localhost` default. On hosts
       // that resolve `localhost` to `::1` first - GitHub's runners among them -
