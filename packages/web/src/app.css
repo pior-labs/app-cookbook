@@ -1,0 +1,194 @@
+@import "tailwindcss";
+@import "@pior-labs/design-system/styles.css";
+@import "@pior-labs/design-system/effects.css";
+@import "./theme-picker.css";
+@import "./login/login.css";
+@import "./login/login-gallery.css";
+
+/*
+ * App-wide tokens and baseline. Every screen paints itself from Tailwind
+ * utilities over @pior-labs/design-system semantic tokens; the custom
+ * properties below are the compound values (gradients, layered shadows,
+ * color-mixes) that would be unreadable inline. Nothing here hardcodes a
+ * palette, so the whole app reskins with `data-theme`.
+ */
+
+:root {
+  /* The seal: a bowl in ink under three wisps of steam in the accent tones. */
+  --cb-mark-1: var(--accent-1);
+  --cb-mark-2: var(--accent-2);
+  --cb-mark-3: var(--accent-3);
+  --cb-mark-core-bg: var(--cream);
+  --cb-mark-core-border: var(--ink);
+
+  /* Floating surfaces: account menu, filter popover, mobile nav. */
+  --cb-menu-bg: rgba(var(--surface-rgb), 0.92);
+  --cb-menu-shadow: 0 14px 36px -8px color-mix(in srgb, var(--ink) 22%, transparent),
+    inset 0 0 0 1px rgba(var(--frost-rgb), 0.5);
+
+  /* The one solid, high-contrast action. Everything else is glass or ghost. */
+  --cb-action-shadow: 0 14px 36px -12px color-mix(in srgb, var(--ink) 55%, transparent),
+    inset 0 1px 0 rgba(var(--frost-rgb), 0.06);
+  --cb-action-shadow-hover: 0 18px 42px -12px color-mix(in srgb, var(--ink) 60%, transparent),
+    inset 0 1px 0 rgba(var(--frost-rgb), 0.08);
+  --cb-action-hover-bg: color-mix(in srgb, var(--ink) 90%, var(--accent));
+
+  --cb-focus-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 16%, transparent);
+  --cb-soft-divider: color-mix(in srgb, var(--ink) 10%, transparent);
+  --cb-muted-track: color-mix(in srgb, var(--ink) 6%, transparent);
+
+  --cb-avatar-bg: linear-gradient(135deg, var(--accent-3), var(--accent-soft));
+  --cb-count-badge-bg: linear-gradient(
+    135deg,
+    var(--accent-soft),
+    color-mix(in srgb, var(--accent) 28%, var(--accent-soft))
+  );
+
+  --cb-accent-surface: color-mix(in srgb, var(--accent) 14%, rgba(var(--surface-rgb), 1) 86%);
+  --cb-accent-surface-strong: color-mix(in srgb, var(--accent) 24%, rgba(var(--surface-rgb), 1) 76%);
+
+  --cb-good-surface: color-mix(in srgb, var(--good) 18%, rgba(var(--surface-rgb), 1) 82%);
+  --cb-good-surface-strong: color-mix(in srgb, var(--good) 34%, rgba(var(--surface-rgb), 1) 66%);
+
+  --cb-warn-surface: color-mix(in srgb, var(--warn) 18%, rgba(var(--surface-rgb), 1) 82%);
+
+  --cb-danger-surface: color-mix(in srgb, var(--destructive) 16%, rgba(var(--surface-rgb), 1) 84%);
+  --cb-danger-border: color-mix(in srgb, var(--destructive) 34%, transparent);
+  --cb-danger-ink-strong: color-mix(in srgb, var(--destructive) 62%, var(--ink));
+
+  /* Laid over the base of a recipe photo so the caption stays readable
+     whatever was photographed. */
+  --cb-photo-scrim: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--ink) 78%, transparent) 0%,
+    color-mix(in srgb, var(--ink) 44%, transparent) 42%,
+    transparent 100%
+  );
+}
+
+/* ---- atmosphere ------------------------------------------------------ */
+
+/* The authenticated app drifts at well under the sign-in screen's strength.
+   The rail and the cards are translucent, so whatever the mesh does they wear;
+   at the sign-in screen's opacity the rail reads as a green panel rather than
+   as glass. This is atmosphere in the margins, not colour under the words. */
+.cb-app {
+  --blob-opacity: 0.35;
+  min-height: 100dvh;
+  /* Painted below the fixed mesh and grain, which take z-index 0 and 1. Any
+     content that wants to be above them takes 2. */
+  background: var(--cream);
+}
+
+/* Cook mode calms the room. The mesh nearly stops, because a page being read
+   at arm's length across a hot pan should not move. */
+.cb-app[data-cooking="true"] {
+  --blob-opacity: 0.18;
+}
+
+/* ---- motion ---------------------------------------------------------- */
+
+@keyframes cb-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* One entrance, used on the main content column when a screen mounts. */
+.cb-rise {
+  animation: cb-rise 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cb-rise {
+    animation: none;
+  }
+}
+
+/* ---- rails ----------------------------------------------------------- */
+
+/*
+ * A horizontal rail fades at whichever end still has cards behind it; the end
+ * it has reached stays hard, so the fade never suggests content that is not
+ * there. `mask-image` rather than a gradient overlay in the page colour: the
+ * cards sit on a drifting mesh, and a painted fade would be the wrong colour
+ * the moment it moves. `data-fade` is written by `useRailFade`, and the
+ * unset case is deliberately unstyled so a rail with no script is simply
+ * unmasked rather than invisible.
+ */
+.cb-rail {
+  --cb-rail-fade: 3.25rem;
+}
+
+.cb-rail[data-fade="end"] {
+  mask-image: linear-gradient(
+    to right,
+    #000 calc(100% - var(--cb-rail-fade)),
+    transparent 100%
+  );
+}
+
+.cb-rail[data-fade="start"] {
+  mask-image: linear-gradient(to right, transparent 0, #000 var(--cb-rail-fade));
+}
+
+.cb-rail[data-fade="both"] {
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 var(--cb-rail-fade),
+    #000 calc(100% - var(--cb-rail-fade)),
+    transparent 100%
+  );
+}
+
+/* ---- base ------------------------------------------------------------ */
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #root {
+    min-width: 320px;
+    min-height: 100%;
+    margin: 0;
+  }
+
+  body {
+    color: var(--foreground);
+    background: var(--background);
+    font-family: "Outfit", system-ui, -apple-system, sans-serif;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  button {
+    font: inherit;
+  }
+
+  /* Numeric fields in the recipe form and the serving stepper are typed and
+     stepped by their own buttons; the browser's spinners only crowd them. */
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+}

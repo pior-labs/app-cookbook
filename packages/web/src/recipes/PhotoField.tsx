@@ -1,7 +1,9 @@
 import type { RecipeImage } from '@cookbook/domain';
+import { ImagePlus, Trash2 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { ApiRequestError } from '../api/client.js';
 import { deleteRecipePhoto, uploadRecipePhoto } from '../api/recipes.js';
+import { Button, FieldError, FieldHint, buttonClass } from '@/components/ui';
 
 // Photo upload is a separate request from the recipe JSON, so an upload failure
 // never discards the rest of the form (technical design section 7.4). The
@@ -24,11 +26,7 @@ export function PhotoField({ recipeId, image, onChange }: PhotoFieldProps) {
   const [version, setVersion] = useState(0);
 
   if (recipeId == null) {
-    return (
-      <p className="rc-field__hint">
-        Save the recipe first, then you can add a photo.
-      </p>
-    );
+    return <FieldHint>Save the recipe first, then you can add a photo.</FieldHint>;
   }
 
   async function handleFile(file: File | undefined) {
@@ -70,56 +68,58 @@ export function PhotoField({ recipeId, image, onChange }: PhotoFieldProps) {
   }
 
   return (
-    <div className="rc-photo">
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
       {image ? (
         <img
-          className="rc-photo__preview"
+          className="aspect-[4/3] w-full shrink-0 rounded-[22px] border border-frost/80 object-cover shadow-[0_12px_32px_-14px_color-mix(in_srgb,var(--ink)_35%,transparent)] sm:w-56"
           src={`${image.cardUrl}?v=${version}`}
           width={image.cardWidth}
           height={image.cardHeight}
           alt="Current recipe photo"
         />
       ) : (
-        <div className="rc-photo__empty" aria-hidden="true">
-          <span>No photo yet</span>
+        <div
+          className="tone-card-3 grid aspect-[4/3] w-full shrink-0 place-items-center rounded-[22px] border border-dashed border-ink/20 sm:w-56"
+          aria-hidden="true"
+        >
+          <span className="font-serif text-[15px] italic text-ink-2">No photo yet</span>
         </div>
       )}
 
-      <div className="rc-photo__actions">
-        <label className="rc-button rc-button--ghost" htmlFor="recipe-photo">
-          {image ? 'Replace photo' : 'Add photo'}
-        </label>
-        <input
-          className="rc-visually-hidden"
-          id="recipe-photo"
-          ref={inputRef}
-          type="file"
-          accept={ACCEPTED}
-          disabled={busy}
-          onChange={(event) => void handleFile(event.target.files?.[0])}
-        />
-
-        {image ? (
-          <button
-            className="rc-button rc-button--ghost"
-            type="button"
-            onClick={() => void handleRemove()}
+      <div className="flex min-w-0 flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <label className={buttonClass(image ? 'ghost' : 'primary')} htmlFor="recipe-photo">
+            <ImagePlus aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
+            {image ? 'Replace photo' : 'Add photo'}
+          </label>
+          <input
+            className="sr-only"
+            id="recipe-photo"
+            ref={inputRef}
+            type="file"
+            accept={ACCEPTED}
             disabled={busy}
-          >
-            Remove photo
-          </button>
-        ) : null}
+            onChange={(event) => void handleFile(event.target.files?.[0])}
+          />
 
-        {busy ? <span className="rc-photo__busy">Working…</span> : null}
+          {image ? (
+            <Button variant="quiet" onClick={() => void handleRemove()} disabled={busy}>
+              <Trash2 aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
+              Remove photo
+            </Button>
+          ) : null}
+
+          {busy ? (
+            <span className="font-serif text-[14px] italic text-ink-2" role="status">
+              Working…
+            </span>
+          ) : null}
+        </div>
+
+        <FieldHint>JPEG, PNG, or WebP, up to 10 MB.</FieldHint>
+
+        {error ? <FieldError>{error}</FieldError> : null}
       </div>
-
-      <p className="rc-field__hint">JPEG, PNG, or WebP, up to 10 MB.</p>
-
-      {error ? (
-        <p className="rc-field__error" role="alert">
-          {error}
-        </p>
-      ) : null}
     </div>
   );
 }

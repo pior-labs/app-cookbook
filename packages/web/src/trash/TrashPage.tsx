@@ -1,11 +1,18 @@
 import { normalizeWhitespace, type TrashedRecipe } from '@cookbook/domain';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { RotateCcw, Trash2 } from 'lucide-react';
 import { ApiRequestError } from '../api/client.js';
 import { deleteRecipeForever, listTrash, restoreRecipe } from '../api/trash.js';
 import { useCursorPages } from '../api/useCursorPages.js';
-import { AppShell } from '../AppShell.js';
-import { ErrorState } from '../recipes/states.jsx';
+import {
+  Button,
+  ButtonLink,
+  Eyebrow,
+  FieldLabel,
+  Input,
+  PageHeader,
+} from '@/components/ui';
+import { Banner, EmptyState, ErrorState } from '../recipes/states.jsx';
 
 // Trash: everything that was deleted, and the two things that can be done about
 // it (technical design sections 10 and 11.1). Restoring is one press because a
@@ -69,32 +76,35 @@ function TrashRow({ recipe, onRestore, onDeleteForever }: RowProps) {
   };
 
   return (
-    <li className="rc-trash__row">
-      <div className="rc-trash__main">
-        <div className="rc-trash__identity">
-          <p className="rc-eyebrow">{recipe.categoryName}</p>
-          <h2 className="rc-trash__name">{recipe.name}</h2>
+    <li className="rounded-[26px] border border-frost/80 bg-[rgba(var(--surface-rgb),0.75)] p-4 sm:p-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <Eyebrow>{recipe.categoryName}</Eyebrow>
+          <h2 className="mt-1.5 mb-0 font-serif text-[21px] leading-tight font-normal tracking-[-0.02em] text-ink">
+            {recipe.name}
+          </h2>
           {recipe.description ? (
-            <p className="rc-trash__description">{recipe.description}</p>
+            <p className="mt-1.5 mb-0 max-w-140 text-[14px] text-ink-2">{recipe.description}</p>
           ) : null}
-          <p className="rc-trash__meta">
+          <p className="mt-2 mb-0 font-serif text-[13px] italic text-ink-3">
             Deleted {formatDeletedAt(recipe.deletedAt)} by {recipe.deletedByName}
           </p>
         </div>
 
-        <div className="rc-trash__actions">
-          <button
-            className="rc-button rc-button--primary rc-button--small"
-            type="button"
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <Button
+            variant="primary"
+            size="small"
             aria-label={`Restore ${recipe.name}`}
             disabled={busy}
             onClick={() => void attempt(() => onRestore(recipe.id))}
           >
+            <RotateCcw aria-hidden="true" className="h-3.5 w-3.5" strokeWidth={2.1} />
             Restore
-          </button>
-          <button
-            className="rc-button rc-button--ghost rc-button--small"
-            type="button"
+          </Button>
+          <Button
+            variant="quiet"
+            size="small"
             aria-label={`Delete ${recipe.name} forever`}
             disabled={busy}
             onClick={() => {
@@ -103,41 +113,40 @@ function TrashRow({ recipe, onRestore, onDeleteForever }: RowProps) {
               setConfirming(true);
             }}
           >
+            <Trash2 aria-hidden="true" className="h-3.5 w-3.5" strokeWidth={2.1} />
             Delete forever
-          </button>
+          </Button>
         </div>
       </div>
 
       {confirming ? (
         <form
-          className="rc-trash__confirm"
+          className="mt-4 rounded-2xl border border-[var(--cb-danger-border)] bg-[var(--cb-danger-surface)] p-4"
           onSubmit={(event) => {
             event.preventDefault();
             void submitDelete();
           }}
         >
-          <label className="rc-field__label" htmlFor={confirmId}>
-            Type “{recipe.name}” to delete it forever
-          </label>
-          <p className="rc-trash__warning">
+          <FieldLabel htmlFor={confirmId}>Type “{recipe.name}” to delete it forever</FieldLabel>
+          <p className="mt-1.5 mb-0 text-[13px] text-ink-2">
             The recipe, its photo, and everyone’s ratings go with it. Nothing here can bring it
             back.
           </p>
-          <div className="rc-trash__confirm-row">
-            <input
-              className="rc-input"
+          <div className="mt-3 flex flex-wrap items-center gap-2.5">
+            <Input
+              className="min-w-0 flex-1 sm:max-w-72"
               id={confirmId}
               value={typed}
               autoFocus
               autoComplete="off"
               onChange={(event) => setTyped(event.target.value)}
             />
-            <button className="rc-button rc-button--danger rc-button--small" disabled={busy}>
+            <Button variant="danger" size="small" type="submit" disabled={busy}>
               Delete forever
-            </button>
-            <button
-              className="rc-button rc-button--ghost rc-button--small"
-              type="button"
+            </Button>
+            <Button
+              variant="quiet"
+              size="small"
               disabled={busy}
               onClick={() => {
                 setConfirming(false);
@@ -145,13 +154,13 @@ function TrashRow({ recipe, onRestore, onDeleteForever }: RowProps) {
               }}
             >
               Keep it
-            </button>
+            </Button>
           </div>
         </form>
       ) : null}
 
       {message ? (
-        <p className="rc-trash__message" role="alert">
+        <p className="mt-3 mb-0 text-[13px] font-medium text-[var(--cb-danger-ink-strong)]" role="alert">
           {message}
         </p>
       ) : null}
@@ -173,73 +182,56 @@ export function TrashPage() {
   };
 
   return (
-    <AppShell>
-      <main className="rc-page rc-page--narrow">
-        <h1 className="rc-page__title">Trash</h1>
-        <p className="rc-page__lede">
-          Deleted recipes stay here until someone removes them for good. Restoring one brings back
-          its ingredients, photo, tags, and every rating it had.
-        </p>
+    <div className="cb-rise flex min-w-0 max-w-4xl flex-col gap-7">
+      <PageHeader
+        title="Trash"
+        lede="Deleted recipes stay here until someone removes them for good. Restoring one brings back its ingredients, photo, tags, and every rating it had."
+      />
 
-        {pages.loading ? (
-          <div className="rc-trash" role="status" aria-live="polite">
-            <span className="rc-visually-hidden">Loading Trash…</span>
-            <div className="rc-skeleton__line" />
-            <div className="rc-skeleton__line" />
-            <div className="rc-skeleton__line" />
-          </div>
-        ) : pages.error ? (
-          <ErrorState error={pages.error} onRetry={pages.reload}>
-            <Link className="rc-button rc-button--ghost" to="/">
-              Back to the cookbook
-            </Link>
-          </ErrorState>
-        ) : pages.items.length === 0 ? (
-          <div className="rc-state">
-            <p className="rc-state__title">Trash is empty.</p>
-            <p className="rc-state__body">
-              Deleting a recipe puts it here first, so nothing is ever lost by accident.
-            </p>
-            <div className="rc-state__actions">
-              <Link className="rc-button rc-button--primary" to="/recipes">
-                Browse recipes
-              </Link>
+      {pages.loading ? (
+        <div className="flex flex-col gap-3" role="status" aria-live="polite">
+          <span className="sr-only">Loading Trash…</span>
+          <div className="h-28 rounded-[26px] bg-[var(--cb-muted-track)]" />
+          <div className="h-28 rounded-[26px] bg-[var(--cb-muted-track)]" />
+          <div className="h-28 rounded-[26px] bg-[var(--cb-muted-track)]" />
+        </div>
+      ) : pages.error ? (
+        <ErrorState error={pages.error} onRetry={pages.reload}>
+          <ButtonLink to="/">Back to the cookbook</ButtonLink>
+        </ErrorState>
+      ) : pages.items.length === 0 ? (
+        <EmptyState
+          title="Trash is empty."
+          body="Deleting a recipe puts it here first, so nothing is ever lost by accident."
+        >
+          <ButtonLink to="/recipes" variant="primary">
+            Browse recipes
+          </ButtonLink>
+        </EmptyState>
+      ) : (
+        <>
+          <ul className="m-0 flex list-none flex-col gap-3 p-0">
+            {pages.items.map((recipe) => (
+              <TrashRow
+                key={recipe.id}
+                recipe={recipe}
+                onRestore={(id) => afterChange(restoreRecipe(id))}
+                onDeleteForever={(id) => afterChange(deleteRecipeForever(id))}
+              />
+            ))}
+          </ul>
+
+          {pages.moreError ? <Banner>{pages.moreError.message}</Banner> : null}
+
+          {pages.hasMore ? (
+            <div className="flex justify-center pt-1">
+              <Button disabled={pages.loadingMore} onClick={pages.loadMore}>
+                {pages.loadingMore ? 'Loading…' : 'Load more'}
+              </Button>
             </div>
-          </div>
-        ) : (
-          <>
-            <ul className="rc-trash__list">
-              {pages.items.map((recipe) => (
-                <TrashRow
-                  key={recipe.id}
-                  recipe={recipe}
-                  onRestore={(id) => afterChange(restoreRecipe(id))}
-                  onDeleteForever={(id) => afterChange(deleteRecipeForever(id))}
-                />
-              ))}
-            </ul>
-
-            {pages.moreError ? (
-              <p className="rc-form__banner" role="alert">
-                {pages.moreError.message}
-              </p>
-            ) : null}
-
-            {pages.hasMore ? (
-              <div className="rc-results__more">
-                <button
-                  className="rc-button rc-button--ghost"
-                  type="button"
-                  disabled={pages.loadingMore}
-                  onClick={pages.loadMore}
-                >
-                  {pages.loadingMore ? 'Loading…' : 'Load more'}
-                </button>
-              </div>
-            ) : null}
-          </>
-        )}
-      </main>
-    </AppShell>
+          ) : null}
+        </>
+      )}
+    </div>
   );
 }

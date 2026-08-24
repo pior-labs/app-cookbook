@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { ThemeProvider } from '@pior-labs/design-system';
 import { App } from './App';
 import { AuthProvider } from './auth';
-import './index.css';
+import './app.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

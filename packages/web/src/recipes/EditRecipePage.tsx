@@ -1,8 +1,9 @@
 import type { RecipeImage } from '@cookbook/domain';
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useApiResource, useMutation } from '../api/hooks.js';
 import { getRecipe, updateRecipe } from '../api/recipes.js';
+import { Breadcrumb, Button, ButtonLink, PageHeader } from '@/components/ui';
 import { PhotoField } from './PhotoField.jsx';
 import { RecipeForm } from './RecipeForm.jsx';
 import { draftFromRecipe, validateUpdate, type RecipeDraft } from './form-state.js';
@@ -83,47 +84,40 @@ export function EditRecipePage() {
   }
 
   if (loading || (!draft && !error)) {
-    return (
-      <main className="rc-page rc-page--narrow">
-        <RecipeSkeleton />
-      </main>
-    );
+    return <RecipeSkeleton />;
   }
 
   if (error || !draft || !recipe) {
     return (
-      <main className="rc-page rc-page--narrow">
-        <ErrorState error={error!} onRetry={reload}>
-          <Link className="rc-button rc-button--ghost" to="/">
-            Back to the cookbook
-          </Link>
-        </ErrorState>
-      </main>
+      <ErrorState error={error!} onRetry={reload}>
+        <ButtonLink to="/">Back to the cookbook</ButtonLink>
+      </ErrorState>
     );
   }
 
   return (
-    <main className="rc-page rc-page--narrow">
-      <nav className="rc-breadcrumb">
-        <Link to={`/recipes/${recipeId}`}>← {recipe.name}</Link>
-      </nav>
+    <div className="cb-rise flex min-w-0 max-w-3xl flex-col gap-6">
+      <Breadcrumb to={`/recipes/${recipeId}`}>{recipe.name}</Breadcrumb>
 
-      <h1 className="rc-page__title">Edit recipe</h1>
+      <PageHeader title="Edit recipe" lede={`Changes to “${recipe.name}” are shared with the house.`} />
 
       {conflict ? (
-        <div className="rc-conflict" role="alert">
-          <p className="rc-conflict__title">Someone else saved this recipe first.</p>
-          <p className="rc-conflict__body">
+        <div
+          className="rounded-[26px] border border-[var(--cb-danger-border)] bg-[var(--cb-danger-surface)] p-5 sm:p-6"
+          role="alert"
+        >
+          <p className="m-0 font-serif text-[20px] leading-tight font-normal tracking-[-0.02em] text-[var(--cb-danger-ink-strong)]">
+            Someone else saved this recipe first.
+          </p>
+          <p className="mt-2 mb-0 max-w-140 text-[15px] text-ink-2">
             Your changes have not been saved, and nothing you typed has been lost. Reload to start
             from their version, or save yours as a separate recipe.
           </p>
-          <div className="rc-state__actions">
-            <button className="rc-button rc-button--primary" type="button" onClick={reload}>
+          <div className="mt-4 flex flex-wrap gap-2.5">
+            <Button variant="primary" onClick={reload}>
               Reload their version
-            </button>
-            <Link className="rc-button rc-button--ghost" to="/recipes/new">
-              Start a separate copy
-            </Link>
+            </Button>
+            <ButtonLink to="/recipes/new">Start a separate copy</ButtonLink>
           </div>
         </div>
       ) : null}
@@ -146,6 +140,6 @@ export function EditRecipePage() {
         onCreateTag={organization.addTag}
         photoSlot={<PhotoField recipeId={recipeId} image={image} onChange={setImage} />}
       />
-    </main>
+    </div>
   );
 }

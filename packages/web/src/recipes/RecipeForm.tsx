@@ -1,6 +1,18 @@
 import { UNIT_DEFINITIONS, type CategorySummary, type TagSummary } from '@cookbook/domain';
 import { useState } from 'react';
 import type { ErrorFields } from '../api/client.js';
+import { cn } from '@/lib/utils';
+import {
+  Button,
+  FieldError,
+  FieldHint,
+  FieldLabel,
+  Input,
+  SectionHeading,
+  Select,
+  Textarea,
+  chipLabelClass,
+} from '@/components/ui';
 import { Field, describedBy, fieldError } from './fields.jsx';
 import { RowControls, RowList } from './OrderedRows.jsx';
 import {
@@ -17,6 +29,29 @@ import {
 // The shared create/edit form. It holds entered values as its own state and
 // never clears them on a failed submit, so a recoverable API or upload error
 // leaves the cook's work intact (technical design section 11.2).
+
+// Writing a recipe is long work, so the form is broken into opaque sheets a
+// cook can hold one at a time rather than one unbroken column.
+function FormSection({
+  title,
+  sub,
+  children,
+}: {
+  title?: string;
+  sub?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-[26px] border border-frost/80 bg-[rgba(var(--surface-rgb),0.94)] p-5 shadow-[0_10px_34px_-16px_color-mix(in_srgb,var(--ink)_28%,transparent)] sm:rounded-4xl sm:p-7">
+      {title ? (
+        <SectionHeading className="mb-5" sub={sub}>
+          {title}
+        </SectionHeading>
+      ) : null}
+      {children}
+    </section>
+  );
+}
 
 interface RecipeFormProps {
   draft: RecipeDraft;
@@ -89,133 +124,126 @@ export function RecipeForm({
 
   return (
     <form
-      className="rc-form"
+      className="flex min-w-0 flex-col gap-5"
       noValidate
       onSubmit={(event) => {
         event.preventDefault();
         onSubmit();
       }}
     >
-      <section className="rc-form__section">
-        <h2 className="rc-form__heading">The basics</h2>
-
-        <Field id="recipe-name" label="Recipe name" required error={fieldError(fields, 'name')}>
-          <input
-            className="rc-input"
-            id="recipe-name"
-            value={draft.name}
-            aria-required="true"
-            maxLength={160}
-            onChange={(event) => set('name', event.target.value)}
-            aria-describedby={describedBy('recipe-name', undefined, fieldError(fields, 'name'))}
-            aria-invalid={fieldError(fields, 'name') ? true : undefined}
-          />
-        </Field>
-
-        <Field
-          id="recipe-description"
-          label="Description"
-          hint="A sentence or two about why this one is worth cooking."
-          error={fieldError(fields, 'description')}
-        >
-          <textarea
-            className="rc-input rc-input--area"
-            id="recipe-description"
-            rows={3}
-            maxLength={1000}
-            value={draft.description}
-            onChange={(event) => set('description', event.target.value)}
-            aria-describedby={describedBy(
-              'recipe-description',
-              'hint',
-              fieldError(fields, 'description'),
-            )}
-          />
-        </Field>
-
-        <div className="rc-form__grid">
-          <Field
-            id="recipe-category"
-            label="Category"
-            required
-            error={fieldError(fields, 'categoryId')}
-          >
-            <select
-              className="rc-input"
-              id="recipe-category"
-              value={draft.categoryId}
+      <FormSection title="The basics" sub="What it is, and how much it makes">
+        <div className="flex flex-col gap-5">
+          <Field id="recipe-name" label="Recipe name" required error={fieldError(fields, 'name')}>
+            <Input
+              id="recipe-name"
+              value={draft.name}
               aria-required="true"
-              onChange={(event) => set('categoryId', event.target.value)}
-              aria-invalid={fieldError(fields, 'categoryId') ? true : undefined}
-            >
-              <option value="">Choose a category…</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
+              maxLength={160}
+              onChange={(event) => set('name', event.target.value)}
+              aria-describedby={describedBy('recipe-name', undefined, fieldError(fields, 'name'))}
+              aria-invalid={fieldError(fields, 'name') ? true : undefined}
+            />
           </Field>
 
           <Field
-            id="recipe-servings"
-            label="Base servings"
-            required
-            hint="What the quantities below make."
-            error={fieldError(fields, 'baseServings')}
+            id="recipe-description"
+            label="Description"
+            hint="A sentence or two about why this one is worth cooking."
+            error={fieldError(fields, 'description')}
           >
-            <input
-              className="rc-input"
-              id="recipe-servings"
-              type="number"
-              aria-required="true"
-              min={1}
-              max={100}
-              inputMode="numeric"
-              value={draft.baseServings}
-              onChange={(event) => set('baseServings', event.target.value)}
+            <Textarea
+              id="recipe-description"
+              rows={3}
+              maxLength={1000}
+              value={draft.description}
+              onChange={(event) => set('description', event.target.value)}
               aria-describedby={describedBy(
-                'recipe-servings',
+                'recipe-description',
                 'hint',
-                fieldError(fields, 'baseServings'),
+                fieldError(fields, 'description'),
               )}
             />
           </Field>
 
-          <Field id="recipe-prep" label="Prep minutes" error={fieldError(fields, 'prepMinutes')}>
-            <input
-              className="rc-input"
-              id="recipe-prep"
-              type="number"
-              min={0}
-              inputMode="numeric"
-              value={draft.prepMinutes}
-              onChange={(event) => set('prepMinutes', event.target.value)}
-            />
-          </Field>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Field
+              id="recipe-category"
+              label="Category"
+              required
+              error={fieldError(fields, 'categoryId')}
+            >
+              <Select
+                id="recipe-category"
+                value={draft.categoryId}
+                aria-required="true"
+                onChange={(event) => set('categoryId', event.target.value)}
+                aria-invalid={fieldError(fields, 'categoryId') ? true : undefined}
+              >
+                <option value="">Choose a category…</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </Select>
+            </Field>
 
-          <Field id="recipe-cook" label="Cook minutes" error={fieldError(fields, 'cookMinutes')}>
-            <input
-              className="rc-input"
-              id="recipe-cook"
-              type="number"
-              min={0}
-              inputMode="numeric"
-              value={draft.cookMinutes}
-              onChange={(event) => set('cookMinutes', event.target.value)}
-            />
-          </Field>
+            <Field
+              id="recipe-servings"
+              label="Base servings"
+              required
+              hint="What the quantities below make."
+              error={fieldError(fields, 'baseServings')}
+            >
+              <Input
+                id="recipe-servings"
+                type="number"
+                aria-required="true"
+                min={1}
+                max={100}
+                inputMode="numeric"
+                value={draft.baseServings}
+                onChange={(event) => set('baseServings', event.target.value)}
+                aria-describedby={describedBy(
+                  'recipe-servings',
+                  'hint',
+                  fieldError(fields, 'baseServings'),
+                )}
+              />
+            </Field>
+
+            <Field id="recipe-prep" label="Prep minutes" error={fieldError(fields, 'prepMinutes')}>
+              <Input
+                id="recipe-prep"
+                type="number"
+                min={0}
+                inputMode="numeric"
+                value={draft.prepMinutes}
+                onChange={(event) => set('prepMinutes', event.target.value)}
+              />
+            </Field>
+
+            <Field id="recipe-cook" label="Cook minutes" error={fieldError(fields, 'cookMinutes')}>
+              <Input
+                id="recipe-cook"
+                type="number"
+                min={0}
+                inputMode="numeric"
+                value={draft.cookMinutes}
+                onChange={(event) => set('cookMinutes', event.target.value)}
+              />
+            </Field>
+          </div>
         </div>
-      </section>
+      </FormSection>
 
       {photoSlot ? (
-        <section className="rc-form__section">
-          <h2 className="rc-form__heading">Photo</h2>
+        <FormSection title="Photo" sub="What it looks like when it works">
           {photoSlot}
-        </section>
+        </FormSection>
       ) : null}
 
-      <section className="rc-form__section">
+      <FormSection>
         <RowList
           legend="Ingredients"
           hint="Leave the amount blank for things like salt to taste."
@@ -229,15 +257,17 @@ export function RecipeForm({
             const unitError = fieldError(fields, `ingredients.${index}.unitText`);
 
             return (
-              <li className="rc-row" key={ingredient.key}>
-                <div className="rc-row__fields rc-row__fields--ingredient">
+              <li
+                className="flex flex-col gap-3 rounded-[22px] border border-frost/70 bg-[rgba(var(--surface-rgb),0.55)] p-3.5 sm:flex-row"
+                key={ingredient.key}
+              >
+                <div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   <Field
                     id={`ingredient-${ingredient.key}-quantity`}
                     label="Amount"
                     error={quantityError}
                   >
-                    <input
-                      className="rc-input"
+                    <Input
                       id={`ingredient-${ingredient.key}-quantity`}
                       value={ingredient.quantity}
                       placeholder="1 1/2"
@@ -247,8 +277,7 @@ export function RecipeForm({
                   </Field>
 
                   <Field id={`ingredient-${ingredient.key}-unit`} label="Unit" error={unitError}>
-                    <select
-                      className="rc-input"
+                    <Select
                       id={`ingredient-${ingredient.key}-unit`}
                       value={ingredient.unit}
                       onChange={(event) => setIngredient(index, { unit: event.target.value })}
@@ -260,7 +289,7 @@ export function RecipeForm({
                         </option>
                       ))}
                       <option value={CUSTOM_UNIT}>Custom…</option>
-                    </select>
+                    </Select>
                   </Field>
 
                   {ingredient.unit === CUSTOM_UNIT ? (
@@ -269,8 +298,7 @@ export function RecipeForm({
                       label="Custom unit"
                       error={unitError}
                     >
-                      <input
-                        className="rc-input"
+                      <Input
                         id={`ingredient-${ingredient.key}-unit-text`}
                         value={ingredient.unitText}
                         placeholder="clove"
@@ -286,8 +314,7 @@ export function RecipeForm({
                     required
                     error={nameError}
                   >
-                    <input
-                      className="rc-input"
+                    <Input
                       id={`ingredient-${ingredient.key}-name`}
                       value={ingredient.name}
                       aria-required="true"
@@ -298,15 +325,12 @@ export function RecipeForm({
                   </Field>
 
                   <Field id={`ingredient-${ingredient.key}-prep`} label="Preparation">
-                    <input
-                      className="rc-input"
+                    <Input
                       id={`ingredient-${ingredient.key}-prep`}
                       value={ingredient.preparation}
                       placeholder="diced"
                       maxLength={160}
-                      onChange={(event) =>
-                        setIngredient(index, { preparation: event.target.value })
-                      }
+                      onChange={(event) => setIngredient(index, { preparation: event.target.value })}
                     />
                   </Field>
                 </div>
@@ -328,11 +352,12 @@ export function RecipeForm({
             );
           })}
         </RowList>
-      </section>
+      </FormSection>
 
-      <section className="rc-form__section">
+      <FormSection>
         <RowList
           legend="Instructions"
+          hint="One action per step, in the order they happen."
           error={fieldError(fields, 'instructions')}
           addLabel="Add step"
           onAdd={() => set('instructions', [...draft.instructions, emptyInstruction()])}
@@ -341,16 +366,18 @@ export function RecipeForm({
             const bodyError = fieldError(fields, `instructions.${index}.body`);
 
             return (
-              <li className="rc-row" key={instruction.key}>
-                <div className="rc-row__fields">
+              <li
+                className="flex flex-col gap-3 rounded-[22px] border border-frost/70 bg-[rgba(var(--surface-rgb),0.55)] p-3.5 sm:flex-row"
+                key={instruction.key}
+              >
+                <div className="min-w-0 flex-1">
                   <Field
                     id={`instruction-${instruction.key}`}
                     label={`Step ${index + 1}`}
                     required
                     error={bodyError}
                   >
-                    <textarea
-                      className="rc-input rc-input--area"
+                    <Textarea
                       id={`instruction-${instruction.key}`}
                       rows={2}
                       aria-required="true"
@@ -379,147 +406,150 @@ export function RecipeForm({
             );
           })}
         </RowList>
-      </section>
+      </FormSection>
 
-      <section className="rc-form__section">
-        <h2 className="rc-form__heading">Notes, tags, and source</h2>
-
-        <Field
-          id="recipe-notes"
-          label="Notes"
-          hint="Anything you want to remember next time."
-          error={fieldError(fields, 'notes')}
-        >
-          <textarea
-            className="rc-input rc-input--area"
+      <FormSection title="Notes, tags, and source" sub="Everything you want to remember">
+        <div className="flex flex-col gap-7">
+          <Field
             id="recipe-notes"
-            rows={3}
-            value={draft.notes}
-            onChange={(event) => set('notes', event.target.value)}
-          />
-        </Field>
+            label="Notes"
+            hint="Anything you want to remember next time."
+            error={fieldError(fields, 'notes')}
+          >
+            <Textarea
+              id="recipe-notes"
+              rows={3}
+              value={draft.notes}
+              onChange={(event) => set('notes', event.target.value)}
+            />
+          </Field>
 
-        <fieldset className="rc-rows">
-          <legend className="rc-rows__legend">Tags</legend>
-          {fieldError(fields, 'tagIds') ? (
-            <p className="rc-field__error" role="alert">
-              {fieldError(fields, 'tagIds')}
-            </p>
-          ) : null}
+          <fieldset className="m-0 min-w-0 border-0 p-0">
+            <legend className="mb-2 p-0 text-[13px] font-medium text-ink-2">Tags</legend>
+            {fieldError(fields, 'tagIds') ? (
+              <FieldError>{fieldError(fields, 'tagIds')}</FieldError>
+            ) : null}
 
-          {tags.length === 0 ? (
-            <p className="rc-field__hint">No tags yet. Add the first one below.</p>
-          ) : (
-            <ul className="rc-tag-list">
-              {tags.map((tag) => (
-                <li key={tag.id}>
-                  <label className="rc-tag">
-                    <input
-                      type="checkbox"
-                      checked={draft.tagIds.includes(tag.id)}
-                      onChange={() => toggleTag(tag.id)}
-                    />
-                    <span>{tag.name}</span>
-                  </label>
-                </li>
-              ))}
-            </ul>
-          )}
+            {tags.length === 0 ? (
+              <FieldHint>No tags yet. Add the first one below.</FieldHint>
+            ) : (
+              <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
+                {tags.map((tag) => {
+                  const on = draft.tagIds.includes(tag.id);
 
-          <div className="rc-tag-create">
-            <label className="rc-field__label" htmlFor="recipe-new-tag">
-              New tag
-            </label>
-            <div className="rc-tag-create__row">
-              <input
-                className="rc-input"
-                id="recipe-new-tag"
-                value={newTag}
-                maxLength={60}
-                onChange={(event) => setNewTag(event.target.value)}
-                // Enter inside the tag field must not submit the whole recipe.
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault();
-                    void handleCreateTag();
-                  }
-                }}
-              />
-              <button
-                className="rc-button rc-button--ghost"
-                type="button"
-                onClick={() => void handleCreateTag()}
-                disabled={newTag.trim() === '' || tagBusy}
-              >
-                {tagBusy ? 'Adding…' : 'Add tag'}
-              </button>
-            </div>
-          </div>
-        </fieldset>
+                  return (
+                    <li key={tag.id}>
+                      <label className={chipLabelClass(on)}>
+                        <input
+                          className="sr-only"
+                          type="checkbox"
+                          checked={on}
+                          onChange={() => toggleTag(tag.id)}
+                        />
+                        <span>{tag.name}</span>
+                      </label>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
 
-        <fieldset className="rc-rows">
-          <legend className="rc-rows__legend">Where it came from</legend>
-          <div className="rc-choice-row">
-            {(
-              [
-                ['none', 'Nowhere in particular'],
-                ['url', 'A link'],
-                ['text', 'A book or person'],
-              ] as [SourceKind, string][]
-            ).map(([kind, label]) => (
-              <label className="rc-choice" key={kind}>
-                <input
-                  type="radio"
-                  name="recipe-source"
-                  value={kind}
-                  checked={draft.sourceKind === kind}
-                  onChange={() => set('sourceKind', kind)}
+            <div className="mt-4 flex flex-col gap-1.5">
+              <FieldLabel htmlFor="recipe-new-tag">New tag</FieldLabel>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <Input
+                  className="sm:max-w-64"
+                  id="recipe-new-tag"
+                  value={newTag}
+                  maxLength={60}
+                  onChange={(event) => setNewTag(event.target.value)}
+                  // Enter inside the tag field must not submit the whole recipe.
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      void handleCreateTag();
+                    }
+                  }}
                 />
-                <span>{label}</span>
-              </label>
-            ))}
-          </div>
+                <Button
+                  onClick={() => void handleCreateTag()}
+                  disabled={newTag.trim() === '' || tagBusy}
+                >
+                  {tagBusy ? 'Adding…' : 'Add tag'}
+                </Button>
+              </div>
+            </div>
+          </fieldset>
 
-          {draft.sourceKind === 'url' ? (
-            <Field id="recipe-source-url" label="Source link" error={fieldError(fields, 'sourceUrl')}>
-              <input
-                className="rc-input"
-                id="recipe-source-url"
-                type="url"
-                inputMode="url"
-                placeholder="https://"
-                value={draft.sourceUrl}
-                onChange={(event) => set('sourceUrl', event.target.value)}
-              />
-            </Field>
-          ) : null}
+          <fieldset className="m-0 min-w-0 border-0 p-0">
+            <legend className="mb-2 p-0 text-[13px] font-medium text-ink-2">Where it came from</legend>
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  ['none', 'Nowhere in particular'],
+                  ['url', 'A link'],
+                  ['text', 'A book or person'],
+                ] as [SourceKind, string][]
+              ).map(([kind, label]) => (
+                <label className={chipLabelClass(draft.sourceKind === kind)} key={kind}>
+                  <input
+                    className="sr-only"
+                    type="radio"
+                    name="recipe-source"
+                    value={kind}
+                    checked={draft.sourceKind === kind}
+                    onChange={() => set('sourceKind', kind)}
+                  />
+                  <span>{label}</span>
+                </label>
+              ))}
+            </div>
 
-          {draft.sourceKind === 'text' ? (
-            <Field
-              id="recipe-source-text"
-              label="Source"
-              error={fieldError(fields, 'sourceText')}
-            >
-              <input
-                className="rc-input"
-                id="recipe-source-text"
-                maxLength={500}
-                placeholder="Grandma's blue binder"
-                value={draft.sourceText}
-                onChange={(event) => set('sourceText', event.target.value)}
-              />
-            </Field>
-          ) : null}
-        </fieldset>
-      </section>
+            {draft.sourceKind === 'url' ? (
+              <div className={cn('mt-4 sm:max-w-lg')}>
+                <Field
+                  id="recipe-source-url"
+                  label="Source link"
+                  error={fieldError(fields, 'sourceUrl')}
+                >
+                  <Input
+                    id="recipe-source-url"
+                    type="url"
+                    inputMode="url"
+                    placeholder="https://"
+                    value={draft.sourceUrl}
+                    onChange={(event) => set('sourceUrl', event.target.value)}
+                  />
+                </Field>
+              </div>
+            ) : null}
 
-      <div className="rc-form__actions">
-        <button className="rc-button rc-button--primary" type="submit" disabled={submitting}>
+            {draft.sourceKind === 'text' ? (
+              <div className="mt-4 sm:max-w-lg">
+                <Field id="recipe-source-text" label="Source" error={fieldError(fields, 'sourceText')}>
+                  <Input
+                    id="recipe-source-text"
+                    maxLength={500}
+                    placeholder="Grandma's blue binder"
+                    value={draft.sourceText}
+                    onChange={(event) => set('sourceText', event.target.value)}
+                  />
+                </Field>
+              </div>
+            ) : null}
+          </fieldset>
+        </div>
+      </FormSection>
+
+      {/* The save action follows the cook down a long form rather than waiting
+          at the bottom of it. */}
+      <div className="sticky bottom-3 z-10 flex flex-wrap items-center gap-2.5 rounded-full border border-frost/80 bg-[rgba(var(--surface-rgb),0.88)] p-2 shadow-[var(--cb-menu-shadow)] backdrop-blur-xl backdrop-saturate-150">
+        <Button variant="primary" type="submit" disabled={submitting}>
           {submitting ? 'Saving…' : submitLabel}
-        </button>
-        <button className="rc-button rc-button--ghost" type="button" onClick={onCancel}>
+        </Button>
+        <Button variant="quiet" onClick={onCancel}>
           Cancel
-        </button>
+        </Button>
       </div>
     </form>
   );

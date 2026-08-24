@@ -1,6 +1,6 @@
 import { categoryTagNameSchema } from '@cookbook/domain';
 import { useCallback, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { ApiRequestError } from '../api/client.js';
 import {
   createCategory,
@@ -11,7 +11,16 @@ import {
 } from '../api/discovery.js';
 import { useApiResource } from '../api/hooks.js';
 import { createTag as createTagRequest, listCategories, listTags } from '../api/recipes.js';
-import { AppShell } from '../AppShell.js';
+import {
+  Button,
+  ButtonLink,
+  FieldError,
+  FieldHint,
+  FieldLabel,
+  Input,
+  PageHeader,
+  SectionHeading,
+} from '@/components/ui';
 import { ErrorState } from '../recipes/states.js';
 
 // Category and tag management (technical design sections 7.3 and 11.1). The
@@ -30,6 +39,9 @@ function validateName(name: string): string | null {
   const parsed = categoryTagNameSchema.safeParse(name);
   return parsed.success ? null : (parsed.error.issues[0]?.message ?? 'Enter a name.');
 }
+
+const ROW =
+  'rounded-[22px] border border-frost/70 bg-[rgba(var(--surface-rgb),0.62)] p-3.5 transition-colors';
 
 interface RowProps {
   item: ManagedItem;
@@ -76,56 +88,56 @@ function ManagedRow({ item, kind, deleteWarning, onRename, onDelete }: RowProps)
   };
 
   return (
-    <li className="rc-manage__row">
+    <li className={ROW}>
       {mode === 'renaming' ? (
         <form
-          className="rc-manage__rename"
+          className="flex flex-wrap items-center gap-2.5"
           onSubmit={(event) => {
             event.preventDefault();
             void submitRename();
           }}
         >
-          <label className="rc-visually-hidden" htmlFor={inputId}>
+          <label className="sr-only" htmlFor={inputId}>
             Rename {item.name}
           </label>
-          <input
-            className="rc-input"
+          <Input
+            className="min-w-0 flex-1 sm:max-w-72"
             id={inputId}
             value={draft}
             autoFocus
             onChange={(event) => setDraft(event.target.value)}
           />
-          <div className="rc-manage__actions">
-            <button className="rc-button rc-button--primary rc-button--small" disabled={busy}>
-              Save
-            </button>
-            <button
-              className="rc-button rc-button--ghost rc-button--small"
-              type="button"
-              disabled={busy}
-              onClick={() => {
-                setDraft(item.name);
-                setMessage(null);
-                setMode('idle');
-              }}
-            >
-              Cancel
-            </button>
-          </div>
+          <Button variant="primary" size="small" type="submit" disabled={busy}>
+            Save
+          </Button>
+          <Button
+            variant="quiet"
+            size="small"
+            disabled={busy}
+            onClick={() => {
+              setDraft(item.name);
+              setMessage(null);
+              setMode('idle');
+            }}
+          >
+            Cancel
+          </Button>
         </form>
       ) : (
-        <div className="rc-manage__main">
-          <span className="rc-manage__name">{item.name}</span>
-          <span className="rc-manage__count">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <span className="min-w-0 flex-1 font-serif text-[18px] tracking-[-0.01em] text-ink">
+            {item.name}
+          </span>
+          <span className="shrink-0 font-serif text-[13px] italic text-ink-3">
             {item.activeRecipeCount === 1 ? '1 recipe' : `${item.activeRecipeCount} recipes`}
           </span>
 
-          <div className="rc-manage__actions">
+          <div className="flex shrink-0 gap-1.5">
             {/* The visible word is enough beside the name; the label spells
                 out which row a screen reader is on. */}
-            <button
-              className="rc-button rc-button--ghost rc-button--small"
-              type="button"
+            <Button
+              variant="quiet"
+              size="small"
               aria-label={`Rename ${item.name}`}
               onClick={() => {
                 setDraft(item.name);
@@ -133,50 +145,47 @@ function ManagedRow({ item, kind, deleteWarning, onRename, onDelete }: RowProps)
                 setMode('renaming');
               }}
             >
+              <Pencil aria-hidden="true" className="h-3.5 w-3.5" strokeWidth={2} />
               Rename
-            </button>
-            <button
-              className="rc-button rc-button--ghost rc-button--small"
-              type="button"
+            </Button>
+            <Button
+              variant="quiet"
+              size="small"
               aria-label={`Delete ${item.name}`}
               onClick={() => {
                 setMessage(null);
                 setMode('confirming');
               }}
             >
+              <Trash2 aria-hidden="true" className="h-3.5 w-3.5" strokeWidth={2} />
               Delete
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
       {mode === 'confirming' ? (
-        <div className="rc-manage__confirm">
-          <p className="rc-manage__warning">{deleteWarning}</p>
-          <div className="rc-manage__actions">
-            <button
-              className="rc-button rc-button--primary rc-button--small"
-              type="button"
+        <div className="mt-3 rounded-2xl border border-[var(--cb-danger-border)] bg-[var(--cb-danger-surface)] p-3.5">
+          <p className="m-0 text-[14px] text-ink">{deleteWarning}</p>
+          <div className="mt-3 flex flex-wrap gap-2.5">
+            <Button
+              variant="danger"
+              size="small"
               aria-label={`Yes, delete ${item.name}`}
               disabled={busy}
               onClick={() => void attempt(() => onDelete(item.id))}
             >
               Yes, delete
-            </button>
-            <button
-              className="rc-button rc-button--ghost rc-button--small"
-              type="button"
-              disabled={busy}
-              onClick={() => setMode('idle')}
-            >
+            </Button>
+            <Button variant="quiet" size="small" disabled={busy} onClick={() => setMode('idle')}>
               Keep it
-            </button>
+            </Button>
           </div>
         </div>
       ) : null}
 
       {message ? (
-        <p className="rc-manage__message" role="alert">
+        <p className="mt-2.5 mb-0 text-[13px] font-medium text-[var(--cb-danger-ink-strong)]" role="alert">
           {message}
         </p>
       ) : null}
@@ -224,32 +233,44 @@ function CreateForm({
 
   return (
     <form
-      className="rc-manage__create"
+      className="mt-4 flex flex-col gap-1.5 border-t border-dashed border-ink/10 pt-4"
       onSubmit={(event) => {
         event.preventDefault();
         void submit();
       }}
     >
-      <label className="rc-field__label" htmlFor={inputId}>
-        {label}
-      </label>
-      <div className="rc-manage__create-row">
-        <input
-          className="rc-input"
+      <FieldLabel htmlFor={inputId}>{label}</FieldLabel>
+      <div className="flex flex-wrap items-center gap-2.5">
+        <Input
+          className="min-w-0 flex-1 sm:max-w-72"
           id={inputId}
           value={name}
           onChange={(event) => setName(event.target.value)}
         />
-        <button className="rc-button rc-button--primary" disabled={busy}>
+        <Button variant="primary" type="submit" disabled={busy}>
+          <Plus aria-hidden="true" className="h-4 w-4" strokeWidth={2.3} />
           {submitLabel}
-        </button>
+        </Button>
       </div>
-      {message ? (
-        <p className="rc-field__error" role="alert">
-          {message}
-        </p>
-      ) : null}
+      {message ? <FieldError>{message}</FieldError> : null}
     </form>
+  );
+}
+
+function Sheet({
+  children,
+  labelledBy,
+}: {
+  children: React.ReactNode;
+  labelledBy: string;
+}) {
+  return (
+    <section
+      className="rounded-[26px] border border-frost/80 bg-[rgba(var(--surface-rgb),0.9)] p-5 shadow-[0_10px_34px_-16px_color-mix(in_srgb,var(--ink)_28%,transparent)] sm:rounded-4xl sm:p-7"
+      aria-labelledby={labelledBy}
+    >
+      {children}
+    </section>
   );
 }
 
@@ -276,101 +297,94 @@ export function OrganizePage() {
   const loading = categories.loading || tags.loading;
 
   return (
-    <AppShell>
-      <main className="rc-page rc-page--narrow">
-        <h1 className="rc-page__title">Organize</h1>
-        <p className="rc-page__lede">
-          Categories file a recipe in exactly one place. Tags describe it in as many ways as you
-          like.
-        </p>
+    <div className="cb-rise flex min-w-0 max-w-3xl flex-col gap-7">
+      <PageHeader
+        title="Organize"
+        lede="Categories file a recipe in exactly one place. Tags describe it in as many ways as you like."
+      />
 
-        {loading ? (
-          <div className="rc-manage" role="status" aria-live="polite">
-            <span className="rc-visually-hidden">Loading categories and tags…</span>
-            <div className="rc-skeleton__line" />
-            <div className="rc-skeleton__line" />
-            <div className="rc-skeleton__line" />
-          </div>
-        ) : error ? (
-          <ErrorState
-            error={error}
-            onRetry={() => {
-              categories.reload();
-              tags.reload();
-            }}
-          >
-            <Link className="rc-button rc-button--ghost" to="/">
-              Back to the cookbook
-            </Link>
-          </ErrorState>
-        ) : (
-          <>
-            <section className="rc-manage" aria-labelledby="organize-categories">
-              <h2 className="rc-section-heading" id="organize-categories">
-                Categories
-              </h2>
+      {loading ? (
+        <div className="flex flex-col gap-2.5" role="status" aria-live="polite">
+          <span className="sr-only">Loading categories and tags…</span>
+          <div className="h-14 rounded-[22px] bg-[var(--cb-muted-track)]" />
+          <div className="h-14 rounded-[22px] bg-[var(--cb-muted-track)]" />
+          <div className="h-14 rounded-[22px] bg-[var(--cb-muted-track)]" />
+        </div>
+      ) : error ? (
+        <ErrorState
+          error={error}
+          onRetry={() => {
+            categories.reload();
+            tags.reload();
+          }}
+        >
+          <ButtonLink to="/">Back to the cookbook</ButtonLink>
+        </ErrorState>
+      ) : (
+        <>
+          <Sheet labelledBy="organize-categories">
+            <SectionHeading className="mb-4" id="organize-categories" sub="One per recipe">
+              Categories
+            </SectionHeading>
 
-              <ul className="rc-manage__list">
-                {(categories.data ?? []).map((category) => (
+            <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
+              {(categories.data ?? []).map((category) => (
+                <ManagedRow
+                  key={category.id}
+                  item={category}
+                  kind="category"
+                  deleteWarning={`Delete "${category.name}"? This only works while no recipe, live or in Trash, is filed under it.`}
+                  onRename={(id, name) => afterCategoryChange(renameCategory(id, name))}
+                  onDelete={(id) => afterCategoryChange(deleteCategory(id))}
+                />
+              ))}
+            </ul>
+
+            <CreateForm
+              label="New category"
+              submitLabel="Add category"
+              onCreate={(name) => afterCategoryChange(createCategory(name))}
+            />
+          </Sheet>
+
+          <Sheet labelledBy="organize-tags">
+            <SectionHeading className="mb-4" id="organize-tags" sub="As many as you like">
+              Tags
+            </SectionHeading>
+
+            {(tags.data ?? []).length === 0 ? (
+              <FieldHint>No tags yet. Add one here, or create one while writing a recipe.</FieldHint>
+            ) : (
+              <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
+                {(tags.data ?? []).map((tag) => (
                   <ManagedRow
-                    key={category.id}
-                    item={category}
-                    kind="category"
-                    deleteWarning={`Delete "${category.name}"? This only works while no recipe, live or in Trash, is filed under it.`}
-                    onRename={(id, name) => afterCategoryChange(renameCategory(id, name))}
-                    onDelete={(id) => afterCategoryChange(deleteCategory(id))}
+                    key={tag.id}
+                    item={tag}
+                    kind="tag"
+                    deleteWarning={
+                      tag.activeRecipeCount > 0
+                        ? `Delete "${tag.name}"? It will be removed from ${
+                            tag.activeRecipeCount === 1
+                              ? '1 recipe'
+                              : `${tag.activeRecipeCount} recipes`
+                          }. The recipes themselves are untouched.`
+                        : `Delete "${tag.name}"? Nothing uses it yet.`
+                    }
+                    onRename={(id, name) => afterTagChange(renameTag(id, name))}
+                    onDelete={(id) => afterTagChange(deleteTag(id))}
                   />
                 ))}
               </ul>
+            )}
 
-              <CreateForm
-                label="New category"
-                submitLabel="Add category"
-                onCreate={(name) => afterCategoryChange(createCategory(name))}
-              />
-            </section>
-
-            <section className="rc-manage" aria-labelledby="organize-tags">
-              <h2 className="rc-section-heading" id="organize-tags">
-                Tags
-              </h2>
-
-              {(tags.data ?? []).length === 0 ? (
-                <p className="rc-field__hint">
-                  No tags yet. Add one here, or create one while writing a recipe.
-                </p>
-              ) : (
-                <ul className="rc-manage__list">
-                  {(tags.data ?? []).map((tag) => (
-                    <ManagedRow
-                      key={tag.id}
-                      item={tag}
-                      kind="tag"
-                      deleteWarning={
-                        tag.activeRecipeCount > 0
-                          ? `Delete "${tag.name}"? It will be removed from ${
-                              tag.activeRecipeCount === 1
-                                ? '1 recipe'
-                                : `${tag.activeRecipeCount} recipes`
-                            }. The recipes themselves are untouched.`
-                          : `Delete "${tag.name}"? Nothing uses it yet.`
-                      }
-                      onRename={(id, name) => afterTagChange(renameTag(id, name))}
-                      onDelete={(id) => afterTagChange(deleteTag(id))}
-                    />
-                  ))}
-                </ul>
-              )}
-
-              <CreateForm
-                label="New tag"
-                submitLabel="Add tag"
-                onCreate={(name) => afterTagChange(createTagRequest(name))}
-              />
-            </section>
-          </>
-        )}
-      </main>
-    </AppShell>
+            <CreateForm
+              label="New tag"
+              submitLabel="Add tag"
+              onCreate={(name) => afterTagChange(createTagRequest(name))}
+            />
+          </Sheet>
+        </>
+      )}
+    </div>
   );
 }
