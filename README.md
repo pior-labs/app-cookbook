@@ -216,9 +216,10 @@ The deployment workflow remains manual until the production runner and these ext
 1. Register and seed the trusted Cookbook OAuth client in `service-auth`.
 2. Provision the Cookbook database, role, secret file, and routes in `platform-deploy`.
 3. Point `cookbook.szarans.ca` at the platform through split-horizon DNS.
-4. Configure the repository production environment, `APP_ENV` secret, and `DEPLOY_DIR` variable.
+4. Provision the dedicated Cookbook self-hosted runner using the documented user, paths, and labels.
+5. Configure the repository production environment, `APP_ENV` secret, and `DEPLOY_DIR` variable.
 
-[`docs/OPERATIONS.md`](docs/OPERATIONS.md) carries the full provisioning checklist and the backup and restore procedure.
+[`docs/OPERATIONS.md`](docs/OPERATIONS.md) carries the full runner setup, provisioning checklist, and backup and restore procedure.
 
 ## Scope
 
