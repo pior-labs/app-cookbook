@@ -46,6 +46,94 @@ traffic.
       shared with any other application.
 - [ ] A self-hosted runner labelled `self-hosted, linux, prod` is online.
 
+### Dedicated production runner
+
+Cookbook uses a repository-scoped runner with its own Linux account and
+directories. Keeping it separate from the Auth, Finance, and platform runners
+limits filesystem access and prevents one application's deployment checkout
+from being owned by another runner.
+
+The production convention is:
+
+```text
+Linux user:       cookbook-runner
+Runner directory: /opt/actions-runner/cookbook
+Deploy directory: /opt/docker/cookbook
+Runner name:      optiplex-cookbook
+Required labels:  self-hosted, linux, prod
+```
+
+Create the account and directories once:
+
+```bash
+id cookbook-runner >/dev/null 2>&1 || \
+  sudo adduser --disabled-password --gecos "" cookbook-runner
+sudo usermod -aG docker cookbook-runner
+
+sudo mkdir -p /opt/actions-runner/cookbook /opt/docker/cookbook
+sudo chown -R cookbook-runner:cookbook-runner \
+  /opt/actions-runner/cookbook \
+  /opt/docker/cookbook
+```
+
+Do not change ownership of the shared `/opt/actions-runner` or
+`/opt/docker/pior-labs` directories.
+
+In GitHub, open **Settings -> Actions -> Runners -> New self-hosted runner**
+for this repository and choose Linux x64. Run GitHub's generated download and
+extraction commands as the dedicated account:
+
+```bash
+sudo -iu cookbook-runner
+cd /opt/actions-runner/cookbook
+```
+
+The registration token shown by GitHub is short-lived. Use it directly in the
+configuration command and never store it in the repository or documentation:
+
+```bash
+./config.sh \
+  --url https://github.com/pior-labs/app-cookbook \
+  --token <GITHUB-PROVIDED-TOKEN> \
+  --name optiplex-cookbook \
+  --labels prod \
+  --work _work
+```
+
+Exit the runner account, then install and start the systemd service:
+
+```bash
+exit
+cd /opt/actions-runner/cookbook
+sudo ./svc.sh install cookbook-runner
+sudo ./svc.sh start
+sudo ./svc.sh status
+```
+
+Confirm two things before dispatching production:
+
+```bash
+sudo -u cookbook-runner docker ps >/dev/null \
+  && echo "Runner can access Docker"
+```
+
+- GitHub shows `optiplex-cookbook` as **Idle**.
+- The runner has the custom `prod` label in addition to the automatic
+  `self-hosted` and `linux` labels.
+
+The deploy workflow is manual-only and is the only workflow in this public
+repository that targets the self-hosted runner. Pull-request CI continues to
+run on GitHub-hosted runners.
+
+To inspect or restart the runner later:
+
+```bash
+cd /opt/actions-runner/cookbook
+sudo ./svc.sh status
+sudo ./svc.sh stop
+sudo ./svc.sh start
+```
+
 ## 2. Deploying
 
 `.github/workflows/deploy.yml`, run manually, syncs the source, writes `.env`,
