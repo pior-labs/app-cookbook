@@ -71,6 +71,24 @@ Local commands use `DATABASE_URL` from the root `.env` file:
 ```bash
 pnpm db:generate
 pnpm db:migrate
+pnpm db:seed
+```
+
+`pnpm db:seed` fills an empty development database with a household cookbook to
+work against: ten recipes across every category, with photos, tags, favorites,
+ratings, view history, and one recipe in the Trash. It writes through the same
+services the API routes use, so the data is exactly what the application would
+have produced.
+
+It only ever adds. A recipe whose name is already present is skipped, so running
+it twice is harmless and it will never overwrite something entered by hand.
+
+Favorites, ratings, and history belong to one person, so the seed applies them
+to the first real account it finds. Sign in once before seeding so central SSO
+has created yours, or name it explicitly:
+
+```bash
+SEED_USER_EMAIL=you@example.com pnpm db:seed
 ```
 
 The first migration creates the local user, account, session, and verification tables used by authentication. The second creates the recipe domain: recipes, ingredients, instructions, categories, tags, images, favorites, ratings, and recently viewed history, and seeds the starter categories.

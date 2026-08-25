@@ -13,6 +13,7 @@
     "test:e2e": "pnpm --filter @cookbook/domain build && pnpm --filter @cookbook/e2e test:e2e",
     "db:generate": "pnpm --filter @cookbook/api db:generate",
     "db:migrate": "pnpm --filter @cookbook/api db:migrate",
+    "db:seed": "pnpm --filter @cookbook/domain build && pnpm --filter @cookbook/api db:seed",
     "images:reconcile": "pnpm --filter @cookbook/api images:reconcile"
   }
 }
