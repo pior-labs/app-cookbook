@@ -1,43 +1,53 @@
 /*
- * Theme picker - the Bloom / Slate control shared by the sign-in screen and the
- * application topbar. Built from design-system tokens, apart from the swatch
- * dots, which are each theme's own colors by definition.
+ * Theme picker - the Bloom / Slate control on the sign-in screen: a small pill
+ * holding one half-lit dial per theme, the active one raised onto its own disc.
+ * Built from design-system tokens, apart from the dial tints, which are each
+ * theme's own accent by definition.
  */
 
 .theme-picker {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  padding: 3px;
+  padding: 4px;
   border: 1px solid var(--border-soft, var(--border));
   border-radius: 999px;
-  background: color-mix(in srgb, var(--card) 70%, transparent);
+  background: color-mix(in srgb, var(--card) 78%, transparent);
 }
 
 .theme-picker__option {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  min-height: 32px;
-  padding: 4px 12px 4px 6px;
-  border: 1px solid transparent;
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1.5px solid transparent;
   border-radius: 999px;
-  color: var(--muted-foreground);
+  color: var(--theme-picker-tint, var(--muted-foreground));
   background: transparent;
-  font-size: 12.5px;
-  font-weight: 600;
   cursor: pointer;
-  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  transition: opacity 0.15s ease, background 0.15s ease, border-color 0.15s ease;
 }
 
-.theme-picker__option:hover {
-  color: var(--foreground);
+.theme-picker__dial {
+  width: 18px;
+  height: 18px;
+  opacity: 0.55;
+  transition: opacity 0.15s ease;
 }
 
+.theme-picker__option:hover .theme-picker__dial {
+  opacity: 0.85;
+}
+
+/* The chosen theme is the one wearing its own color ring on the card. */
 .theme-picker__option.is-active {
-  color: var(--foreground);
-  border-color: var(--border-soft, var(--border));
+  border-color: color-mix(in srgb, currentColor 55%, transparent);
   background: var(--card);
+}
+
+.theme-picker__option.is-active .theme-picker__dial {
+  opacity: 1;
 }
 
 .theme-picker__option:focus-visible {
@@ -45,47 +55,21 @@
   outline-offset: 2px;
 }
 
-.theme-picker__swatch {
-  display: inline-flex;
-  padding: 2px;
-  border-radius: 999px;
-  background: var(--card);
-  box-shadow: inset 0 0 0 1px var(--border-soft, var(--border));
-}
-
-.theme-picker__swatch span {
-  width: 10px;
-  height: 10px;
-  margin-left: -3px;
-  border-radius: 50%;
-  box-shadow: 0 0 0 1.5px var(--card);
-}
-
-.theme-picker__swatch span:first-child {
-  margin-left: 0;
+/* The theme names stay in the accessibility tree - the dials are the label a
+   pointer sees, but "Bloom" and "Slate" are what a screen reader announces. */
+.theme-picker__name {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 /* A finger is the same size everywhere (technical design section 11.2). */
 @media (pointer: coarse) {
   .theme-picker__option {
-    min-height: 40px;
-    padding-right: 14px;
-  }
-}
-
-/* On a phone the topbar is already carrying six links and two actions, so the
-   control drops to its swatches. */
-@media (max-width: 560px) {
-  .theme-picker__name {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-  }
-
-  .theme-picker__option {
-    padding: 4px 6px;
+    width: 40px;
+    height: 40px;
   }
 }

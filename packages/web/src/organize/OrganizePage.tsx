@@ -125,7 +125,12 @@ function ManagedRow({ item, kind, deleteWarning, onRename, onDelete }: RowProps)
         </form>
       ) : (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <span className="min-w-0 flex-1 font-serif text-[18px] tracking-[-0.01em] text-ink">
+          {/* `flex-auto`, not `flex-1`: the name has to bring its own width to
+              the wrap calculation, or the row keeps everything on one line and
+              hands the name a box narrower than the word in it - which a single
+              word cannot wrap out of, so it prints over the count. It still
+              grows into the free space, so a wide row is unchanged. */}
+          <span className="min-w-0 flex-auto break-words font-serif text-[18px] tracking-[-0.01em] text-ink">
             {item.name}
           </span>
           <span className="shrink-0 font-serif text-[13px] italic text-ink-3">

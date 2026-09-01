@@ -112,18 +112,11 @@
 }
 
 /* The theme is chosen before signing in, the way the central sign-in page
-   offers it, so the picker sits opposite the wordmark - stripped of its own
-   container there, so it stays a quiet utility next to the brand rather than a
-   second object competing with it. */
+   offers it, so the picker sits opposite the wordmark - two dials in a pill,
+   small enough to stay a quiet utility next to the brand rather than a second
+   object competing with it. */
 .login-card__theme {
   margin-left: auto;
-  padding: 0;
-  border-color: transparent;
-  background: transparent;
-}
-
-.login-card__theme .theme-picker__option {
-  font-size: 12px;
 }
 
 .login-card__seal {

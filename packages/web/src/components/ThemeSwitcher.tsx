@@ -4,8 +4,8 @@ import { focusRing } from '@/components/ui';
 
 // The theme picker as it appears inside the account menu: a labelled list with
 // a live swatch and a check on the active theme. The sign-in screen uses the
-// side-by-side `ThemePicker` instead - the same preference, sized for a screen
-// with nothing else on it.
+// dial `ThemePicker` instead - the same preference, with no menu around it to
+// carry the names.
 export function ThemeSwitcher({ onSelect }: { onSelect?: () => void }) {
   const { theme, setTheme, themes } = useTheme();
 
