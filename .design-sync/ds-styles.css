@@ -1,0 +1,36 @@
+/*
+ * Stylesheet entry for the claude.ai/design sync.
+ *
+ * The app's own app.css already pulls in Tailwind v4, both
+ * @pior-labs/design-system sheets (semantic tokens + effects) and the
+ * app-level compound tokens, so it IS the combined stylesheet this sync
+ * ships. The @source lines add the design-sync preview sources to
+ * Tailwind's content scan, so utilities used only by a preview card still
+ * get emitted.
+ */
+/*
+ * The app serves its four brand families from Google Fonts via a <link> in
+ * packages/web/index.html. Rendered designs only ever receive the styles.css
+ * import closure, so the same families are pulled in here as a remote @import
+ * - otherwise every design built with this system falls back to a system font.
+ */
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500;1,9..144,600&family=Outfit:wght@300;400;500;600;700&family=Caveat:wght@500;600;700&family=Kalam:wght@300;400;700&display=swap");
+
+@import "../packages/web/src/app.css";
+
+@source "../packages/web/src";
+@source "./previews";
+
+/*
+ * Safelist for the design agent.
+ *
+ * Tailwind only emits the utilities it finds in the scanned sources, so a
+ * class the app happens never to use - `bg-accent`, `text-destructive` -
+ * would have no CSS in the shipped stylesheet, and any design built with it
+ * would render unstyled. The design agent composes freely from the semantic
+ * palette, so the whole palette is emitted here rather than only the subset
+ * the app currently reaches for. The families below are exactly the
+ * `--color-*` contract @pior-labs/design-system declares in its @theme block.
+ */
+@source inline("{text,bg,border,ring,fill,stroke,from,to,via,decoration,outline,caret,accent,divide,shadow}-{cream,ink,ink-2,ink-3,frost,accent,accent-1,accent-2,accent-3,accent-soft,accent-foreground,pistachio,peach,lavender,background,foreground,card,card-foreground,muted,muted-foreground,border,border-soft,primary,primary-foreground,primary-soft,destructive,good,good-soft,warn,warn-soft}");
+@source inline("{text,bg,border,ring}-{ink,ink-2,ink-3,cream,frost,accent,accent-soft,destructive,good,warn,primary,muted,border}/{5,10,12,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95}");
