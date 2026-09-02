@@ -78,7 +78,11 @@ function TrashRow({ recipe, onRestore, onDeleteForever }: RowProps) {
   return (
     <li className="rounded-[26px] border border-frost/80 bg-[rgba(var(--surface-rgb),0.75)] p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0 flex-1">
+        {/* A basis rather than `flex-1`: with a zero basis the row fits
+            everything on one line and squeezes the recipe down to a sliver of
+            column beside two full-width buttons. Given a floor, the buttons
+            wrap under it instead, and on a wide row it still grows. */}
+        <div className="min-w-0 grow basis-70">
           <Eyebrow>{recipe.categoryName}</Eyebrow>
           <h2 className="mt-1.5 mb-0 font-serif text-[21px] leading-tight font-normal tracking-[-0.02em] text-ink">
             {recipe.name}

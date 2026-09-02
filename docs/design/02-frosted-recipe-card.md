@@ -1,7 +1,9 @@
 # Concept 2 - Frosted Recipe Card
 
-**Chosen and shipped.** This is the Cookbook's live sign-in screen; the other
-two concepts remain in the gallery as the rejected alternatives.
+**Chosen in round one, shipped, and since replaced.** This was the Cookbook's
+sign-in screen until concept 7, "The Index, Lit", took over
+([README](README.md#a-second-round-designslogin1-4)). It is back in the gallery
+now, alongside the other two round-one concepts.
 
 The household recipe index card, made airy. The tactile recipe-card identity -
 divider tab, margin rule, ruled lines - is preserved, but the card is rendered
@@ -111,23 +113,23 @@ the layout changes.
 
 ## Implementation
 
-- Component: `LoginScreen` in `packages/web/src/login/LoginScreen.tsx`, rendered
-  by `App` for any unauthenticated session.
+- Component: `FrostedCardLogin` in `packages/web/src/login/variants.tsx`.
 - Sign-in: `useSignInFlow` in `packages/web/src/login/useSignInFlow.ts`, one
   button through `startSignIn` to the central SSO.
-- Backdrop: `MeshBackdrop` in `packages/web/src/login/parts.tsx`.
-- Styles: the `.login-*` blocks in `packages/web/src/login/login.css`, imported
-  from `packages/web/src/index.css`. The mesh and grain classes come from
-  `@pior-labs/design-system/effects.css`.
-- Session restore: `SessionLoading` in
-  `packages/web/src/login/SessionLoading.tsx` wears the same mesh and glass, so
-  the moment before the login screen never flashes a foreign surface.
-- Preview: the app's root URL while signed out. The concept gallery still runs at
-  `/?login-gallery&v=2` (add `&theme=slate` for the cool theme) and renders this
-  same component, so the gallery cannot drift from what people actually see.
+- Backdrop: `MeshBackdrop` in `packages/web/src/MeshBackdrop.tsx`, rendered by
+  the variant itself - the card is designed to float over the drifting mesh, and
+  it was the sign-in screen that supplied it while this concept was live.
+- Styles: the `.v-frost__*` blocks in
+  `packages/web/src/login/login-gallery.css`. Its button, error, seal and note
+  are the shared `lv-*` atoms, which is where the card's own styles ended. The
+  mesh and grain classes come from `@pior-labs/design-system/effects.css`.
+- Preview: `/?login-gallery&v=2` (add `&theme=slate` for the cool theme).
 
 ## Notes
 
-The gallery's `.v-card__*` classes are now concept 3's alone. This concept no
-longer shares them: promoting it moved its styles to `login.css` under
-`.login-*`, where they are free to evolve with the shipped screen.
+While this concept was live its styles sat in `login.css` under `.login-*`, and
+the gallery rendered the real `LoginScreen` in slot 2 so the two could not
+drift. Being replaced reversed that: the styles moved into `login-gallery.css`
+under `.v-frost__*`, the markup became a plain variant, and `login.css` and
+`.login-*` now belong to concept 7. The gallery's `.v-card__*` classes remain
+concept 3's alone.

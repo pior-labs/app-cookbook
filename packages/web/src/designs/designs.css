@@ -1,0 +1,152 @@
+/*
+ * Study chrome for /designs/login/*: the concept switcher and theme toggle.
+ * Deliberately styleless-looking - a hairline bar that sits at low opacity
+ * until it is pointed at - so it never gets read as part of a concept.
+ */
+
+.dx {
+  position: fixed;
+  z-index: 90;
+  bottom: clamp(12px, 2.5vh, 24px);
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100vw - 24px);
+  opacity: 0.55;
+  transition: opacity 0.2s ease;
+  font-family: "Outfit", system-ui, sans-serif;
+}
+
+.dx:hover,
+.dx:focus-within {
+  opacity: 1;
+}
+
+.dx__bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 8px 7px 14px;
+  border: 1px solid var(--dx-line);
+  border-radius: 999px;
+  color: var(--dx-ink);
+  background: var(--dx-bg);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  white-space: nowrap;
+}
+
+.dx[data-tone="light"] {
+  --dx-ink: var(--ink);
+  --dx-line: color-mix(in srgb, var(--ink) 18%, transparent);
+  --dx-bg: color-mix(in srgb, var(--cream) 93%, transparent);
+  --dx-active-bg: var(--ink);
+  --dx-active-ink: var(--cream);
+}
+
+.dx[data-tone="dark"] {
+  --dx-ink: color-mix(in srgb, var(--frost) 78%, transparent);
+  --dx-line: color-mix(in srgb, var(--frost) 18%, transparent);
+  --dx-bg: color-mix(in srgb, var(--ink) 82%, transparent);
+  --dx-active-bg: color-mix(in srgb, var(--frost) 88%, transparent);
+  --dx-active-ink: var(--ink);
+}
+
+.dx__label {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.dx__label b {
+  font-weight: 600;
+}
+
+.dx__label span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.62;
+}
+
+.dx__sep {
+  width: 1px;
+  height: 18px;
+  flex: 0 0 auto;
+  background: var(--dx-line);
+}
+
+.dx__group {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.dx__pip {
+  display: inline-grid;
+  min-width: 26px;
+  height: 26px;
+  place-items: center;
+  padding: 0 9px;
+  border: none;
+  border-radius: 999px;
+  color: inherit;
+  background: transparent;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.dx__pip:hover {
+  background: color-mix(in srgb, currentColor 14%, transparent);
+}
+
+.dx__pip.is-active {
+  color: var(--dx-active-ink);
+  background: var(--dx-active-bg);
+}
+
+.dx__pip:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+@media (max-width: 720px) {
+  .dx__label span,
+  .dx__sep:first-of-type {
+    display: none;
+  }
+}
+
+/* ---- unknown concept ------------------------------------------------- */
+
+.dx-missing {
+  display: grid;
+  place-content: center;
+  gap: 14px;
+  min-height: 100dvh;
+  padding: 32px;
+  color: var(--ink);
+  background: var(--cream);
+  font-family: "Outfit", system-ui, sans-serif;
+  text-align: center;
+}
+
+.dx-missing p {
+  margin: 0;
+  font-size: 15px;
+}
+
+.dx-missing nav {
+  display: grid;
+  gap: 6px;
+  color: var(--accent);
+  font-size: 14px;
+}
+
+.dx-missing a:hover {
+  text-decoration: underline;
+}

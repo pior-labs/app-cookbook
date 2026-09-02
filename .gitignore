@@ -13,3 +13,12 @@ data/
 .vite/
 test-results/
 playwright-report/
+
+# Agent and tooling scratch directories, not part of the app.
+.claude/
+.agents/
+.ds-sync/
+ds-bundle/
+.design-sync/.cache/
+.design-sync/learnings/
+.design-sync/node_modules

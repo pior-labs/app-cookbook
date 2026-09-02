@@ -1,0 +1,334 @@
+/*
+ * Concept 5 - "The Panel". Design study only; not wired into the sign-in gate.
+ *
+ * The entire hierarchy is rule weight: 12px bar, 5px bar, hairline. There are
+ * no cards, no shadows, no radii and one accent, used only on the numbers.
+ * Colours are design-system tokens throughout, so it reskins with the theme.
+ */
+
+.fp {
+  --fp-narrow: "Archivo Narrow", "Arial Narrow", system-ui, sans-serif;
+  --fp-sans: "Outfit", system-ui, sans-serif;
+  --fp-hand: "Caveat", cursive;
+  --fp-hair: color-mix(in srgb, var(--ink) 26%, transparent);
+  /* label | value | share - shared by the rows, the column heads and the hero
+     number, so everything right-aligns on one edge */
+  --fp-cols: minmax(0, 1fr) auto 76px;
+  --fp-gap: 14px;
+
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: clamp(24px, 4vh, 48px) clamp(16px, 5vw, 48px);
+  color: var(--ink);
+  background: var(--cream);
+  font-family: var(--fp-sans);
+}
+
+.fp__panel {
+  position: relative;
+  width: 100%;
+  max-width: 860px;
+  animation: fp-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ---- masthead -------------------------------------------------------- */
+
+.fp__kicker {
+  margin: 0;
+  color: var(--accent);
+  font-family: var(--fp-narrow);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+}
+
+.fp__title {
+  margin: 2px 0 6px;
+  font-family: var(--fp-narrow);
+  font-size: clamp(46px, 8.4vw, 86px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 0.86;
+  text-transform: none;
+}
+
+.fp__serving {
+  margin: 0;
+  padding: 8px 0;
+  font-family: var(--fp-narrow);
+  font-size: clamp(15px, 1.7vw, 18px);
+  font-weight: 400;
+}
+
+.fp__serving i {
+  padding: 0 7px;
+  color: var(--ink-3);
+  font-style: normal;
+}
+
+/* ---- the rules that carry the hierarchy ------------------------------ */
+
+.fp__rule {
+  background: var(--ink);
+}
+
+.fp__rule--hair {
+  height: 1px;
+}
+
+.fp__rule--mid {
+  height: 5px;
+}
+
+.fp__rule--heavy {
+  height: 12px;
+}
+
+/* ---- column heads and the one big number ----------------------------- */
+
+.fp__colhead {
+  display: grid;
+  grid-template-columns: var(--fp-cols);
+  gap: var(--fp-gap);
+  padding: 7px 0 0;
+  text-align: right;
+  color: var(--ink-2);
+  font-family: var(--fp-narrow);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.fp__colhead > :first-child {
+  text-align: left;
+}
+
+.fp__hero {
+  display: grid;
+  grid-template-columns: var(--fp-cols);
+  align-items: baseline;
+  gap: var(--fp-gap);
+  padding: 0 0 8px;
+}
+
+.fp__hero-label {
+  font-family: var(--fp-narrow);
+  font-size: clamp(26px, 4vw, 40px);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.fp__hero-value {
+  color: var(--accent);
+  font-family: var(--fp-narrow);
+  font-size: clamp(38px, 6vw, 62px);
+  font-weight: 700;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+/* ---- rows ------------------------------------------------------------ */
+
+.fp__row {
+  display: grid;
+  grid-template-columns: var(--fp-cols);
+  align-items: baseline;
+  gap: var(--fp-gap);
+  padding: 6px 0;
+  border-bottom: 1px solid var(--fp-hair);
+  font-family: var(--fp-narrow);
+  font-size: clamp(15px, 1.8vw, 20px);
+}
+
+.fp__rows > .fp__row:last-child {
+  border-bottom: none;
+}
+
+.fp__row[data-nested="true"] {
+  padding-left: clamp(18px, 3vw, 38px);
+  color: var(--ink-2);
+}
+
+.fp__row-label {
+  font-weight: 400;
+}
+
+.fp__row:not([data-nested="true"]) .fp__row-label {
+  font-weight: 700;
+}
+
+.fp__row-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.fp__row-share {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+  text-align: right;
+}
+
+.fp__pct {
+  font-size: 0.82em;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* the share column, drawn - the number and the bar say the same thing, and
+   the bar is what makes the column scannable down the panel */
+.fp__meter {
+  display: block;
+  width: 100%;
+  height: 3px;
+  background: color-mix(in srgb, var(--ink) 14%, transparent);
+}
+
+.fp__meter::before {
+  content: "";
+  display: block;
+  width: var(--fp-fill);
+  height: 100%;
+  background: var(--accent);
+}
+
+.fp__row-dash {
+  color: var(--ink-3);
+}
+
+/* ---- fine print and action ------------------------------------------- */
+
+.fp__fine {
+  margin: 0;
+  padding: 11px 0 20px;
+  max-width: 66ch;
+  color: var(--ink-2);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.fp .fp__error {
+  margin: 0 0 14px;
+  border-radius: 0;
+}
+
+/* stripped of the shared button's sketch shadow and top margin - see the note
+   in index-wall.css */
+.fp .fp__btn {
+  display: flex;
+  width: 100%;
+  margin: 0;
+  box-shadow: none;
+  min-height: 58px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 22px;
+  border: none;
+  border-radius: 0;
+  color: var(--cream);
+  background: var(--ink);
+  font-family: var(--fp-narrow);
+  font-size: clamp(17px, 2.2vw, 23px);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color 0.18s ease;
+}
+
+.fp .fp__btn:hover:not(:disabled) {
+  background: var(--accent);
+  box-shadow: none;
+  filter: none;
+  transform: none;
+}
+
+.fp .fp__btn:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.fp .fp__btn:disabled {
+  cursor: progress;
+  opacity: 0.72;
+}
+
+.fp .fp__btn svg {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+}
+
+.fp .lv-spin {
+  border-top-color: var(--cream);
+}
+
+/* ---- marginalia ------------------------------------------------------ */
+
+/* One pencil note in the margin. A household book is annotated; without this
+   the panel is only a specimen. */
+.fp__margin {
+  position: absolute;
+  top: 42%;
+  left: calc(100% + 26px);
+  margin: 0;
+  width: 12ch;
+  color: var(--ink-3);
+  font-family: var(--fp-hand);
+  font-size: 25px;
+  line-height: 1.05;
+  transform: rotate(-3deg);
+}
+
+.fp__margin::before {
+  content: "";
+  position: absolute;
+  top: 0.75em;
+  left: -22px;
+  width: 16px;
+  height: 1px;
+  background: var(--ink-3);
+}
+
+@media (max-width: 1180px) {
+  .fp__margin {
+    display: none;
+  }
+}
+
+/* ---- responsive ------------------------------------------------------ */
+
+@media (max-width: 560px) {
+  .fp {
+    --fp-cols: minmax(0, 1fr) auto 52px;
+    --fp-gap: 10px;
+  }
+
+  .fp__rule--heavy {
+    height: 9px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fp__panel {
+    animation: none;
+  }
+}
+
+@keyframes fp-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

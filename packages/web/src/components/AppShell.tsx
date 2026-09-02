@@ -54,6 +54,33 @@ function getFocusableElements(container: HTMLElement) {
   });
 }
 
+// Past the first inch of a page, the bar is a strip of blur laid over whatever
+// is being read, and the wordmark on it is a link to a screen someone is
+// already looking at. So the glass and the wordmark fade out on scroll and
+// leave the one control that is still worth the space: the menu, floating.
+const HEADER_CONDENSE_AT = 24;
+
+function useCondensedHeader(enabled: boolean) {
+  const [condensed, setCondensed] = useState(false);
+
+  useEffect(() => {
+    if (!enabled) {
+      setCondensed(false);
+      return;
+    }
+
+    // Setting the same value back is free - React drops the render - so this
+    // can stay a plain passive listener rather than a rAF-throttled one.
+    const update = () => setCondensed(window.scrollY > HEADER_CONDENSE_AT);
+
+    update();
+    window.addEventListener('scroll', update, { passive: true });
+    return () => window.removeEventListener('scroll', update);
+  }, [enabled]);
+
+  return condensed;
+}
+
 export function AppShell() {
   const { user, signOut } = useAuth();
   const location = useLocation();
@@ -61,6 +88,7 @@ export function AppShell() {
 
   const [accountOpen, setAccountOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const condensed = useCondensedHeader(!cooking);
 
   const accountRef = useRef<HTMLDivElement>(null);
   const mobileNavRef = useRef<HTMLDivElement>(null);
@@ -155,14 +183,33 @@ export function AppShell() {
         Skip to content
       </a>
 
+      {/* The bar itself never takes a tap: the glass does while it is there,
+          and the two controls always do. Once it has faded, the strip it
+          leaves behind has to let the page through it. */}
       {!cooking ? (
-        <header className="fixed top-0 right-0 left-0 z-30 md:hidden" aria-hidden={mobileNavOpen}>
+        <header
+          className="pointer-events-none fixed top-0 right-0 left-0 z-30 md:hidden"
+          aria-hidden={mobileNavOpen}
+        >
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 border-b border-frost/70 bg-[rgba(var(--surface-rgb),0.82)] backdrop-blur-xl backdrop-saturate-150"
+            className={[
+              'absolute inset-0 border-b border-frost/70 bg-[rgba(var(--surface-rgb),0.82)] backdrop-blur-xl backdrop-saturate-150 transition-opacity duration-300 ease-out motion-reduce:transition-none',
+              condensed ? 'pointer-events-none opacity-0' : 'pointer-events-auto opacity-100',
+            ].join(' ')}
           />
           <div className="relative flex items-center justify-between gap-3 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
-            <Link className={`flex items-center gap-2.5 ${focusRing}`} to="/">
+            <Link
+              className={[
+                'flex items-center gap-2.5 transition-[opacity,transform] duration-300 ease-out motion-reduce:transition-none',
+                condensed ? 'pointer-events-none -translate-y-1 opacity-0' : 'pointer-events-auto',
+                focusRing,
+              ].join(' ')}
+              to="/"
+              // Faded out it is not a link any more - not to a pointer, not to
+              // a keyboard, and not to a screen reader.
+              inert={condensed}
+            >
               <Wordmark size={28} textClass="text-[19px]" />
             </Link>
             <button
@@ -172,7 +219,13 @@ export function AppShell() {
               aria-expanded={mobileNavOpen}
               aria-controls="cookbook-mobile-nav"
               onClick={() => setMobileNavOpen(true)}
-              className={`inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-2xl border border-ink/10 bg-ink p-0 text-cream shadow-[var(--cb-action-shadow)] transition-[transform,box-shadow] duration-300 ease-out hover:-translate-y-px motion-reduce:hover:translate-y-0 ${focusRing}`}
+              className={[
+                'pointer-events-auto inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-2xl border border-ink/10 bg-ink p-0 text-cream transition-[transform,box-shadow] duration-300 ease-out hover:-translate-y-px motion-reduce:hover:translate-y-0',
+                // Alone over the page it carries its own separation, since the
+                // glass behind it is gone.
+                condensed ? 'shadow-[var(--cb-action-shadow-hover)]' : 'shadow-[var(--cb-action-shadow)]',
+                focusRing,
+              ].join(' ')}
             >
               <Menu aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={2.2} />
             </button>

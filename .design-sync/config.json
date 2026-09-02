@@ -1,0 +1,70 @@
+{
+  "pkg": "@cookbook/web",
+  "shape": "package",
+  "projectId": "90035060-70e1-4149-8a4f-5210ac858917",
+  "globalName": "CookbookDS",
+  "entry": ".design-sync/ds-entry.tsx",
+  "srcDir": "packages/web/src",
+  "tsconfig": "packages/web/tsconfig.json",
+  "cssEntry": ".design-sync/.cache/ds-styles.built.css",
+  "buildCmd": "mkdir -p node_modules/@types && ln -sfn ../../packages/web/node_modules/@types/react node_modules/@types/react && ln -sfn ../../packages/web/node_modules/@types/react-dom node_modules/@types/react-dom && node .ds-sync/node_modules/@tailwindcss/cli/dist/index.mjs -i .design-sync/ds-styles.css -o .design-sync/.cache/ds-styles.built.css",
+  "guidelinesGlob": [
+    "docs/design/**/*.md"
+  ],
+  "docsDir": ".design-sync/docs",
+  "provider": {
+    "component": "PreviewProviders"
+  },
+  "overrides": {
+    "AppShell": {
+      "cardMode": "single",
+      "primaryStory": "Frame",
+      "viewport": "1280x800"
+    }
+  },
+  "componentSrcMap": {
+    "Button": "packages/web/src/components/ui.tsx",
+    "ButtonLink": "packages/web/src/components/ui.tsx",
+    "IconButton": "packages/web/src/components/ui.tsx",
+    "Input": "packages/web/src/components/ui.tsx",
+    "Textarea": "packages/web/src/components/ui.tsx",
+    "Select": "packages/web/src/components/ui.tsx",
+    "FieldLabel": "packages/web/src/components/ui.tsx",
+    "FieldHint": "packages/web/src/components/ui.tsx",
+    "FieldError": "packages/web/src/components/ui.tsx",
+    "Panel": "packages/web/src/components/ui.tsx",
+    "Eyebrow": "packages/web/src/components/ui.tsx",
+    "Breadcrumb": "packages/web/src/components/ui.tsx",
+    "PageHeader": "packages/web/src/components/ui.tsx",
+    "SectionHeading": "packages/web/src/components/ui.tsx",
+    "VisuallyHidden": "packages/web/src/components/ui.tsx",
+    "BrandMark": "packages/web/src/components/BrandMark.tsx",
+    "Wordmark": "packages/web/src/components/BrandMark.tsx",
+    "ThemeSwitcher": "packages/web/src/components/ThemeSwitcher.tsx",
+    "ThemePicker": "packages/web/src/ThemePicker.tsx",
+    "AppShell": "packages/web/src/components/AppShell.tsx"
+  },
+  "dtsPropsFor": {
+    "Button": "  /** The one solid action on a screen is `primary`; everything else steps back from it. `danger` is reserved for the single irreversible action. Defaults to `ghost`. */\n  variant?: 'primary' | 'ghost' | 'quiet' | 'danger';\n  /** `small` is for dense rows; it restores a full touch target on coarse pointers. Defaults to `default`. */\n  size?: 'default' | 'small';\n  onClick?: React.MouseEventHandler<HTMLButtonElement>;\n  disabled?: boolean;\n  type?: 'button' | 'submit' | 'reset';\n  className?: string;\n  children?: React.ReactNode;\n  id?: string;\n  name?: string;\n  value?: string | number;\n  title?: string;\n  'aria-label'?: string;\n  'aria-expanded'?: boolean;\n  'aria-controls'?: string;",
+    "ButtonLink": "  /** react-router destination. Renders a <Link>, styled identically to Button. */\n  to: string;\n  variant?: 'primary' | 'ghost' | 'quiet' | 'danger';\n  size?: 'default' | 'small';\n  className?: string;\n  children: React.ReactNode;",
+    "IconButton": "  /** `danger` tints the hover state for destructive row actions. Defaults to `default`. */\n  tone?: 'default' | 'danger';\n  onClick?: React.MouseEventHandler<HTMLButtonElement>;\n  disabled?: boolean;\n  type?: 'button' | 'submit' | 'reset';\n  className?: string;\n  children?: React.ReactNode;\n  id?: string;\n  name?: string;\n  value?: string | number;\n  title?: string;\n  'aria-label'?: string;\n  'aria-expanded'?: boolean;\n  'aria-controls'?: string;",
+    "Input": "  type?: string;\n  value?: string | number;\n  defaultValue?: string | number;\n  placeholder?: string;\n  onChange?: React.ChangeEventHandler<HTMLInputElement>;\n  disabled?: boolean;\n  required?: boolean;\n  readOnly?: boolean;\n  id?: string;\n  name?: string;\n  min?: number | string;\n  max?: number | string;\n  step?: number | string;\n  className?: string;\n  /** Set to true to paint the invalid border. */\n  'aria-invalid'?: boolean;\n  'aria-describedby'?: string;",
+    "Textarea": "  value?: string;\n  defaultValue?: string;\n  placeholder?: string;\n  rows?: number;\n  onChange?: React.ChangeEventHandler<HTMLTextAreaElement>;\n  disabled?: boolean;\n  required?: boolean;\n  readOnly?: boolean;\n  id?: string;\n  name?: string;\n  className?: string;\n  'aria-invalid'?: boolean;\n  'aria-describedby'?: string;",
+    "Select": "  /** <option> elements. */\n  children?: React.ReactNode;\n  value?: string | number;\n  defaultValue?: string | number;\n  onChange?: React.ChangeEventHandler<HTMLSelectElement>;\n  disabled?: boolean;\n  required?: boolean;\n  id?: string;\n  name?: string;\n  className?: string;\n  'aria-invalid'?: boolean;\n  'aria-describedby'?: string;",
+    "FieldLabel": "  /** Id of the control this labels. */\n  htmlFor?: string;\n  children: React.ReactNode;\n  className?: string;",
+    "FieldHint": "  /** Point the control's aria-describedby at this id. */\n  id?: string;\n  children: React.ReactNode;",
+    "FieldError": "  /** Point the control's aria-describedby at this id. Renders role=\"alert\". */\n  id?: string;\n  children: React.ReactNode;",
+    "Panel": "  children: React.ReactNode;\n  className?: string;\n  id?: string;\n  style?: React.CSSProperties;",
+    "Eyebrow": "  children: React.ReactNode;\n  className?: string;",
+    "Breadcrumb": "  /** react-router destination for the one way back. */\n  to: string;\n  children: React.ReactNode;",
+    "PageHeader": "  /** Small line above the title. */\n  kicker?: React.ReactNode;\n  title: React.ReactNode;\n  /** Standfirst under the title. */\n  lede?: React.ReactNode;\n  /** Trailing controls, right-aligned on wide viewports. */\n  actions?: React.ReactNode;",
+    "SectionHeading": "  id?: string;\n  children: React.ReactNode;\n  /** Italic serif subtitle under the heading. */\n  sub?: React.ReactNode;\n  className?: string;",
+    "VisuallyHidden": "  children: React.ReactNode;",
+    "BrandMark": "  /** Pixel size of the square mark. Defaults to 34. */\n  size?: number;\n  className?: string;",
+    "Wordmark": "  /** Pixel size of the mark beside the words. Defaults to 34. */\n  size?: number;\n  /** Tailwind class controlling the wordmark text size. Defaults to 'text-[22px]'. */\n  textClass?: string;",
+    "ThemeSwitcher": "  /** Called after a theme is chosen - close the containing menu here. */\n  onSelect?: () => void;",
+    "ThemePicker": "  className?: string;",
+    "AppShell": "  /** No props. Renders the navigation frame and a react-router <Outlet /> for the active screen. */"
+  },
+  "readmeHeader": ".design-sync/conventions.md"
+}

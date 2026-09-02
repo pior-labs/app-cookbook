@@ -1,0 +1,128 @@
+/*
+ * The drifting index listing, shared by "The Index" and "The Index, Lit".
+ *
+ * Structure and motion only. The concept around it sets --ix-ink, --ix-size,
+ * --ix-row-pad and --ix-fade, so the same wall can be a quiet texture on cream
+ * or a listing lit from behind without either concept forking the markup.
+ */
+
+.ix-wall {
+  --ix-ink: color-mix(in srgb, var(--ink) 25%, transparent);
+  --ix-size: clamp(10px, 0.85vw, 12.5px);
+  --ix-row-pad: 3.5px;
+  --ix-fade: 17%;
+  --ix-gap: clamp(20px, 5vw, 76px);
+  --ix-gutter: clamp(16px, 5vw, 76px);
+
+  position: absolute;
+  inset: -6vh 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--ix-gap);
+  padding-inline: var(--ix-gutter);
+  /* the index runs past the top and bottom edges rather than stopping at them */
+  mask-image: linear-gradient(
+    transparent 0,
+    #000 var(--ix-fade),
+    #000 calc(100% - var(--ix-fade)),
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+.ix-col {
+  overflow: hidden;
+}
+
+.ix-track {
+  animation: ix-drift 140s linear infinite;
+  will-change: transform;
+}
+
+/* three speeds, so the wall never lines up into a readable block */
+.ix-col[data-lane="1"] .ix-track {
+  animation-duration: 186s;
+}
+
+.ix-col[data-lane="2"] .ix-track {
+  animation-duration: 112s;
+}
+
+.ix-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ix-entry {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: var(--ix-row-pad) 0;
+  color: var(--ix-ink);
+  font-family: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-size: var(--ix-size);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.ix-dish {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* the leader dots of a printed index, drawn rather than typed so they always
+   fill exactly the space left over */
+.ix-dots {
+  flex: 1 1 auto;
+  min-width: 12px;
+  height: 1em;
+  background-image: radial-gradient(circle, currentColor 0.9px, transparent 1px);
+  background-position: 0 0.72em;
+  background-size: 5px 5px;
+  background-repeat: repeat-x;
+  opacity: 0.7;
+}
+
+.ix-time {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes ix-drift {
+  to {
+    transform: translateY(-50%);
+  }
+}
+
+/* two lanes read better than three once the columns get narrow */
+@media (max-width: 900px) {
+  .ix-wall {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .ix-col[data-lane="2"] {
+    display: none;
+  }
+}
+
+/* One lane on a phone. Two columns at this width cannot hold a dish name, and
+   an index that ellipses every other line reads as broken rather than as
+   texture. */
+@media (max-width: 620px) {
+  .ix-wall {
+    --ix-size: 12px;
+    --ix-row-pad: 4.5px;
+    grid-template-columns: 1fr;
+  }
+
+  .ix-col[data-lane="1"] {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ix-track {
+    animation: none;
+  }
+}
