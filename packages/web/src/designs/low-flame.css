@@ -1,0 +1,308 @@
+/*
+ * Concept 6 - "Low Flame". Design study only; not wired into the sign-in gate.
+ *
+ * The dark is derived from the theme's own ink rather than declared as black,
+ * and the flame from --warn / --accent, so the ring burns amber under bloom and
+ * cool blue under slate the way a real gas flame changes with what feeds it.
+ */
+
+.lf {
+  --lf-sans: "Outfit", system-ui, sans-serif;
+  --lf-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+
+  --lf-ground: color-mix(in srgb, var(--ink) 82%, #000);
+  --lf-air: color-mix(in srgb, var(--ink) 88%, var(--accent));
+  --lf-flame: var(--warn);
+  --lf-flame-hot: color-mix(in srgb, var(--warn) 62%, var(--frost));
+  --lf-metal: color-mix(in srgb, var(--frost) 15%, transparent);
+  --lf-text: color-mix(in srgb, var(--frost) 94%, var(--warn));
+  --lf-text-dim: color-mix(in srgb, var(--frost) 46%, transparent);
+
+  /* how far up the ring is turned - lifted by hover, focus and submitting */
+  --lf-level: 0;
+
+  position: relative;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: clamp(26px, 5vh, 60px);
+  min-height: 100dvh;
+  overflow: hidden;
+  padding: clamp(40px, 8vh, 96px) clamp(20px, 6vw, 64px);
+  color: var(--lf-text);
+  background:
+    radial-gradient(105% 78% at 50% 30%, var(--lf-air) 0%, var(--lf-ground) 58%),
+    var(--lf-ground);
+  font-family: var(--lf-sans);
+  text-align: center;
+}
+
+/* raising the flame is the button's only side effect, so the whole page reads
+   as one object rather than a picture next to a form */
+.lf:has(.lf__btn:hover:not(:disabled)),
+.lf:has(.lf__btn:focus-visible),
+.lf[data-igniting="true"] {
+  --lf-level: 1;
+}
+
+/* ---- the ring -------------------------------------------------------- */
+
+.lf__burner {
+  position: relative;
+  width: clamp(158px, 24vw, 252px);
+  aspect-ratio: 1;
+  animation: lf-rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* the light the ring throws into the room */
+.lf__halo {
+  position: absolute;
+  inset: -160%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--lf-flame) 36%, transparent) 0%,
+    color-mix(in srgb, var(--lf-flame) 11%, transparent) 32%,
+    transparent 70%
+  );
+  opacity: calc(0.55 + 0.45 * var(--lf-level));
+  transform: scale(calc(1 + 0.1 * var(--lf-level)));
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+/* the four pan supports, reaching past the flame */
+.lf__grate {
+  position: absolute;
+  inset: -8%;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 45deg,
+    var(--lf-metal) 0 1.7deg,
+    transparent 1.7deg 90deg,
+    var(--lf-metal) 90deg 91.7deg,
+    transparent 91.7deg 180deg,
+    var(--lf-metal) 180deg 181.7deg,
+    transparent 181.7deg 270deg,
+    var(--lf-metal) 270deg 271.7deg,
+    transparent 271.7deg 360deg
+  );
+  /* faded at the hub so the supports read as reaching out of the dark rather
+     than as an X drawn over the ring */
+  mask-image: radial-gradient(circle, transparent 0 34%, #000 62% 88%, transparent 100%);
+}
+
+/* the crown of ports: a conic comb, masked down to a narrow annulus and
+   blurred just enough to read as gas rather than as a gear */
+.lf__crown {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: repeating-conic-gradient(
+    from 6deg,
+    var(--lf-flame-hot) 0 2.4deg,
+    var(--lf-flame) 2.4deg 4.6deg,
+    transparent 4.6deg 12deg
+  );
+  mask-image: radial-gradient(circle, transparent 0 39%, #000 43% 53%, transparent 58%);
+  filter: blur(calc(2.4px - 0.8px * var(--lf-level)))
+    drop-shadow(0 0 12px color-mix(in srgb, var(--lf-flame) 70%, transparent));
+  opacity: calc(0.7 + 0.3 * var(--lf-level));
+  transform: scale(calc(1 + 0.045 * var(--lf-level)));
+  transition: opacity 0.4s ease, transform 0.4s ease, filter 0.4s ease;
+  animation: lf-turn 90s linear infinite, lf-flicker 3.4s ease-in-out infinite;
+}
+
+/* the burner cap sitting inside the ring */
+.lf__cap {
+  position: absolute;
+  inset: 25%;
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      circle at 42% 34%,
+      color-mix(in srgb, var(--frost) 16%, transparent),
+      transparent 58%
+    ),
+    color-mix(in srgb, var(--ink) 74%, #000);
+  box-shadow:
+    inset 0 0 0 1px var(--lf-metal),
+    0 0 22px color-mix(in srgb, var(--lf-flame) 26%, transparent);
+}
+
+/* ---- copy ------------------------------------------------------------ */
+
+.lf__copy {
+  display: grid;
+  justify-items: center;
+  gap: 0;
+  width: 100%;
+  max-width: 520px;
+  animation: lf-rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+}
+
+.lf__eyebrow {
+  margin: 0 0 clamp(14px, 2.4vh, 22px);
+  color: var(--lf-text-dim);
+  font-family: var(--lf-mono);
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+
+.lf__title {
+  margin: 0;
+  font-size: clamp(34px, 6.4vw, 62px);
+  font-weight: 200;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+  text-wrap: balance;
+}
+
+.lf__lede {
+  margin: clamp(16px, 2.6vh, 24px) 0 clamp(26px, 4vh, 38px);
+  max-width: 40ch;
+  color: color-mix(in srgb, var(--lf-text) 66%, transparent);
+  font-size: 15.5px;
+  font-weight: 300;
+  line-height: 1.65;
+}
+
+/* ---- action ---------------------------------------------------------- */
+
+/* stripped of the shared button's sketch shadow and top margin - see the note
+   in index-wall.css */
+.lf .lf__btn {
+  display: inline-flex;
+  margin: 0;
+  box-shadow: none;
+  min-width: min(340px, 100%);
+  min-height: 56px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 15px 20px 15px 26px;
+  border: 1px solid color-mix(in srgb, var(--frost) 24%, transparent);
+  border-radius: 999px;
+  color: var(--lf-text);
+  background: color-mix(in srgb, var(--lf-flame) 8%, transparent);
+  font-family: var(--lf-sans);
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.lf .lf__btn:hover:not(:disabled),
+.lf .lf__btn:focus-visible {
+  border-color: color-mix(in srgb, var(--lf-flame) 72%, transparent);
+  background: color-mix(in srgb, var(--lf-flame) 20%, transparent);
+  box-shadow: 0 0 32px -6px color-mix(in srgb, var(--lf-flame) 52%, transparent);
+  filter: none;
+  transform: none;
+}
+
+.lf .lf__btn:focus-visible {
+  outline: 2px solid var(--lf-flame-hot);
+  outline-offset: 3px;
+}
+
+.lf .lf__btn:disabled {
+  cursor: progress;
+}
+
+.lf .lf__btn svg {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+}
+
+.lf .lv-spin {
+  border-color: color-mix(in srgb, var(--lf-flame) 34%, transparent);
+  border-top-color: var(--lf-flame-hot);
+}
+
+.lf__status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: clamp(16px, 2.6vh, 24px) 0 0;
+  color: var(--lf-text-dim);
+  font-family: var(--lf-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.lf__dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--lf-flame);
+  box-shadow: 0 0 8px var(--lf-flame);
+}
+
+.lf[data-igniting="true"] .lf__dot {
+  animation: lf-blink 1s steps(2, end) infinite;
+}
+
+.lf .lf__error {
+  margin: 0 0 18px;
+  border-left-color: var(--lf-flame-hot);
+  color: var(--lf-text);
+  background: color-mix(in srgb, var(--destructive) 26%, transparent);
+  text-align: left;
+}
+
+/* ---- motion ---------------------------------------------------------- */
+
+@keyframes lf-turn {
+  to {
+    rotate: 360deg;
+  }
+}
+
+@keyframes lf-flicker {
+  0%,
+  100% {
+    opacity: calc(0.7 + 0.3 * var(--lf-level));
+  }
+  38% {
+    opacity: calc(0.62 + 0.3 * var(--lf-level));
+  }
+  61% {
+    opacity: calc(0.76 + 0.24 * var(--lf-level));
+  }
+}
+
+@keyframes lf-blink {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@keyframes lf-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* A ring that turns and breathes is atmosphere, not information: hold it
+   still, and keep the flame at its raised level so the page is not left dark. */
+@media (prefers-reduced-motion: reduce) {
+  .lf {
+    --lf-level: 0.6;
+  }
+
+  .lf__burner,
+  .lf__copy,
+  .lf__crown,
+  .lf__dot {
+    animation: none;
+  }
+}

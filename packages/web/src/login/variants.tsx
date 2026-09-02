@@ -1,5 +1,5 @@
 import { useId, type ReactElement } from 'react';
-import { LoginScreen } from './LoginScreen';
+import { MeshBackdrop } from '../MeshBackdrop';
 import { AuthError, Seal, SignInButton } from './parts';
 import { useSignInFlow } from './useSignInFlow';
 
@@ -46,6 +46,55 @@ function TicketLogin() {
           <AuthError id={errorId} message={flow.error} />
           <SignInButton flow={flow} className="v-ticket__btn" errorId={errorId} />
           <p className="lv-note">Approved household accounts only.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* 2 - Frosted Recipe Card: the ruled recipe card in glass over the      */
+/*     drifting mesh. Shipped as the sign-in screen for the first round, */
+/*     kept here as the record of it after concept 7 replaced it.        */
+/* ------------------------------------------------------------------ */
+function FrostedCardLogin() {
+  const flow = useSignInFlow();
+  const errorId = useId();
+
+  return (
+    <div className="lv-variant v-frost">
+      {/* the card is designed to float over the drifting mesh - it was rendered
+          by the sign-in screen when this concept was live, so the variant has
+          to bring it itself */}
+      <MeshBackdrop />
+
+      <div className="v-frost__card">
+        <span className="v-frost__tab">Cookbook</span>
+
+        <div className="v-frost__inner">
+          <header className="v-frost__head">
+            <Seal />
+            <span className="lv-wordmark">Pior Labs</span>
+          </header>
+
+          <p className="lv-eyebrow">Household access</p>
+
+          <h1 className="v-frost__title">
+            Welcome back to
+            <br />
+            the <em>kitchen.</em>
+          </h1>
+
+          <p className="v-frost__body">
+            Your household cookbook - every recipe you&rsquo;ve saved, the notes that make them
+            yours, and whatever you decide to make tonight.
+          </p>
+
+          <AuthError id={errorId} message={flow.error} />
+          <SignInButton flow={flow} errorId={errorId} />
+          <p className="lv-note">
+            Private by design. Only approved household accounts can enter.
+          </p>
         </div>
       </div>
     </div>
@@ -115,11 +164,10 @@ export const LOGIN_VARIANTS: LoginVariant[] = [
   },
   {
     id: 'frosted-card',
-    name: 'Frosted Recipe Card (live)',
-    // The chosen concept, so the gallery shows the real sign-in screen rather
-    // than a copy of it that could drift away from what people actually see.
-    blurb: 'The ruled recipe card floated as glass over drifting mesh. Shipped as the login screen.',
-    Component: LoginScreen,
+    name: 'Frosted Recipe Card',
+    blurb:
+      'The ruled recipe card floated as glass over drifting mesh. Shipped as the login screen until concept 7 replaced it.',
+    Component: FrostedCardLogin,
   },
   {
     id: 'pinboard-card',

@@ -1,0 +1,217 @@
+/*
+ * Concept 4 - "The Index". Design study only; not wired into the sign-in gate.
+ *
+ * Type is the whole design: a mono card-catalog wall behind one band of
+ * Fraunces. No card, no glass, no shadow - the only depth is the veil the band
+ * lays over the drifting index. Every colour is a design-system token, so it
+ * reskins with bloom / slate like the rest of the product.
+ */
+
+.iw {
+  --iw-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --iw-serif: "Fraunces", Georgia, serif;
+  --iw-sans: "Outfit", system-ui, sans-serif;
+  --iw-wall-ink: color-mix(in srgb, var(--ink) 25%, transparent);
+  --iw-hair: color-mix(in srgb, var(--ink) 22%, transparent);
+  --iw-band-y: clamp(34px, 6vh, 68px);
+  --iw-gutter: clamp(16px, 5vw, 76px);
+  --iw-gap: clamp(20px, 5vw, 76px);
+
+  position: relative;
+  display: grid;
+  align-items: center;
+  min-height: 100dvh;
+  overflow: hidden;
+  color: var(--ink);
+  background: var(--cream);
+  font-family: var(--iw-sans);
+}
+
+/* ---- the wall ------------------------------------------------------- */
+
+/* The listing itself is `index-columns.css`; this concept only says how loud
+   it is. Quiet enough to read as texture behind the band, dense enough that it
+   is unmistakably a real index. */
+.iw .ix-wall {
+  --ix-ink: color-mix(in srgb, var(--ink) 25%, transparent);
+  --ix-size: clamp(10px, 0.85vw, 12.5px);
+  --ix-row-pad: 3.5px;
+  --ix-gap: var(--iw-gap);
+  --ix-gutter: var(--iw-gutter);
+}
+
+/* ---- the band -------------------------------------------------------- */
+
+.iw__band {
+  position: relative;
+  z-index: 1;
+  border-top: 1px solid var(--iw-hair);
+  border-bottom: 1px solid var(--iw-hair);
+  padding: var(--iw-band-y) var(--iw-gutter);
+  background: color-mix(in srgb, var(--cream) 88%, transparent);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  animation: iw-open 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* the one weighted rule in the design, struck over the band's top hairline and
+   aligned to the headline rather than to the viewport edge */
+.iw__band-inner::before {
+  content: "";
+  position: absolute;
+  top: calc(-1 * var(--iw-band-y) - 2px);
+  left: 0;
+  width: clamp(72px, 9vw, 132px);
+  height: 3px;
+  background: var(--accent);
+}
+
+.iw__band-inner {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: clamp(28px, 4vw, 64px);
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.iw__eyebrow {
+  margin: 0 0 clamp(16px, 2.4vh, 26px);
+  color: var(--ink-3);
+  font-family: var(--iw-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.iw__eyebrow span {
+  padding: 0 4px;
+  color: var(--accent);
+}
+
+.iw__title {
+  margin: 0;
+  font-family: var(--iw-serif);
+  font-size: clamp(34px, 6.2vw, 78px);
+  font-weight: 400;
+  letter-spacing: -0.035em;
+  line-height: 0.94;
+  text-wrap: balance;
+}
+
+.iw__title em {
+  font-style: italic;
+  /* the italic sits optically small next to the roman at this size */
+  font-size: 1.04em;
+}
+
+/* ---- action ---------------------------------------------------------- */
+
+.iw__act {
+  display: grid;
+  gap: 14px;
+  width: min(100%, 340px);
+  justify-self: end;
+}
+
+/* the shared button arrives dressed in the gallery's sketch treatment - offset
+   shadow, nudge on hover, a 28px top margin. Every concept here dresses its
+   own, so that is stripped back before anything is added. */
+.iw .iw__btn {
+  display: flex;
+  width: 100%;
+  margin: 0;
+  box-shadow: none;
+  min-height: 58px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px 16px 24px;
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  color: var(--cream);
+  background: var(--ink);
+  font-family: var(--iw-sans);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: background-color 0.18s ease, color 0.18s ease;
+}
+
+.iw .iw__btn:hover:not(:disabled) {
+  color: var(--cream);
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: none;
+  filter: none;
+  transform: none;
+}
+
+.iw .iw__btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.iw .iw__btn:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.iw .iw__btn svg {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+}
+
+.iw .lv-spin {
+  border-top-color: var(--cream);
+}
+
+.iw__note {
+  margin: 0;
+  color: var(--ink-3);
+  font-family: var(--iw-mono);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.iw .iw__error {
+  margin: 0;
+  border-radius: 0;
+}
+
+/* ---- motion ---------------------------------------------------------- */
+
+@keyframes iw-open {
+  from {
+    opacity: 0;
+    clip-path: inset(42% 0 42% 0);
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* ---- responsive ------------------------------------------------------ */
+
+@media (max-width: 900px) {
+  .iw__band-inner {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 26px;
+  }
+
+  .iw__act {
+    width: 100%;
+    justify-self: stretch;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .iw__band {
+    animation: none;
+  }
+}

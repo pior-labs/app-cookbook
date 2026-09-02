@@ -9,17 +9,18 @@
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  padding: 4px;
+  padding: 3px;
   border: 1px solid var(--border-soft, var(--border));
   border-radius: 999px;
   background: color-mix(in srgb, var(--card) 78%, transparent);
 }
 
 .theme-picker__option {
+  position: relative;
   display: inline-grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   padding: 0;
   border: 1.5px solid transparent;
   border-radius: 999px;
@@ -30,8 +31,8 @@
 }
 
 .theme-picker__dial {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   opacity: 0.55;
   transition: opacity 0.15s ease;
 }
@@ -66,10 +67,25 @@
   white-space: nowrap;
 }
 
-/* A finger is the same size everywhere (technical design section 11.2). */
+/*
+ * A finger is the same size everywhere (technical design section 11.2), but the
+ * dial does not have to grow to meet it. On touch the pill gains a little back
+ * - 26px dials would be a small thing to hit - and the rest of the target is
+ * bought invisibly: each option carries a hit area 6px taller on both sides and
+ * 1px wider, which is exactly half the gap between them, so the two never
+ * overlap and a tap can never land on the theme next to the one aimed at.
+ *
+ * Rendered pill: 40px tall. Tappable per option: 34 x 44.
+ */
 @media (pointer: coarse) {
   .theme-picker__option {
-    width: 40px;
-    height: 40px;
+    width: 32px;
+    height: 32px;
+  }
+
+  .theme-picker__option::after {
+    content: "";
+    position: absolute;
+    inset: -6px -1px;
   }
 }

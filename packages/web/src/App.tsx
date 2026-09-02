@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { useAuth } from './auth';
 import { AppShell } from '@/components/AppShell';
@@ -19,6 +20,16 @@ import { TrashPage } from './trash/TrashPage';
 function isGalleryRequested() {
   if (typeof window === 'undefined') return false;
   return new URLSearchParams(window.location.search).has('login-gallery');
+}
+
+// The later login concepts are a design study parked at /designs/login/1..4.
+// They are lazy so neither their CSS nor the extra type family they set reaches
+// the bundle every other screen loads.
+const LoginDesigns = lazy(() => import('./designs/LoginDesigns'));
+
+function isDesignStudy() {
+  if (typeof window === 'undefined') return false;
+  return /^\/designs\/login\//.test(window.location.pathname);
 }
 
 // Routes are only mounted for an authenticated session, so losing the session
@@ -57,6 +68,16 @@ function AuthenticatedRoutes() {
 
 export function App() {
   const { loading, user } = useAuth();
+
+  // Both studies resolve before the auth branches: a concept has to be
+  // openable signed out, which is the state it is designed for.
+  if (isDesignStudy()) {
+    return (
+      <Suspense fallback={null}>
+        <LoginDesigns />
+      </Suspense>
+    );
+  }
 
   if (isGalleryRequested()) return <LoginGallery />;
 

@@ -1,16 +1,22 @@
 import { useId } from 'react';
 import { MeshBackdrop } from '../MeshBackdrop';
 import { ThemePicker } from '../ThemePicker';
-import { ArrowIcon } from './parts';
+import { IndexColumns } from './IndexColumns';
+import { AuthError, SignInButton } from './parts';
 import { useSignInFlow } from './useSignInFlow';
 
-// The sign-in screen, built to concept 2 of the login design study,
-// "Frosted Recipe Card" (docs/design/02-frosted-recipe-card.md): a ruled
-// recipe card rendered in glass over the design system's drifting mesh.
+// The sign-in screen, built to concept 7 of the login design study, "The Index,
+// Lit" (docs/design/README.md): a printed index drifting floor to ceiling, and
+// one band cut edge to edge through it.
 //
-// It is deliberately the same material language as the central service-auth
-// sign-in page - the same mesh, glass, and Fraunces display - so leaving for
-// SSO and coming back reads as one continuous product rather than two.
+// The materials are the design system's own - the drifting mesh, glass, and the
+// Fraunces display the central service-auth sign-in page uses - so leaving for
+// SSO and coming back reads as one continuous product rather than two. The mesh
+// runs at a fraction of its default strength here: it is the light in the room,
+// not colour under the words.
+//
+// The listing behind the band is decoration, not the household's book. See
+// `index-content.ts` for why it cannot be.
 
 export function LoginScreen() {
   const flow = useSignInFlow();
@@ -19,57 +25,38 @@ export function LoginScreen() {
   return (
     <main className="login-screen">
       <MeshBackdrop />
+      <div className="login-pool" aria-hidden="true" />
 
-      <section className="login-card" aria-labelledby="login-heading">
-        <span className="login-card__tab">Cookbook</span>
+      <IndexColumns />
 
-        <div className="login-card__inner">
-          <header className="login-card__head">
-            <span className="login-card__seal" aria-hidden="true">
-              C
-            </span>
-            <span className="login-card__wordmark">Pior Labs</span>
-            <ThemePicker className="login-card__theme" />
-          </header>
+      <section className="login-band" aria-labelledby="login-heading">
+        <div className="login-band__inner">
+          {/* The theme is a household preference, not a page setting, so it is
+              offered before signing in the way the central sign-in page offers
+              it. It sits at the far edge of the band, level with the eyebrow,
+              where it stays a quiet utility rather than a second object next to
+              the title. */}
+          <ThemePicker className="login-theme" />
 
-          <p className="login-eyebrow">Household access</p>
-
-          <h1 className="login-title" id="login-heading">
-            Welcome back to
-            <br />
-            the <em>kitchen.</em>
-          </h1>
-
-          <p className="login-body">
-            Your household cookbook - every recipe you&rsquo;ve saved, the notes that make them
-            yours, and whatever you decide to make tonight.
-          </p>
-
-          {flow.error ? (
-            <p className="login-error" id={errorId} role="alert">
-              <span aria-hidden="true">!</span>
-              {flow.error}
+          <div className="login-lede">
+            <p className="login-eyebrow">
+              Pior Labs Cookbook <span aria-hidden="true">/</span> Household access
             </p>
-          ) : null}
 
-          <button
-            className="login-button"
-            type="button"
-            onClick={flow.handleSignIn}
-            disabled={flow.submitting}
-            aria-describedby={flow.error ? errorId : undefined}
-          >
-            <span>{flow.submitting ? 'Opening Pior Labs…' : 'Continue with Pior Labs'}</span>
-            {flow.submitting ? (
-              <span className="login-button__spinner" aria-hidden="true" />
-            ) : (
-              <ArrowIcon />
-            )}
-          </button>
+            <h1 className="login-title" id="login-heading">
+              Everything the house
+              <br />
+              knows how to <em>cook.</em>
+            </h1>
+          </div>
 
-          <p className="login-note">
-            Private by design. Only approved household accounts can enter.
-          </p>
+          <div className="login-act">
+            <AuthError id={errorId} message={flow.error} className="login-error" />
+            <SignInButton flow={flow} className="login-button" errorId={errorId} />
+            <p className="login-note">
+              Private by design. Only approved household accounts can enter.
+            </p>
+          </div>
         </div>
       </section>
     </main>
