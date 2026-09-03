@@ -4,14 +4,16 @@ import type { ErrorFields } from '../api/client.js';
 import { cn } from '@/lib/utils';
 import {
   Button,
+  chipLabelClass,
   FieldError,
   FieldHint,
   FieldLabel,
   Input,
   SectionHeading,
   Select,
+  tagChipLabelClass,
+  tagChipStyle,
   Textarea,
-  chipLabelClass,
 } from '@/components/ui';
 import { Field, describedBy, fieldError } from './fields.jsx';
 import { RowControls, RowList } from './OrderedRows.jsx';
@@ -439,7 +441,7 @@ export function RecipeForm({
 
                   return (
                     <li key={tag.id}>
-                      <label className={chipLabelClass(on)}>
+                      <label className={tagChipLabelClass(tag.color, on)} style={tagChipStyle(tag.color)}>
                         <input
                           className="sr-only"
                           type="checkbox"

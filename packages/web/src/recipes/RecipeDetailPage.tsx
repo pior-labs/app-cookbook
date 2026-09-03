@@ -14,9 +14,10 @@ import {
   Button,
   ButtonLink,
   Eyebrow,
-  SectionHeading,
-  chipClass,
   focusRing,
+  SectionHeading,
+  tagChipClass,
+  tagChipStyle,
 } from '@/components/ui';
 import { FavoriteButton, RatingControl } from '../preferences/controls.jsx';
 import { useRecipePreferences } from '../preferences/usePreferences.js';
@@ -462,7 +463,11 @@ export function RecipeDetailPage() {
           {recipe.tags.length > 0 ? (
             <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
               {recipe.tags.map((tag) => (
-                <li className={chipClass(false, 'cursor-default hover:bg-frost/55')} key={tag.id}>
+                <li
+                  className={tagChipClass(tag.color, false, 'cursor-default')}
+                  style={tagChipStyle(tag.color)}
+                  key={tag.id}
+                >
                   {tag.name}
                 </li>
               ))}

@@ -77,6 +77,12 @@ export interface OrganizationRecord {
   name: string;
 }
 
+// A written tag as the API returns it: the row, not the summary the list
+// endpoint builds, so there is no recipe count on it.
+export interface TagRecord extends OrganizationRecord {
+  color: string | null;
+}
+
 export function createCategory(name: string): Promise<OrganizationRecord> {
   return apiSend<OrganizationRecord>('/api/categories', 'POST', { name });
 }
@@ -89,8 +95,13 @@ export function deleteCategory(id: number): Promise<void> {
   return apiSend<void>(`/api/categories/${id}`, 'DELETE');
 }
 
-export function renameTag(id: number, name: string): Promise<OrganizationRecord> {
-  return apiSend<OrganizationRecord>(`/api/tags/${id}`, 'PUT', { name });
+// A tag has a name and a colour, and `/organize` edits one at a time. An
+// omitted colour leaves the stored one alone; an explicit null takes it off.
+export function updateTag(
+  id: number,
+  change: { name: string; color?: string | null },
+): Promise<TagRecord> {
+  return apiSend<TagRecord>(`/api/tags/${id}`, 'PUT', change);
 }
 
 export function deleteTag(id: number): Promise<void> {

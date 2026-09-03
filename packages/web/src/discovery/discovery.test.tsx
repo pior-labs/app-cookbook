@@ -60,6 +60,7 @@ const TAGS: TagSummary[] = [
   {
     id: 7,
     name: 'Weeknight',
+    color: '#6b8db5',
     activeRecipeCount: 2,
     createdAt: '2026-08-01T00:00:00.000Z',
     updatedAt: '2026-08-01T00:00:00.000Z',
@@ -113,6 +114,14 @@ function renderAt(path: string, element: React.ReactNode) {
       </Routes>
     </MemoryRouter>,
   );
+}
+
+// Browse keeps its filters behind one control now, so a test that taps a
+// filter opens them first, the way a cook does. jsdom has no `matchMedia`, so
+// the screen renders its wide layout and the filters expand in the panel
+// rather than in the phone sheet.
+async function openFilters() {
+  await userEvent.click(await screen.findByRole('button', { name: /^Filters/ }));
 }
 
 beforeEach(() => {
@@ -215,6 +224,7 @@ describe('browse and search', () => {
     });
 
     renderAt('/recipes', <BrowsePage />);
+    await openFilters();
 
     await userEvent.selectOptions(await screen.findByLabelText('Category'), '1');
     await userEvent.click(screen.getByRole('button', { name: 'Weeknight', pressed: false }));
@@ -291,6 +301,7 @@ describe('browse and search', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Load more' }));
     expect(await screen.findByRole('heading', { name: 'Pancakes' })).toBeInTheDocument();
 
+    await openFilters();
     await userEvent.selectOptions(screen.getByLabelText('Category'), '2');
 
     expect(await screen.findByRole('heading', { name: 'Brownies' })).toBeInTheDocument();
@@ -332,6 +343,7 @@ describe('browse and search', () => {
     });
 
     renderAt('/recipes', <BrowsePage />);
+    await openFilters();
 
     await userEvent.click(await screen.findByRole('button', { name: 'My favorites' }));
     await userEvent.click(screen.getByRole('button', { name: '4★' }));
@@ -352,6 +364,48 @@ describe('browse and search', () => {
     await waitFor(() => expect(calls.at(-1)).toBe('/api/recipes?sort=name'));
     expect(screen.getByLabelText('Search recipes')).toHaveValue('');
     expect(screen.getByLabelText('Sort')).toHaveValue('name');
+  });
+
+  it('keeps the filters out of the page until they are asked for', async () => {
+    mockApi({
+      ...organization,
+      '/api/recipes': () => jsonResponse({ items: [summary(1, 'Chili')], nextCursor: null }),
+    });
+
+    renderAt('/recipes', <BrowsePage />);
+
+    // Search and sort stay on the page; everything that narrows the list is
+    // one control away.
+    expect(await screen.findByLabelText('Search recipes')).toBeInTheDocument();
+    expect(screen.getByLabelText('Sort')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Category')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '30 min or less' })).not.toBeInTheDocument();
+
+    await openFilters();
+
+    expect(screen.getByLabelText('Category')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '30 min or less' })).toBeInTheDocument();
+  });
+
+  it('names every filter in force and lifts the one that is dismissed', async () => {
+    const calls = mockApi({
+      ...organization,
+      '/api/recipes': () => jsonResponse({ items: [summary(1, 'Chili')], nextCursor: null }),
+    });
+
+    renderAt('/recipes?categoryId=1&maxTotalMinutes=30&tagId=7', <BrowsePage />);
+
+    // Closed filters must still say what they are doing.
+    expect(await screen.findByRole('button', { name: 'Remove filter: Dinner' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Remove filter: Weeknight' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Filters, 3 applied' })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Remove filter: 30 min or less' }));
+
+    await waitFor(() => expect(calls.at(-1)).toBe('/api/recipes?categoryId=1&tagId=7'));
+    expect(
+      screen.queryByRole('button', { name: 'Remove filter: 30 min or less' }),
+    ).not.toBeInTheDocument();
   });
 
   it('reports how many recipes matched', async () => {

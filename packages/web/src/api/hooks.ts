@@ -10,6 +10,10 @@ export interface AsyncResource<T> {
   error: ApiRequestError | null;
   loading: boolean;
   reload: () => void;
+  // Writes the answer a mutation already gave into what is on screen, for the
+  // changes where refetching would only confirm what the response said. A
+  // reload redraws the whole list; this redraws the row that changed.
+  apply: (update: (current: T) => T) => void;
 }
 
 // Loads once per key change and exposes an explicit retry. The in-flight
@@ -55,7 +59,11 @@ export function useApiResource<T>(
 
   const reload = useCallback(() => setAttempt((value) => value + 1), []);
 
-  return { data, error, loading, reload };
+  const apply = useCallback((update: (current: T) => T) => {
+    setData((current) => (current === null ? current : update(current)));
+  }, []);
+
+  return { data, error, loading, reload, apply };
 }
 
 // The result is returned rather than only stored in state: `error` is state and

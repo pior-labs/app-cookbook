@@ -19,6 +19,8 @@ export interface CategorySummary extends Category {
 export interface Tag {
   id: number;
   name: string;
+  // A hex colour from the tag palette, or null for the neutral chip.
+  color: string | null;
   createdAt: string;
   updatedAt: string;
 }

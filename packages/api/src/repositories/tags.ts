@@ -5,6 +5,7 @@ import { normalizeName, type DbExecutor } from './shared.js';
 export interface TagRecord {
   id: number;
   name: string;
+  color: string | null;
 }
 
 // Returns only the tags that exist. Callers compare the count to decide whether
@@ -15,7 +16,7 @@ export async function findTagsByIds(exec: DbExecutor, ids: number[]): Promise<Ta
   }
 
   return exec
-    .select({ id: tags.id, name: tags.name })
+    .select({ id: tags.id, name: tags.name, color: tags.color })
     .from(tags)
     .where(inArray(tags.id, ids));
 }
@@ -27,6 +28,7 @@ export async function listTagsWithCounts(exec: DbExecutor) {
     .select({
       id: tags.id,
       name: tags.name,
+      color: tags.color,
       createdAt: tags.createdAt,
       updatedAt: tags.updatedAt,
       activeRecipeCount: sql<string>`count(${recipes.id})`,
@@ -40,7 +42,7 @@ export async function listTagsWithCounts(exec: DbExecutor) {
 
 export async function findTagByName(exec: DbExecutor, name: string): Promise<TagRecord | null> {
   const [row] = await exec
-    .select({ id: tags.id, name: tags.name })
+    .select({ id: tags.id, name: tags.name, color: tags.color })
     .from(tags)
     .where(eq(tags.normalizedName, normalizeName(name)))
     .limit(1);
@@ -48,18 +50,22 @@ export async function findTagByName(exec: DbExecutor, name: string): Promise<Tag
   return row ?? null;
 }
 
-export async function insertTag(exec: DbExecutor, name: string): Promise<TagRecord> {
+export async function insertTag(
+  exec: DbExecutor,
+  name: string,
+  color: string | null,
+): Promise<TagRecord> {
   const [row] = await exec
     .insert(tags)
-    .values({ name, normalizedName: normalizeName(name) })
-    .returning({ id: tags.id, name: tags.name });
+    .values({ name, normalizedName: normalizeName(name), color })
+    .returning({ id: tags.id, name: tags.name, color: tags.color });
 
   return row;
 }
 
 export async function findTagById(exec: DbExecutor, id: number): Promise<TagRecord | null> {
   const [row] = await exec
-    .select({ id: tags.id, name: tags.name })
+    .select({ id: tags.id, name: tags.name, color: tags.color })
     .from(tags)
     .where(eq(tags.id, id))
     .limit(1);
@@ -67,16 +73,18 @@ export async function findTagById(exec: DbExecutor, id: number): Promise<TagReco
   return row ?? null;
 }
 
-export async function updateTagName(
+// Name and colour are written together: `/organize` edits one or the other,
+// and the service decides what an omitted colour means before it gets here.
+export async function updateTag(
   exec: DbExecutor,
   id: number,
-  name: string,
+  { name, color }: { name: string; color: string | null },
 ): Promise<TagRecord | null> {
   const [row] = await exec
     .update(tags)
-    .set({ name, normalizedName: normalizeName(name), updatedAt: new Date() })
+    .set({ name, normalizedName: normalizeName(name), color, updatedAt: new Date() })
     .where(eq(tags.id, id))
-    .returning({ id: tags.id, name: tags.name });
+    .returning({ id: tags.id, name: tags.name, color: tags.color });
 
   return row ?? null;
 }

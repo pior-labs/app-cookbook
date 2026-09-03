@@ -9,5 +9,6 @@
 export * from './ingredients/index.js';
 export * from './text/normalize.js';
 export * from './text/search.js';
+export * from './types/colors.js';
 export * from './types/index.js';
 export * from './schemas/index.js';

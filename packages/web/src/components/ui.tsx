@@ -2,6 +2,7 @@ import { ArrowLeft, ChevronDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type {
   ButtonHTMLAttributes,
+  CSSProperties,
   ReactNode,
   SelectHTMLAttributes,
   TextareaHTMLAttributes,
@@ -176,10 +177,13 @@ export function Panel({ className, children, ...rest }: { className?: string; ch
 }
 
 // A pill that either filters (button) or navigates (link).
+const CHIP_BASE =
+  'inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[13px] font-medium ' +
+  'transition-[background-color,color,box-shadow] duration-200';
+
 export function chipClass(active = false, className?: string): string {
   return cn(
-    'inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[13px] font-medium',
-    'transition-[background-color,color,box-shadow] duration-200',
+    CHIP_BASE,
     focusRing,
     active
       ? 'border-transparent bg-ink text-cream shadow-[0_6px_18px_-6px_color-mix(in_srgb,var(--ink)_45%,transparent)]'
@@ -188,13 +192,38 @@ export function chipClass(active = false, className?: string): string {
   );
 }
 
+// A tag's chip, in the colour the household gave the tag. The colours
+// themselves live in `.cb-tag` in app.css, which mixes the tag's hex against
+// the active theme's ink and surface rather than painting it flat, so a tag
+// reads the same way in either theme. A tag with no colour is simply the
+// neutral chip above.
+export function tagChipClass(
+  color: string | null | undefined,
+  active = false,
+  className?: string,
+): string {
+  if (!color) return chipClass(active, className);
+
+  return cn(CHIP_BASE, focusRing, 'cb-tag', active ? 'cb-tag-on' : '', className);
+}
+
+// The tag's own colour, handed to CSS as a custom property so one rule can
+// express what to do with it.
+export function tagChipStyle(color: string | null | undefined): CSSProperties | undefined {
+  return color ? ({ '--tag-color': color } as CSSProperties) : undefined;
+}
+
 // A chip whose control is a visually hidden checkbox or radio inside it, so
 // the ring has to come from the input's focus rather than the label's.
+const CHIP_LABEL_RING =
+  'has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent/45 has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-cream';
+
 export function chipLabelClass(active = false): string {
-  return chipClass(
-    active,
-    'has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent/45 has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-cream',
-  );
+  return chipClass(active, CHIP_LABEL_RING);
+}
+
+export function tagChipLabelClass(color: string | null | undefined, active = false): string {
+  return tagChipClass(color, active, CHIP_LABEL_RING);
 }
 
 // ---- page furniture ---------------------------------------------------

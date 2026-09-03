@@ -6,7 +6,16 @@ import { focusRing } from '@/components/ui';
 // a live swatch and a check on the active theme. The sign-in screen uses the
 // dial `ThemePicker` instead - the same preference, with no menu around it to
 // carry the names.
-export function ThemeSwitcher({ onSelect }: { onSelect?: () => void }) {
+export function ThemeSwitcher({
+  compact = false,
+  onSelect,
+}: {
+  // The mobile navigation shows the same list, minus the hints: it shares a
+  // screen with six destinations and the one action on them, and "Warm light"
+  // is a nicety where those are not.
+  compact?: boolean;
+  onSelect?: () => void;
+}) {
   const { theme, setTheme, themes } = useTheme();
 
   return (
@@ -32,6 +41,7 @@ export function ThemeSwitcher({ onSelect }: { onSelect?: () => void }) {
                 'flex w-full cursor-pointer items-center gap-2.5 rounded-xl border-0 bg-transparent px-3 py-2 text-left font-[inherit] transition-colors',
                 focusRing,
                 active ? 'bg-ink/5' : 'hover:bg-ink/5',
+                compact ? 'py-1.5' : '',
               ].join(' ')}
             >
               <span
@@ -46,7 +56,9 @@ export function ThemeSwitcher({ onSelect }: { onSelect?: () => void }) {
               </span>
               <span className="flex min-w-0 flex-1 flex-col leading-tight">
                 <span className="truncate text-[13px] text-ink">{option.name}</span>
-                <span className="truncate text-[11px] text-ink-2">{option.hint}</span>
+                {compact ? null : (
+                  <span className="truncate text-[11px] text-ink-2">{option.hint}</span>
+                )}
               </span>
               {active ? (
                 <Check aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-accent" strokeWidth={2.5} />

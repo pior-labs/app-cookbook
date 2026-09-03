@@ -7,6 +7,7 @@ import { useCookMode } from '@/components/CookMode';
 import { Wordmark } from '@/components/BrandMark';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { buttonClass, focusRing } from '@/components/ui';
+import { useModalOverlay } from '@/lib/overlay';
 
 // The navigation every screen shares. Home, browse, favorites, and recent are
 // four ways into the same shelf, so they sit together; organize and trash tend
@@ -36,23 +37,6 @@ const KEEP_NAV: NavItem[] = [
   { to: '/organize', label: 'Organize', icon: FolderTree, end: false },
   { to: '/trash', label: 'Trash', icon: Trash2, end: false },
 ];
-
-const FOCUSABLE_SELECTOR = [
-  'a[href]',
-  'button:not([disabled])',
-  'textarea:not([disabled])',
-  'input:not([disabled])',
-  'select:not([disabled])',
-  '[tabindex]:not([tabindex="-1"])',
-].join(', ');
-
-function getFocusableElements(container: HTMLElement) {
-  return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter((el) => {
-    if (el.hasAttribute('disabled')) return false;
-    if (el.getAttribute('aria-hidden') === 'true') return false;
-    return el.tabIndex >= 0;
-  });
-}
 
 // Past the first inch of a page, the bar is a strip of blur laid over whatever
 // is being read, and the wordmark on it is a link to a screen someone is
@@ -116,61 +100,14 @@ export function AppShell() {
   }, [accountOpen]);
 
   // The mobile overlay covers the page, so it holds focus until it is closed
-  // and hands focus back to the control that opened it.
-  useEffect(() => {
-    if (!mobileNavOpen) return;
-
-    const dialog = mobileNavRef.current;
-    if (!dialog) return;
-
-    const frame = window.requestAnimationFrame(() => {
-      const focusables = getFocusableElements(dialog);
-      const close = focusables.find((el) => el.dataset.mobileNavClose === 'true');
-      (close ?? focusables[0] ?? dialog).focus();
-    });
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        setMobileNavOpen(false);
-        return;
-      }
-      if (event.key !== 'Tab') return;
-
-      const focusables = getFocusableElements(dialog);
-      if (focusables.length === 0) {
-        event.preventDefault();
-        dialog.focus();
-        return;
-      }
-
-      const first = focusables[0];
-      const last = focusables[focusables.length - 1];
-      const active = document.activeElement as HTMLElement | null;
-
-      if (!active || !dialog.contains(active)) {
-        event.preventDefault();
-        first.focus();
-      } else if (event.shiftKey && active === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && active === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    document.addEventListener('keydown', onKeyDown);
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    return () => {
-      window.cancelAnimationFrame(frame);
-      document.removeEventListener('keydown', onKeyDown);
-      document.body.style.overflow = previousOverflow;
-      mobileNavTriggerRef.current?.focus();
-    };
-  }, [mobileNavOpen]);
+  // and hands focus back to the control that opened it. The browse filter
+  // sheet is the same dialog, and shares the implementation.
+  useModalOverlay({
+    open: mobileNavOpen,
+    dialogRef: mobileNavRef,
+    triggerRef: mobileNavTriggerRef,
+    onClose: () => setMobileNavOpen(false),
+  });
 
   return (
     <div className="relative min-h-dvh text-[15px] leading-[1.55] text-ink">
@@ -422,12 +359,12 @@ function MobileNav({
         <div className="theme-blob b5" />
       </div>
 
-      <div className="relative flex items-center justify-between gap-3 px-5 pt-[max(0.875rem,env(safe-area-inset-top))] pb-3">
+      <div className="relative flex items-center justify-between gap-3 px-5 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2">
         <Link className={`flex items-center gap-2.5 ${focusRing}`} to="/" onClick={onClose}>
           <Wordmark size={30} textClass="text-[20px]" />
         </Link>
         <button
-          data-mobile-nav-close="true"
+          data-overlay-autofocus="true"
           type="button"
           aria-label="Close navigation"
           onClick={onClose}
@@ -439,12 +376,12 @@ function MobileNav({
 
       <nav
         aria-label="Cookbook sections"
-        className="relative flex flex-1 flex-col overflow-y-auto px-6 pt-4 pb-6"
+        className="relative flex flex-1 flex-col overflow-y-auto px-6 pt-2 pb-4"
       >
         {groups.map((group) => (
           <div key={group.label ?? 'main'}>
             {group.label ? (
-              <div className="mt-6 mb-1 font-serif text-xs tracking-[0.18em] uppercase italic text-ink-2">
+              <div className="mt-4 mb-1 font-serif text-xs tracking-[0.18em] uppercase italic text-ink-2">
                 {group.label}
               </div>
             ) : null}
@@ -464,7 +401,7 @@ function MobileNav({
                     onClick={onClose}
                     className={({ isActive }) =>
                       [
-                        'flex items-center gap-3 border-b border-dashed border-ink/10 py-3.5 transition-colors',
+                        'flex items-center gap-3 border-b border-dashed border-ink/10 py-3 transition-colors',
                         focusRing,
                         isActive ? 'text-ink' : 'text-ink-2 hover:text-ink',
                       ].join(' ')
@@ -475,7 +412,7 @@ function MobileNav({
                         <item.icon aria-hidden="true" className="h-5 w-5 shrink-0" strokeWidth={1.9} />
                         <span
                           className={[
-                            'flex-1 font-serif text-[28px] leading-[1.1] tracking-tight',
+                            'flex-1 font-serif text-[26px] leading-[1.1] tracking-tight',
                             isActive ? 'italic' : '',
                           ].join(' ')}
                         >
@@ -495,17 +432,20 @@ function MobileNav({
           </div>
         ))}
 
-        <Link className={buttonClass('primary', 'default', 'mt-7 w-full')} to="/recipes/new" onClick={onClose}>
+        {/* The action the destinations are an alternative to, at the end of
+            them. It fits below the last one now that a row is 26px rather
+            than 28 - which is what the smaller type was for. */}
+        <Link className={buttonClass('primary', 'default', 'mt-5 w-full')} to="/recipes/new" onClick={onClose}>
           <Plus aria-hidden="true" className="h-4 w-4" strokeWidth={2.4} />
           Add recipe
         </Link>
       </nav>
 
-      <div className="relative border-t border-dashed border-ink/15 px-4 pt-2 pb-1">
-        <ThemeSwitcher />
+      <div className="relative border-t border-dashed border-ink/15 px-4 pt-1 pb-1">
+        <ThemeSwitcher compact />
       </div>
 
-      <div className="relative flex items-center justify-between gap-3 border-t border-dashed border-ink/15 px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <div className="relative flex items-center justify-between gap-3 border-t border-dashed border-ink/15 px-6 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <div className="flex items-center gap-3">
           <span
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-serif text-[16px] text-ink shadow-[inset_0_0_0_1px_rgba(var(--frost-rgb),0.6)]"

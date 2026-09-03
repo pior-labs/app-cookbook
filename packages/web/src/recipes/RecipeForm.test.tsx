@@ -17,7 +17,7 @@ const CATEGORIES: CategorySummary[] = [
 ];
 
 const TAGS: TagSummary[] = [
-  { id: 7, name: 'Weeknight', activeRecipeCount: 0, createdAt: '', updatedAt: '' },
+  { id: 7, name: 'Weeknight', color: null, activeRecipeCount: 0, createdAt: '', updatedAt: '' },
 ];
 
 function Harness({

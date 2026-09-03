@@ -7,6 +7,7 @@ import type {
   UpdateRecipeRequest,
 } from '@cookbook/domain';
 import { apiGet, apiSend, apiUpload } from './client.js';
+import type { TagRecord } from './discovery.js';
 
 // Typed calls for everything the recipe screens need. The API is authoritative
 // for every mutation; these are transport only (technical design section 3).
@@ -31,8 +32,8 @@ export function listTags(signal?: AbortSignal): Promise<TagSummary[]> {
   return apiGet<TagSummary[]>('/api/tags', signal);
 }
 
-export function createTag(name: string): Promise<{ id: number; name: string }> {
-  return apiSend<{ id: number; name: string }>('/api/tags', 'POST', { name });
+export function createTag(name: string, color?: string | null): Promise<TagRecord> {
+  return apiSend<TagRecord>('/api/tags', 'POST', { name, color: color ?? null });
 }
 
 export function uploadRecipePhoto(id: number, file: File): Promise<RecipeImage> {
