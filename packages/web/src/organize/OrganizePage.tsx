@@ -569,7 +569,13 @@ function AddButton({
   onToggle: () => void;
 }) {
   return (
-    <Button aria-expanded={open} size="small" variant={open ? 'ghost' : 'primary'} onClick={onToggle}>
+    <Button
+      aria-expanded={open}
+      className="w-full sm:w-auto"
+      size="small"
+      variant={open ? 'ghost' : 'primary'}
+      onClick={onToggle}
+    >
       <Plus
         aria-hidden="true"
         className={cn('h-3.5 w-3.5 transition-transform duration-200', open ? 'rotate-45' : '')}
@@ -589,41 +595,57 @@ function Section({
   sub,
   count,
   action,
+  panel,
   children,
 }: {
   id: string;
   title: string;
   sub: string;
   count: number;
-  // The one thing this section can be told to do, at the end of its own
-  // heading rather than at the bottom of its list.
+  // The one thing this section can be told to do: at the end of the heading
+  // line where there is room for it, and under the list where there is not.
   action: React.ReactNode;
+  // What that action opens. It follows the button rather than the heading,
+  // because a form that appears a screen away from the control that asked for
+  // it may as well not have opened.
+  panel: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
-    <section aria-labelledby={id} className="min-w-0">
-      {/* Wide enough, the action ends the heading line. On a phone there is no
-          room beside "Categories 6 One per recipe", and an action wrapped under
-          the heading it belongs to sits closer to the first row of the list
-          than to its own section - so it goes above the heading instead, by
-          order rather than by markup: the heading is still read first. */}
-      <div className="mb-3.5 flex flex-col items-start gap-2 px-0.5 sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-x-3 sm:gap-y-1">
-        <div className="order-2 flex flex-wrap items-baseline gap-x-3 gap-y-1 sm:order-none sm:contents">
-          <h2
-            className="m-0 font-serif text-[24px] leading-none font-normal tracking-[-0.02em] text-ink sm:text-[27px]"
-            id={id}
-          >
-            {title}
-          </h2>
-          <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-ink/6 px-2 font-mono text-[11px] text-ink-3">
-            {count}
-          </span>
-          <span className="font-serif text-sm italic text-ink-3">{sub}</span>
-        </div>
-        <span className="order-1 sm:order-none sm:ml-auto">{action}</span>
+    // A grid rather than a stack, because the action and its panel change rows
+    // rather than only their alignment: on a phone the button ends the section
+    // and opens downwards from there, and wide enough it ends the first line
+    // and opens above the list. One button and one panel either way - each
+    // placed twice, not rendered twice with one of them hidden.
+    <section
+      aria-labelledby={id}
+      className="grid min-w-0 grid-cols-1 gap-y-3.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-x-4"
+    >
+      <div className="order-1 flex flex-wrap items-baseline gap-x-3 gap-y-1 px-0.5 sm:col-start-1 sm:row-start-1">
+        <h2
+          className="m-0 font-serif text-[24px] leading-none font-normal tracking-[-0.02em] text-ink sm:text-[27px]"
+          id={id}
+        >
+          {title}
+        </h2>
+        <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-ink/6 px-2 font-mono text-[11px] text-ink-3">
+          {count}
+        </span>
+        <span className="font-serif text-sm italic text-ink-3">{sub}</span>
       </div>
 
-      {children}
+      {/* Under the list on a phone, and the full width of the rows it follows:
+          at the foot of a column of cards, a pill floating at one end of the
+          line reads as the start of something else. */}
+      <div className="order-3 sm:col-start-2 sm:row-start-1 sm:justify-self-end">{action}</div>
+
+      {/* Below the button on a phone, so nothing above it moves when it opens;
+          above the list on a wide screen, where the button is in the heading. */}
+      {panel ? (
+        <div className="order-4 min-w-0 sm:col-span-2 sm:row-start-2">{panel}</div>
+      ) : null}
+
+      <div className="order-2 min-w-0 sm:col-span-2 sm:row-start-3">{children}</div>
     </section>
   );
 }
@@ -714,19 +736,20 @@ export function OrganizePage() {
             }
             count={(categories.data ?? []).length}
             id="organize-categories"
+            panel={
+              adding === 'category' ? (
+                <CreatePanel
+                  label="New category"
+                  placeholder="e.g. Breakfast"
+                  submitLabel="Add category"
+                  onClose={() => setAdding(null)}
+                  onCreate={(name) => afterCategoryChange(createCategory(name))}
+                />
+              ) : null
+            }
             sub="One per recipe"
             title="Categories"
           >
-            {adding === 'category' ? (
-              <CreatePanel
-                label="New category"
-                placeholder="e.g. Breakfast"
-                submitLabel="Add category"
-                onClose={() => setAdding(null)}
-                onCreate={(name) => afterCategoryChange(createCategory(name))}
-              />
-            ) : null}
-
             <ul className={GRID}>
               {(categories.data ?? []).map((category) => (
                 <ManagedRow
@@ -751,20 +774,21 @@ export function OrganizePage() {
             }
             count={(tags.data ?? []).length}
             id="organize-tags"
+            panel={
+              adding === 'tag' ? (
+                <CreatePanel
+                  withColor
+                  label="New tag"
+                  placeholder="e.g. Weeknight"
+                  submitLabel="Add tag"
+                  onClose={() => setAdding(null)}
+                  onCreate={(name, color) => afterTagChange(createTagRequest(name, color))}
+                />
+              ) : null
+            }
             sub="As many as you like"
             title="Tags"
           >
-            {adding === 'tag' ? (
-              <CreatePanel
-                withColor
-                label="New tag"
-                placeholder="e.g. Weeknight"
-                submitLabel="Add tag"
-                onClose={() => setAdding(null)}
-                onCreate={(name, color) => afterTagChange(createTagRequest(name, color))}
-              />
-            ) : null}
-
             {(tags.data ?? []).length === 0 ? (
               <FieldHint>No tags yet. Add one here, or create one while writing a recipe.</FieldHint>
             ) : (
