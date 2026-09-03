@@ -1,7 +1,8 @@
-// The colours a tag can be given. A closed palette rather than a colour wheel:
-// a household's tags are read as a group - on a recipe, in the browse filters -
-// and seven hues that were chosen together read as a set, where seven picked
-// one at a time do not.
+// The colours a tag is offered. A palette rather than a colour wheel: a
+// household's tags are read as a group - on a recipe, in the browse filters -
+// and seven hues chosen together read as a set, where seven picked one at a
+// time do not. It is what `/organize` puts in front of a cook first, not a
+// limit: the hex box beside the swatches takes any six-digit colour.
 //
 // Stored as hex so the column can hold a colour outside this list later without
 // a migration. The web app renders every one of them through `color-mix`

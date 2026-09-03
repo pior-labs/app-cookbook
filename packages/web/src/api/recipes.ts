@@ -7,6 +7,7 @@ import type {
   UpdateRecipeRequest,
 } from '@cookbook/domain';
 import { apiGet, apiSend, apiUpload } from './client.js';
+import type { TagRecord } from './discovery.js';
 
 // Typed calls for everything the recipe screens need. The API is authoritative
 // for every mutation; these are transport only (technical design section 3).
@@ -29,14 +30,6 @@ export function listCategories(signal?: AbortSignal): Promise<CategorySummary[]>
 
 export function listTags(signal?: AbortSignal): Promise<TagSummary[]> {
   return apiGet<TagSummary[]>('/api/tags', signal);
-}
-
-// What the API returns for a written tag: the row itself, not the summary the
-// list endpoint builds, so there is no recipe count on it.
-export interface TagRecord {
-  id: number;
-  name: string;
-  color: string | null;
 }
 
 export function createTag(name: string, color?: string | null): Promise<TagRecord> {

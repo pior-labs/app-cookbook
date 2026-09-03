@@ -89,6 +89,18 @@ function mockApi(
     if (method === 'GET' && url.pathname === '/api/categories') return jsonResponse(CATEGORIES);
     if (method === 'GET' && url.pathname === '/api/tags') return jsonResponse(TAGS);
 
+    // A write answers with the row it wrote, the way the API does: the screen
+    // applies that answer to the row rather than refetching the list, so a
+    // mock that answered 204 would be testing a screen the app does not have.
+    if (method === 'PUT') {
+      const id = Number(url.pathname.split('/').pop());
+      const sent = (request.body ?? {}) as { name: string; color?: string | null };
+
+      return url.pathname.startsWith('/api/tags/')
+        ? jsonResponse({ id, name: sent.name, color: sent.color ?? null })
+        : jsonResponse({ id, name: sent.name });
+    }
+
     return new Response(null, { status: 204 });
   });
 
@@ -275,6 +287,63 @@ describe('organize', () => {
         body: { name: 'Weeknight', color: null },
       }),
     );
+  });
+
+  it('saves a colour typed into the hex box, in the case the API stores', async () => {
+    const requests = mockApi();
+    renderPage();
+
+    const row = within(await rowFor('Weeknight'));
+    await userEvent.click(row.getByRole('button', { name: 'Colour Weeknight' }));
+
+    const box = row.getByLabelText('Hex colour for Weeknight');
+    await userEvent.clear(box);
+    await userEvent.type(box, '#A1B2C3');
+    await userEvent.click(row.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() =>
+      expect(requests).toContainEqual({
+        method: 'PUT',
+        path: '/api/tags/7',
+        body: { name: 'Weeknight', color: '#a1b2c3' },
+      }),
+    );
+  });
+
+  it('explains a hex that is not a colour instead of sending it', async () => {
+    const requests = mockApi();
+    renderPage();
+
+    const row = within(await rowFor('Weeknight'));
+    await userEvent.click(row.getByRole('button', { name: 'Colour Weeknight' }));
+
+    const box = row.getByLabelText('Hex colour for Weeknight');
+    await userEvent.clear(box);
+    await userEvent.type(box, '#nope');
+    await userEvent.click(row.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText('Enter a colour like #c96442.')).toBeInTheDocument();
+    expect(requests).toEqual([]);
+  });
+
+  it('keeps the rest of the screen in place when a colour changes', async () => {
+    const requests = mockApi((request) =>
+      request.method === 'PUT'
+        ? jsonResponse({ id: 7, name: 'Weeknight', color: '#5b8a5a' })
+        : undefined,
+    );
+    renderPage();
+
+    const row = within(await rowFor('Weeknight'));
+    await userEvent.click(row.getByRole('button', { name: 'Colour Weeknight' }));
+    await userEvent.click(row.getByRole('button', { name: 'Basil' }));
+
+    await waitFor(() => expect(requests).toHaveLength(1));
+
+    // The written row is applied where it stands: no second GET, and the
+    // categories above it are never replaced by the loading skeleton.
+    expect(screen.getByRole('button', { name: 'Rename Dinner' })).toBeInTheDocument();
+    expect(screen.queryByText('Loading categories and tags…')).not.toBeInTheDocument();
   });
 
   it('creates a tag in the colour chosen alongside its name', async () => {

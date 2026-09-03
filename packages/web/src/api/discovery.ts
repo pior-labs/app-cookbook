@@ -77,6 +77,12 @@ export interface OrganizationRecord {
   name: string;
 }
 
+// A written tag as the API returns it: the row, not the summary the list
+// endpoint builds, so there is no recipe count on it.
+export interface TagRecord extends OrganizationRecord {
+  color: string | null;
+}
+
 export function createCategory(name: string): Promise<OrganizationRecord> {
   return apiSend<OrganizationRecord>('/api/categories', 'POST', { name });
 }
@@ -94,8 +100,8 @@ export function deleteCategory(id: number): Promise<void> {
 export function updateTag(
   id: number,
   change: { name: string; color?: string | null },
-): Promise<OrganizationRecord> {
-  return apiSend<OrganizationRecord>(`/api/tags/${id}`, 'PUT', change);
+): Promise<TagRecord> {
+  return apiSend<TagRecord>(`/api/tags/${id}`, 'PUT', change);
 }
 
 export function deleteTag(id: number): Promise<void> {

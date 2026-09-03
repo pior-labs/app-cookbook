@@ -1,4 +1,4 @@
-import { categoryTagNameSchema, TAG_COLORS } from '@cookbook/domain';
+import { categoryTagNameSchema, TAG_COLORS, tagColorSchema } from '@cookbook/domain';
 import { useCallback, useState } from 'react';
 import { Ban, Palette, Pencil, Plus, Trash2 } from 'lucide-react';
 import { ApiRequestError } from '../api/client.js';
@@ -8,6 +8,8 @@ import {
   deleteTag,
   renameCategory,
   updateTag,
+  type OrganizationRecord,
+  type TagRecord,
 } from '../api/discovery.js';
 import { useApiResource } from '../api/hooks.js';
 import { createTag as createTagRequest, listCategories, listTags } from '../api/recipes.js';
@@ -52,6 +54,9 @@ const ROW =
 // nobody picks "plum", they pick the one that looks right next to the others.
 // The names are still there for anyone who cannot see the difference, in the
 // label of each button.
+//
+// The hex box beside them is the way out of the palette: the column stores any
+// six-digit colour, so a household that wants its own is not held to seven.
 function ColorPicker({
   value,
   subject,
@@ -61,40 +66,108 @@ function ColorPicker({
   subject: string;
   onSelect: (color: string | null) => void;
 }) {
+  const [hex, setHex] = useState(value ?? '');
+  const [hexError, setHexError] = useState<string | null>(null);
+
+  // The stored colour can change under the box - a swatch was clicked, or the
+  // list reloaded after a save - and the box has to follow it, or it would go
+  // on offering to save a colour that is already off the tag.
+  const [lastValue, setLastValue] = useState(value);
+  if (lastValue !== value) {
+    setLastValue(value);
+    setHex(value ?? '');
+    setHexError(null);
+  }
+
   const swatch =
     'h-9 w-9 shrink-0 cursor-pointer rounded-full border-2 transition-transform hover:scale-110 motion-reduce:transform-none';
 
+  const saveHex = () => {
+    const entered = hex.trim();
+
+    // An emptied box means the same thing as the crossed-out swatch.
+    if (entered === '') {
+      setHexError(null);
+      onSelect(null);
+      return;
+    }
+
+    // The rule the API applies, so a bad colour is caught here rather than
+    // after a round trip.
+    const parsed = tagColorSchema.safeParse(entered.startsWith('#') ? entered : `#${entered}`);
+    if (!parsed.success) {
+      setHexError(parsed.error.issues[0]?.message ?? 'Enter a colour like #c96442.');
+      return;
+    }
+
+    setHexError(null);
+    onSelect(parsed.data ?? null);
+  };
+
   return (
-    <div className="flex flex-wrap items-center gap-2" role="group" aria-label={`Colour for ${subject}`}>
-      {TAG_COLORS.map((color) => {
-        const selected = color.value === value;
-
-        return (
-          <button
-            key={color.value}
-            type="button"
-            aria-label={color.name}
-            aria-pressed={selected}
-            className={`cb-swatch ${swatch} ${selected ? 'border-ink' : 'border-frost/70'} ${focusRing}`}
-            style={tagChipStyle(color.value)}
-            onClick={() => onSelect(color.value)}
-          />
-        );
-      })}
-
-      {/* No colour is a choice on the same row as the others, not the absence
-          of one: it is how a tag goes back to the neutral chip. */}
-      <button
-        type="button"
-        aria-label="No colour"
-        aria-pressed={value == null}
-        className={`${swatch} grid place-items-center bg-[rgba(var(--surface-rgb),0.9)] text-ink-3 ${
-          value == null ? 'border-ink' : 'border-frost/70'
-        } ${focusRing}`}
-        onClick={() => onSelect(null)}
+    <div className="flex flex-col gap-1.5">
+      <div
+        className="flex flex-wrap items-center gap-2"
+        role="group"
+        aria-label={`Colour for ${subject}`}
       >
-        <Ban aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
-      </button>
+        {TAG_COLORS.map((color) => {
+          const selected = color.value === value;
+
+          return (
+            <button
+              key={color.value}
+              type="button"
+              aria-label={color.name}
+              aria-pressed={selected}
+              className={`cb-swatch ${swatch} ${selected ? 'border-ink' : 'border-frost/70'} ${focusRing}`}
+              style={tagChipStyle(color.value)}
+              onClick={() => onSelect(color.value)}
+            />
+          );
+        })}
+
+        {/* No colour is a choice on the same row as the others, not the absence
+            of one: it is how a tag goes back to the neutral chip. */}
+        <button
+          type="button"
+          aria-label="No colour"
+          aria-pressed={value == null}
+          className={`${swatch} grid place-items-center bg-[rgba(var(--surface-rgb),0.9)] text-ink-3 ${
+            value == null ? 'border-ink' : 'border-frost/70'
+          } ${focusRing}`}
+          onClick={() => onSelect(null)}
+        >
+          <Ban aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
+        </button>
+
+        {/* Typed rather than clicked, so it needs its own commit: a colour is
+            half-written for most of the keystrokes that make it. */}
+        <input
+          aria-label={`Hex colour for ${subject}`}
+          aria-invalid={hexError != null}
+          className={`h-9 w-28 rounded-full border border-frost/80 bg-[rgba(var(--surface-rgb),0.92)] px-3 text-center text-[13px] tracking-wide text-ink uppercase transition-[border-color,box-shadow] duration-200 placeholder:text-ink-3 focus:border-accent/45 focus:shadow-[var(--cb-focus-shadow)] focus:outline-none ${focusRing}`}
+          maxLength={7}
+          placeholder="#c96442"
+          value={hex}
+          onChange={(event) => {
+            setHex(event.target.value);
+            setHexError(null);
+          }}
+          onKeyDown={(event) => {
+            // The picker sits inside the row's form on `/organize`; Enter here
+            // saves the colour rather than submitting a rename.
+            if (event.key !== 'Enter') return;
+            event.preventDefault();
+            saveHex();
+          }}
+        />
+        <Button size="small" variant="primary" onClick={saveHex}>
+          Save
+        </Button>
+      </div>
+
+      {hexError ? <FieldError>{hexError}</FieldError> : null}
     </div>
   );
 }
@@ -397,8 +470,10 @@ export function OrganizePage() {
   const categories = useApiResource(loadCategories, []);
   const tags = useApiResource(loadTags, []);
 
-  // Counts change with almost every action here, so each list refetches rather
-  // than guessing at the new number.
+  // Creating and deleting change what is in a list and how much uses the rest
+  // of it, so those refetch. Renaming and recolouring change neither: the
+  // response already says what the row became, so it is written straight into
+  // the row and nothing else on the screen moves.
   const afterCategoryChange = async (run: Promise<unknown>) => {
     await run;
     categories.reload();
@@ -409,8 +484,25 @@ export function OrganizePage() {
     tags.reload();
   };
 
+  const applyTagEdit = async (run: Promise<TagRecord>) => {
+    const tag = await run;
+    tags.apply((list) =>
+      list.map((row) => (row.id === tag.id ? { ...row, name: tag.name, color: tag.color } : row)),
+    );
+  };
+
+  const applyCategoryRename = async (run: Promise<OrganizationRecord>) => {
+    const category = await run;
+    categories.apply((list) =>
+      list.map((row) => (row.id === category.id ? { ...row, name: category.name } : row)),
+    );
+  };
+
   const error = categories.error ?? tags.error;
-  const loading = categories.loading || tags.loading;
+  // Only the first load has nothing to show. A refetch behind an already-drawn
+  // list keeps the list: replacing it with the skeleton would throw the screen
+  // away to redraw the one row that changed.
+  const loading = (categories.loading && !categories.data) || (tags.loading && !tags.data);
 
   return (
     <div className="cb-rise flex min-w-0 flex-col gap-7">
@@ -450,7 +542,7 @@ export function OrganizePage() {
                   item={category}
                   kind="category"
                   deleteWarning={`Delete "${category.name}"? This only works while no recipe, live or in Trash, is filed under it.`}
-                  onRename={(id, name) => afterCategoryChange(renameCategory(id, name))}
+                  onRename={(id, name) => applyCategoryRename(renameCategory(id, name))}
                   onDelete={(id) => afterCategoryChange(deleteCategory(id))}
                 />
               ))}
@@ -486,10 +578,10 @@ export function OrganizePage() {
                           }. The recipes themselves are untouched.`
                         : `Delete "${tag.name}"? Nothing uses it yet.`
                     }
-                    onRename={(id, name) => afterTagChange(updateTag(id, { name }))}
+                    onRename={(id, name) => applyTagEdit(updateTag(id, { name }))}
                     onDelete={(id) => afterTagChange(deleteTag(id))}
                     onRecolor={(id, color) =>
-                      afterTagChange(updateTag(id, { name: tag.name, color }))
+                      applyTagEdit(updateTag(id, { name: tag.name, color }))
                     }
                   />
                 ))}
