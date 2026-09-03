@@ -6,6 +6,7 @@ import { useAuth } from '@/auth';
 import { useCookMode } from '@/components/CookMode';
 import { Wordmark } from '@/components/BrandMark';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
+import { ThemePicker } from '@/ThemePicker';
 import { buttonClass, focusRing } from '@/components/ui';
 import { useModalOverlay } from '@/lib/overlay';
 
@@ -363,25 +364,32 @@ function MobileNav({
         <Link className={`flex items-center gap-2.5 ${focusRing}`} to="/" onClick={onClose}>
           <Wordmark size={30} textClass="text-[20px]" />
         </Link>
-        <button
-          data-overlay-autofocus="true"
-          type="button"
-          aria-label="Close navigation"
-          onClick={onClose}
-          className={`inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-2xl border border-ink/10 bg-frost/60 p-0 text-ink shadow-[inset_0_0_0_1px_rgba(var(--frost-rgb),0.5)] backdrop-blur-md transition-colors hover:bg-frost/85 ${focusRing}`}
-        >
-          <X aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
-        </button>
+        {/* The theme as the two dials rather than as a labelled list. It is a
+            preference, not a destination, and as a list of names and hints it
+            was a third of this screen - enough to push the one action on it
+            below the fold. */}
+        <div className="flex items-center gap-2.5">
+          <ThemePicker />
+          <button
+            data-overlay-autofocus="true"
+            type="button"
+            aria-label="Close navigation"
+            onClick={onClose}
+            className={`inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-2xl border border-ink/10 bg-frost/60 p-0 text-ink shadow-[inset_0_0_0_1px_rgba(var(--frost-rgb),0.5)] backdrop-blur-md transition-colors hover:bg-frost/85 ${focusRing}`}
+          >
+            <X aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
+          </button>
+        </div>
       </div>
 
       <nav
         aria-label="Cookbook sections"
-        className="relative flex flex-1 flex-col overflow-y-auto px-6 pt-4 pb-6"
+        className="relative flex flex-1 flex-col overflow-y-auto px-6 pt-3 pb-5"
       >
         {groups.map((group) => (
           <div key={group.label ?? 'main'}>
             {group.label ? (
-              <div className="mt-6 mb-1 font-serif text-xs tracking-[0.18em] uppercase italic text-ink-2">
+              <div className="mt-5 mb-1 font-serif text-xs tracking-[0.18em] uppercase italic text-ink-2">
                 {group.label}
               </div>
             ) : null}
@@ -401,7 +409,7 @@ function MobileNav({
                     onClick={onClose}
                     className={({ isActive }) =>
                       [
-                        'flex items-center gap-3 border-b border-dashed border-ink/10 py-3.5 transition-colors',
+                        'flex items-center gap-3 border-b border-dashed border-ink/10 py-3 transition-colors',
                         focusRing,
                         isActive ? 'text-ink' : 'text-ink-2 hover:text-ink',
                       ].join(' ')
@@ -412,7 +420,7 @@ function MobileNav({
                         <item.icon aria-hidden="true" className="h-5 w-5 shrink-0" strokeWidth={1.9} />
                         <span
                           className={[
-                            'flex-1 font-serif text-[28px] leading-[1.1] tracking-tight',
+                            'flex-1 font-serif text-[26px] leading-[1.1] tracking-tight',
                             isActive ? 'italic' : '',
                           ].join(' ')}
                         >
@@ -432,32 +440,36 @@ function MobileNav({
           </div>
         ))}
 
-        <Link className={buttonClass('primary', 'default', 'mt-7 w-full')} to="/recipes/new" onClick={onClose}>
+      </nav>
+
+      {/* The one action on this screen does not belong at the end of a list
+          that scrolls: on a short phone it was below the fold, behind the
+          destinations it is an alternative to. */}
+      <div className="relative flex flex-col gap-3 border-t border-dashed border-ink/15 px-6 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <Link className={buttonClass('primary', 'default', 'w-full')} to="/recipes/new" onClick={onClose}>
           <Plus aria-hidden="true" className="h-4 w-4" strokeWidth={2.4} />
           Add recipe
         </Link>
-      </nav>
 
-      <div className="relative border-t border-dashed border-ink/15 px-4 pt-2 pb-1">
-        <ThemeSwitcher />
-      </div>
-
-      <div className="relative flex items-center justify-between gap-3 border-t border-dashed border-ink/15 px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <div className="flex items-center gap-3">
-          <span
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-serif text-[16px] text-ink shadow-[inset_0_0_0_1px_rgba(var(--frost-rgb),0.6)]"
-            style={{ background: 'var(--cb-avatar-bg)' }}
-          >
-            {userName?.[0]?.toUpperCase() ?? '?'}
-          </span>
-          <span className="flex min-w-0 flex-col leading-[1.15]">
-            <span className="truncate font-serif text-[15px] text-ink">{userName ?? 'Account'}</span>
-            <span className="text-[11px] text-ink-2">Signed in</span>
-          </span>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-serif text-[16px] text-ink shadow-[inset_0_0_0_1px_rgba(var(--frost-rgb),0.6)]"
+              style={{ background: 'var(--cb-avatar-bg)' }}
+            >
+              {userName?.[0]?.toUpperCase() ?? '?'}
+            </span>
+            <span className="flex min-w-0 flex-col leading-[1.15]">
+              <span className="truncate font-serif text-[15px] text-ink">
+                {userName ?? 'Account'}
+              </span>
+              <span className="text-[11px] text-ink-2">Signed in</span>
+            </span>
+          </div>
+          <button type="button" onClick={onSignOut} className={buttonClass('ghost', 'small')}>
+            Sign out
+          </button>
         </div>
-        <button type="button" onClick={onSignOut} className={buttonClass('ghost', 'small')}>
-          Sign out
-        </button>
       </div>
     </div>
   );
