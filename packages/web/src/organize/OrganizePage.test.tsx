@@ -115,6 +115,12 @@ function renderPage() {
   );
 }
 
+// Making something is a step of its own: the panel with the name box in it
+// opens from the button in the section heading.
+async function openCreatePanel(kind: 'category' | 'tag'): Promise<void> {
+  await userEvent.click(await screen.findByRole('button', { name: `New ${kind}` }));
+}
+
 // A row is found by the button that names it, so the lookup does not depend on
 // where in the row the name happens to be rendered.
 async function rowFor(name: string): Promise<HTMLElement> {
@@ -218,7 +224,8 @@ describe('organize', () => {
     );
     renderPage();
 
-    await userEvent.type(await screen.findByLabelText('New category'), 'dinner');
+    await openCreatePanel('category');
+    await userEvent.type(screen.getByLabelText('New category'), 'dinner');
     await userEvent.click(screen.getByRole('button', { name: 'Add category' }));
 
     expect(await screen.findByText('The category "Dinner" already exists.')).toBeInTheDocument();
@@ -229,7 +236,8 @@ describe('organize', () => {
     const requests = mockApi();
     renderPage();
 
-    await userEvent.type(await screen.findByLabelText('New tag'), '   ');
+    await openCreatePanel('tag');
+    await userEvent.type(screen.getByLabelText('New tag'), '   ');
     await userEvent.click(screen.getByRole('button', { name: 'Add tag' }));
 
     expect(await screen.findByRole('alert')).toBeInTheDocument();
@@ -242,7 +250,8 @@ describe('organize', () => {
     );
     renderPage();
 
-    await userEvent.type(await screen.findByLabelText('New category'), 'Sides');
+    await openCreatePanel('category');
+    await userEvent.type(screen.getByLabelText('New category'), 'Sides');
     await userEvent.click(screen.getByRole('button', { name: 'Add category' }));
 
     await waitFor(() => expect(screen.getByLabelText('New category')).toHaveValue(''));
@@ -354,7 +363,8 @@ describe('organize', () => {
     );
     renderPage();
 
-    await userEvent.type(await screen.findByLabelText('New tag'), 'Comfort');
+    await openCreatePanel('tag');
+    await userEvent.type(screen.getByLabelText('New tag'), 'Comfort');
     await userEvent.click(screen.getByRole('button', { name: 'Paprika' }));
     await userEvent.click(screen.getByRole('button', { name: 'Add tag' }));
 
@@ -363,6 +373,46 @@ describe('organize', () => {
         method: 'POST',
         path: '/api/tags',
         body: { name: 'Comfort', color: '#c96442' },
+      }),
+    );
+  });
+
+  it('keeps the name box out of the page until something is being made', async () => {
+    mockApi();
+    renderPage();
+
+    await screen.findByRole('button', { name: 'New category' });
+    expect(screen.queryByLabelText('New category')).not.toBeInTheDocument();
+
+    await openCreatePanel('category');
+    expect(screen.getByLabelText('New category')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByLabelText('New category')).not.toBeInTheDocument();
+  });
+
+  it('creates a tag in a colour typed as hex, with no save of its own', async () => {
+    const requests = mockApi((request) =>
+      request.method === 'POST'
+        ? jsonResponse({ id: 9, name: 'Brunch', color: '#a1b2c3' }, 201)
+        : undefined,
+    );
+    renderPage();
+
+    await openCreatePanel('tag');
+    await userEvent.type(screen.getByLabelText('New tag'), 'Brunch');
+    await userEvent.type(screen.getByLabelText('Hex colour for the new tag'), '#A1B2C3');
+
+    // Nothing in the panel commits but Add.
+    expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Add tag' }));
+
+    await waitFor(() =>
+      expect(requests).toContainEqual({
+        method: 'POST',
+        path: '/api/tags',
+        body: { name: 'Brunch', color: '#a1b2c3' },
       }),
     );
   });

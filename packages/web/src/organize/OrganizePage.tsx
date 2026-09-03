@@ -116,10 +116,16 @@ function CountPill({ count }: { count: number }) {
 function ColorPicker({
   value,
   subject,
+  commit = 'button',
   onSelect,
 }: {
   value: string | null;
   subject: string;
+  // How a typed colour is committed. On a row it needs its own Save, because
+  // nothing else there commits anything. In the create panel the Add button
+  // commits everything, so the hex applies as soon as it is a colour and only
+  // explains itself when the box is left holding something that is not one.
+  commit?: 'button' | 'live';
   onSelect: (color: string | null) => void;
 }) {
   const [hex, setHex] = useState(value ?? '');
@@ -138,26 +144,35 @@ function ColorPicker({
   const swatch =
     'h-9 w-9 shrink-0 cursor-pointer rounded-full border-2 transition-transform hover:scale-110 motion-reduce:transform-none';
 
-  const saveHex = () => {
-    const entered = hex.trim();
+  // The rule the API applies, so a bad colour is caught here rather than after
+  // a round trip. An emptied box means the same thing as the crossed-out
+  // swatch.
+  const readHex = (text: string) => {
+    const entered = text.trim();
+    if (entered === '') return { color: null as string | null, error: null as string | null };
 
-    // An emptied box means the same thing as the crossed-out swatch.
-    if (entered === '') {
-      setHexError(null);
-      onSelect(null);
-      return;
-    }
-
-    // The rule the API applies, so a bad colour is caught here rather than
-    // after a round trip.
     const parsed = tagColorSchema.safeParse(entered.startsWith('#') ? entered : `#${entered}`);
-    if (!parsed.success) {
-      setHexError(parsed.error.issues[0]?.message ?? 'Enter a colour like #c96442.');
-      return;
-    }
+    return parsed.success
+      ? { color: parsed.data ?? null, error: null }
+      : { color: null, error: parsed.error.issues[0]?.message ?? 'Enter a colour like #c96442.' };
+  };
 
+  const saveHex = () => {
+    const read = readHex(hex);
+    setHexError(read.error);
+    if (read.error) return;
+
+    onSelect(read.color);
+  };
+
+  // Live: a colour takes effect the moment it is one, and a half-typed hex is
+  // not an error until the box is left.
+  const typeHex = (text: string) => {
+    setHex(text);
     setHexError(null);
-    onSelect(parsed.data ?? null);
+
+    const read = readHex(text);
+    if (commit === 'live' && !read.error) onSelect(read.color);
   };
 
   return (
@@ -206,21 +221,25 @@ function ColorPicker({
           maxLength={7}
           placeholder="#c96442"
           value={hex}
-          onChange={(event) => {
-            setHex(event.target.value);
-            setHexError(null);
+          onChange={(event) => typeHex(event.target.value)}
+          onBlur={() => {
+            if (commit !== 'live') return;
+            setHexError(readHex(hex).error);
           }}
           onKeyDown={(event) => {
-            // The picker sits inside the row's form on `/organize`; Enter here
-            // saves the colour rather than submitting a rename.
-            if (event.key !== 'Enter') return;
+            // On a row the picker sits inside the rename form, so Enter has to
+            // save the colour rather than submit that form. In the create panel
+            // Enter belongs to the panel: it adds what is being made.
+            if (event.key !== 'Enter' || commit === 'live') return;
             event.preventDefault();
             saveHex();
           }}
         />
-        <Button size="small" variant="primary" onClick={saveHex}>
-          Save
-        </Button>
+        {commit === 'button' ? (
+          <Button size="small" variant="primary" onClick={saveHex}>
+            Save
+          </Button>
+        ) : null}
       </div>
 
       {hexError ? <FieldError>{hexError}</FieldError> : null}
@@ -424,18 +443,26 @@ function ManagedRow({ item, kind, deleteWarning, onRename, onDelete, onRecolor }
   );
 }
 
-function CreateForm({
+// Making something is a step of its own now, not a form standing open under
+// every list: the button sits in the heading, and the panel it opens is the
+// only thing on the screen asking to be filled in.
+function CreatePanel({
   label,
   submitLabel,
+  placeholder,
   withColor = false,
   onCreate,
+  onClose,
 }: {
   label: string;
   submitLabel: string;
+  placeholder: string;
   // A tag is given its colour where it is made, so the first thing a cook sees
-  // after adding one is the tag as it will look everywhere else.
+  // after adding one is the tag as it will look everywhere else. A category has
+  // no colour, so its panel is a name and two buttons.
   withColor?: boolean;
   onCreate: (name: string, color: string | null) => Promise<void>;
+  onClose: () => void;
 }) {
   const [name, setName] = useState('');
   const [color, setColor] = useState<string | null>(null);
@@ -455,6 +482,8 @@ function CreateForm({
 
     try {
       await onCreate(name.trim(), color);
+      // The panel stays open and empty: tags arrive in handfuls, and closing
+      // after each one would make the second tag a second errand.
       setName('');
       setColor(null);
     } catch (error) {
@@ -470,32 +499,76 @@ function CreateForm({
 
   return (
     <form
-      className="mt-4 flex flex-col gap-1.5 border-t border-dashed border-ink/10 pt-4"
+      className="cb-rise mb-3.5 rounded-[22px] border border-frost/70 bg-[rgba(var(--surface-rgb),0.78)] p-4 shadow-[0_12px_34px_-22px_color-mix(in_srgb,var(--ink)_50%,transparent)] motion-reduce:animate-none sm:p-5"
       onSubmit={(event) => {
         event.preventDefault();
         void submit();
       }}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') onClose();
+      }}
     >
-      <FieldLabel htmlFor={inputId}>{label}</FieldLabel>
-      <div className="flex flex-wrap items-center gap-2.5">
+      <label className="mb-2 block font-serif text-[13px] italic text-ink-3" htmlFor={inputId}>
+        {label}
+      </label>
+
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-3">
         <Input
-          className="min-w-0 flex-1 sm:max-w-72"
+          autoFocus
+          className="min-h-10 min-w-0 flex-1 rounded-full py-1.5 sm:max-w-60"
           id={inputId}
+          placeholder={placeholder}
           value={name}
           onChange={(event) => setName(event.target.value)}
         />
-        <Button variant="primary" type="submit" disabled={busy}>
-          <Plus aria-hidden="true" className="h-4 w-4" strokeWidth={2.3} />
-          {submitLabel}
-        </Button>
+
+        {/* The colour commits as it is picked rather than behind its own Save:
+            in here, the one button that commits anything is Add. */}
+        {withColor ? (
+          <ColorPicker commit="live" subject="the new tag" value={color} onSelect={setColor} />
+        ) : null}
+
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          <Button disabled={busy} onClick={onClose} size="small" variant="quiet">
+            Cancel
+          </Button>
+          <Button disabled={busy} size="small" type="submit" variant="primary">
+            <Plus aria-hidden="true" className="h-3.5 w-3.5" strokeWidth={2.4} />
+            {submitLabel}
+          </Button>
+        </div>
       </div>
-      {withColor ? (
-        <div className="mt-1.5">
-          <ColorPicker value={color} subject="the new tag" onSelect={setColor} />
+
+      {message ? (
+        <div className="mt-2.5">
+          <FieldError>{message}</FieldError>
         </div>
       ) : null}
-      {message ? <FieldError>{message}</FieldError> : null}
     </form>
+  );
+}
+
+// The button that opens a section's create panel. It says what will be made
+// rather than "Add", so the two on this screen are told apart by name and not
+// by which heading they happen to sit in.
+function AddButton({
+  kind,
+  open,
+  onToggle,
+}: {
+  kind: 'category' | 'tag';
+  open: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <Button aria-expanded={open} size="small" variant={open ? 'ghost' : 'primary'} onClick={onToggle}>
+      <Plus
+        aria-hidden="true"
+        className={cn('h-3.5 w-3.5 transition-transform duration-200', open ? 'rotate-45' : '')}
+        strokeWidth={2.4}
+      />
+      New {kind}
+    </Button>
   );
 }
 
@@ -507,12 +580,16 @@ function Section({
   title,
   sub,
   count,
+  action,
   children,
 }: {
   id: string;
   title: string;
   sub: string;
   count: number;
+  // The one thing this section can be told to do, at the end of its own
+  // heading rather than at the bottom of its list.
+  action: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
@@ -528,6 +605,7 @@ function Section({
           {count}
         </span>
         <span className="font-serif text-sm italic text-ink-3">{sub}</span>
+        <span className="ml-auto">{action}</span>
       </div>
 
       {children}
@@ -575,6 +653,10 @@ export function OrganizePage() {
     );
   };
 
+  // One panel at a time: two open forms on a screen whose job is to list what
+  // already exists is two things asking to be filled in.
+  const [adding, setAdding] = useState<'category' | 'tag' | null>(null);
+
   const error = categories.error ?? tags.error;
   // Only the first load has nothing to show. A refetch behind an already-drawn
   // list keeps the list: replacing it with the skeleton would throw the screen
@@ -608,11 +690,28 @@ export function OrganizePage() {
       ) : (
         <>
           <Section
+            action={
+              <AddButton
+                kind="category"
+                open={adding === 'category'}
+                onToggle={() => setAdding(adding === 'category' ? null : 'category')}
+              />
+            }
             count={(categories.data ?? []).length}
             id="organize-categories"
             sub="One per recipe"
             title="Categories"
           >
+            {adding === 'category' ? (
+              <CreatePanel
+                label="New category"
+                placeholder="e.g. Breakfast"
+                submitLabel="Add category"
+                onClose={() => setAdding(null)}
+                onCreate={(name) => afterCategoryChange(createCategory(name))}
+              />
+            ) : null}
+
             <ul className={GRID}>
               {(categories.data ?? []).map((category) => (
                 <ManagedRow
@@ -625,20 +724,32 @@ export function OrganizePage() {
                 />
               ))}
             </ul>
-
-            <CreateForm
-              label="New category"
-              submitLabel="Add category"
-              onCreate={(name) => afterCategoryChange(createCategory(name))}
-            />
           </Section>
 
           <Section
+            action={
+              <AddButton
+                kind="tag"
+                open={adding === 'tag'}
+                onToggle={() => setAdding(adding === 'tag' ? null : 'tag')}
+              />
+            }
             count={(tags.data ?? []).length}
             id="organize-tags"
             sub="As many as you like"
             title="Tags"
           >
+            {adding === 'tag' ? (
+              <CreatePanel
+                withColor
+                label="New tag"
+                placeholder="e.g. Weeknight"
+                submitLabel="Add tag"
+                onClose={() => setAdding(null)}
+                onCreate={(name, color) => afterTagChange(createTagRequest(name, color))}
+              />
+            ) : null}
+
             {(tags.data ?? []).length === 0 ? (
               <FieldHint>No tags yet. Add one here, or create one while writing a recipe.</FieldHint>
             ) : (
@@ -666,13 +777,6 @@ export function OrganizePage() {
                 ))}
               </ul>
             )}
-
-            <CreateForm
-              label="New tag"
-              submitLabel="Add tag"
-              withColor
-              onCreate={(name, color) => afterTagChange(createTagRequest(name, color))}
-            />
           </Section>
         </>
       )}
