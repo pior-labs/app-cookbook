@@ -55,6 +55,23 @@ export const preparationSchema = z
 
 export const instructionBodySchema = z.string().trim().min(1).max(5000);
 export const categoryTagNameSchema = z.string().trim().min(1).max(60);
+
+// A tag's colour: a six-digit hex value, or null for no colour. The palette in
+// `TAG_COLORS` is what the app offers; the column accepts any hex, so a colour
+// added to the palette later needs no migration and a tag saved with an older
+// one keeps rendering.
+//
+// Deliberately not transformed to null when absent, unlike the optional recipe
+// fields above: on an update, an omitted colour means "leave it alone" and an
+// explicit null means "take it off", and a transform would collapse the two.
+export const tagColorSchema = z
+  .string()
+  .trim()
+  .regex(/^#[0-9a-f]{6}$/i, { message: 'Choose a colour from the palette.' })
+  .transform((value) => value.toLowerCase())
+  .nullable()
+  .optional();
+
 export const ratingSchema = z.number().int().min(1).max(5);
 
 export const sourceUrlSchema = z

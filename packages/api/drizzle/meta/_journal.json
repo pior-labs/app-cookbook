@@ -15,6 +15,13 @@
       "when": 1787424400397,
       "tag": "0001_reflective_juggernaut",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788400400220,
+      "tag": "0002_narrow_blink",
+      "breakpoints": true
     }
   ]
 }

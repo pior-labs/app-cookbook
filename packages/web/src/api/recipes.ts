@@ -31,8 +31,16 @@ export function listTags(signal?: AbortSignal): Promise<TagSummary[]> {
   return apiGet<TagSummary[]>('/api/tags', signal);
 }
 
-export function createTag(name: string): Promise<{ id: number; name: string }> {
-  return apiSend<{ id: number; name: string }>('/api/tags', 'POST', { name });
+// What the API returns for a written tag: the row itself, not the summary the
+// list endpoint builds, so there is no recipe count on it.
+export interface TagRecord {
+  id: number;
+  name: string;
+  color: string | null;
+}
+
+export function createTag(name: string, color?: string | null): Promise<TagRecord> {
+  return apiSend<TagRecord>('/api/tags', 'POST', { name, color: color ?? null });
 }
 
 export function uploadRecipePhoto(id: number, file: File): Promise<RecipeImage> {

@@ -40,6 +40,7 @@ const TAGS: TagSummary[] = [
   {
     id: 7,
     name: 'Weeknight',
+    color: '#6b8db5',
     activeRecipeCount: 3,
     createdAt: '2026-08-01T00:00:00.000Z',
     updatedAt: '2026-08-01T00:00:00.000Z',
@@ -238,6 +239,63 @@ describe('organize', () => {
       path: '/api/categories',
       body: { name: 'Sides' },
     });
+  });
+
+  it('sets a tag colour and sends the name with it', async () => {
+    const requests = mockApi();
+    renderPage();
+
+    const row = within(await rowFor('Weeknight'));
+    await userEvent.click(row.getByRole('button', { name: 'Colour Weeknight' }));
+    await userEvent.click(row.getByRole('button', { name: 'Basil' }));
+
+    // The name rides along because the endpoint writes the whole tag; sending
+    // the colour alone would rename it to nothing.
+    await waitFor(() =>
+      expect(requests).toContainEqual({
+        method: 'PUT',
+        path: '/api/tags/7',
+        body: { name: 'Weeknight', color: '#5b8a5a' },
+      }),
+    );
+  });
+
+  it('takes a colour back off a tag', async () => {
+    const requests = mockApi();
+    renderPage();
+
+    const row = within(await rowFor('Weeknight'));
+    await userEvent.click(row.getByRole('button', { name: 'Colour Weeknight' }));
+    await userEvent.click(row.getByRole('button', { name: 'No colour' }));
+
+    await waitFor(() =>
+      expect(requests).toContainEqual({
+        method: 'PUT',
+        path: '/api/tags/7',
+        body: { name: 'Weeknight', color: null },
+      }),
+    );
+  });
+
+  it('creates a tag in the colour chosen alongside its name', async () => {
+    const requests = mockApi((request) =>
+      request.method === 'POST'
+        ? jsonResponse({ id: 9, name: 'Comfort', color: '#c96442' }, 201)
+        : undefined,
+    );
+    renderPage();
+
+    await userEvent.type(await screen.findByLabelText('New tag'), 'Comfort');
+    await userEvent.click(screen.getByRole('button', { name: 'Paprika' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Add tag' }));
+
+    await waitFor(() =>
+      expect(requests).toContainEqual({
+        method: 'POST',
+        path: '/api/tags',
+        body: { name: 'Comfort', color: '#c96442' },
+      }),
+    );
   });
 
   it('offers retry when the lists cannot be loaded', async () => {

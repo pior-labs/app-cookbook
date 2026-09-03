@@ -145,6 +145,52 @@
   }
 }
 
+/* ---- tags ------------------------------------------------------------ */
+
+/*
+ * A tag's colour is one hex value, and every surface it lands on differs: the
+ * warm theme and the cool one, a glass panel and an opaque sheet. So nothing
+ * here paints the hex flat. `--tag-color` is mixed against the theme's own ink
+ * and surface, which means the tint follows the theme rather than fighting it,
+ * and the text is always the tag's hue carried most of the way to the ink that
+ * every other word on the screen is set in - legible first, coloured second.
+ *
+ * Unlayered on purpose: these have to win over the Tailwind chip utilities in
+ * the same class list, which live in the utilities layer.
+ */
+.cb-tag {
+  background: color-mix(in srgb, var(--tag-color) 15%, rgba(var(--surface-rgb), 0.92));
+  border-color: color-mix(in srgb, var(--tag-color) 34%, transparent);
+  color: color-mix(in srgb, var(--tag-color) 38%, var(--ink));
+}
+
+.cb-tag:hover {
+  background: color-mix(in srgb, var(--tag-color) 26%, rgba(var(--surface-rgb), 0.92));
+}
+
+/*
+ * The chosen state. Mixing toward ink rather than using the hex neat is what
+ * keeps `cream` readable on top of it: the palette runs from paprika to honey,
+ * and honey at full strength is a pale chip with pale text on it.
+ */
+.cb-tag-on,
+.cb-tag-on:hover {
+  background: color-mix(in srgb, var(--tag-color) 62%, var(--ink));
+  border-color: transparent;
+  color: var(--cream);
+  box-shadow: 0 6px 18px -6px color-mix(in srgb, var(--tag-color) 55%, transparent);
+}
+
+/* The swatches on `/organize`, which are the colour itself rather than a
+   surface tinted by it. */
+.cb-swatch {
+  background: linear-gradient(
+    135deg,
+    var(--tag-color),
+    color-mix(in srgb, var(--tag-color) 72%, white)
+  );
+}
+
 /* ---- rails ----------------------------------------------------------- */
 
 /*

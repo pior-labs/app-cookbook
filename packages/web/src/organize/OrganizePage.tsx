@@ -1,13 +1,13 @@
-import { categoryTagNameSchema } from '@cookbook/domain';
+import { categoryTagNameSchema, TAG_COLORS } from '@cookbook/domain';
 import { useCallback, useState } from 'react';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { Ban, Palette, Pencil, Plus, Trash2 } from 'lucide-react';
 import { ApiRequestError } from '../api/client.js';
 import {
   createCategory,
   deleteCategory,
   deleteTag,
   renameCategory,
-  renameTag,
+  updateTag,
 } from '../api/discovery.js';
 import { useApiResource } from '../api/hooks.js';
 import { createTag as createTagRequest, listCategories, listTags } from '../api/recipes.js';
@@ -20,6 +20,8 @@ import {
   Input,
   PageHeader,
   SectionHeading,
+  focusRing,
+  tagChipStyle,
 } from '@/components/ui';
 import { ErrorState } from '../recipes/states.js';
 
@@ -31,6 +33,9 @@ interface ManagedItem {
   id: number;
   name: string;
   activeRecipeCount: number;
+  // Tags carry a colour; categories do not. A category row simply never gets
+  // one, rather than the two kinds of row being two components.
+  color?: string | null;
 }
 
 // Same rule the API applies, so an obviously empty name is caught before a
@@ -43,16 +48,70 @@ function validateName(name: string): string | null {
 const ROW =
   'rounded-[22px] border border-frost/70 bg-[rgba(var(--surface-rgb),0.62)] p-3.5 transition-colors';
 
+// The palette, as the colour itself rather than as a swatch of a named thing:
+// nobody picks "plum", they pick the one that looks right next to the others.
+// The names are still there for anyone who cannot see the difference, in the
+// label of each button.
+function ColorPicker({
+  value,
+  subject,
+  onSelect,
+}: {
+  value: string | null;
+  subject: string;
+  onSelect: (color: string | null) => void;
+}) {
+  const swatch =
+    'h-9 w-9 shrink-0 cursor-pointer rounded-full border-2 transition-transform hover:scale-110 motion-reduce:transform-none';
+
+  return (
+    <div className="flex flex-wrap items-center gap-2" role="group" aria-label={`Colour for ${subject}`}>
+      {TAG_COLORS.map((color) => {
+        const selected = color.value === value;
+
+        return (
+          <button
+            key={color.value}
+            type="button"
+            aria-label={color.name}
+            aria-pressed={selected}
+            className={`cb-swatch ${swatch} ${selected ? 'border-ink' : 'border-frost/70'} ${focusRing}`}
+            style={tagChipStyle(color.value)}
+            onClick={() => onSelect(color.value)}
+          />
+        );
+      })}
+
+      {/* No colour is a choice on the same row as the others, not the absence
+          of one: it is how a tag goes back to the neutral chip. */}
+      <button
+        type="button"
+        aria-label="No colour"
+        aria-pressed={value == null}
+        className={`${swatch} grid place-items-center bg-[rgba(var(--surface-rgb),0.9)] text-ink-3 ${
+          value == null ? 'border-ink' : 'border-frost/70'
+        } ${focusRing}`}
+        onClick={() => onSelect(null)}
+      >
+        <Ban aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
+      </button>
+    </div>
+  );
+}
+
 interface RowProps {
   item: ManagedItem;
   kind: 'category' | 'tag';
   deleteWarning: string;
   onRename: (id: number, name: string) => Promise<void>;
   onDelete: (id: number) => Promise<void>;
+  // Tags only: categories are filed under, not described with, so they carry
+  // no colour.
+  onRecolor?: (id: number, color: string | null) => Promise<void>;
 }
 
-function ManagedRow({ item, kind, deleteWarning, onRename, onDelete }: RowProps) {
-  const [mode, setMode] = useState<'idle' | 'renaming' | 'confirming'>('idle');
+function ManagedRow({ item, kind, deleteWarning, onRename, onDelete, onRecolor }: RowProps) {
+  const [mode, setMode] = useState<'idle' | 'renaming' | 'confirming' | 'coloring'>('idle');
   const [draft, setDraft] = useState(item.name);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -125,6 +184,19 @@ function ManagedRow({ item, kind, deleteWarning, onRename, onDelete }: RowProps)
         </form>
       ) : (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          {/* The tag as it is actually seen elsewhere: the row says what the
+              choice looks like, not which hex it was. */}
+          {onRecolor ? (
+            <span
+              aria-hidden="true"
+              className={
+                item.color
+                  ? 'cb-swatch h-4 w-4 shrink-0 rounded-full'
+                  : 'h-4 w-4 shrink-0 rounded-full border border-dashed border-ink/25'
+              }
+              style={tagChipStyle(item.color)}
+            />
+          ) : null}
           {/* `flex-auto`, not `flex-1`: the name has to bring its own width to
               the wrap calculation, or the row keeps everything on one line and
               hands the name a box narrower than the word in it - which a single
@@ -153,6 +225,21 @@ function ManagedRow({ item, kind, deleteWarning, onRename, onDelete }: RowProps)
               <Pencil aria-hidden="true" className="h-3.5 w-3.5" strokeWidth={2} />
               Rename
             </Button>
+            {onRecolor ? (
+              <Button
+                variant="quiet"
+                size="small"
+                aria-label={`Colour ${item.name}`}
+                aria-expanded={mode === 'coloring'}
+                onClick={() => {
+                  setMessage(null);
+                  setMode(mode === 'coloring' ? 'idle' : 'coloring');
+                }}
+              >
+                <Palette aria-hidden="true" className="h-3.5 w-3.5" strokeWidth={2} />
+                Colour
+              </Button>
+            ) : null}
             <Button
               variant="quiet"
               size="small"
@@ -168,6 +255,19 @@ function ManagedRow({ item, kind, deleteWarning, onRename, onDelete }: RowProps)
           </div>
         </div>
       )}
+
+      {/* Picking saves at once. A colour is one tap to set and one to change,
+          so a Save button beside it would only be a second tap on the way to
+          the same place. */}
+      {mode === 'coloring' && onRecolor ? (
+        <div className="mt-3 border-t border-dashed border-ink/10 pt-3">
+          <ColorPicker
+            value={item.color ?? null}
+            subject={item.name}
+            onSelect={(color) => void attempt(() => onRecolor(item.id, color))}
+          />
+        </div>
+      ) : null}
 
       {mode === 'confirming' ? (
         <div className="mt-3 rounded-2xl border border-[var(--cb-danger-border)] bg-[var(--cb-danger-surface)] p-3.5">
@@ -201,13 +301,18 @@ function ManagedRow({ item, kind, deleteWarning, onRename, onDelete }: RowProps)
 function CreateForm({
   label,
   submitLabel,
+  withColor = false,
   onCreate,
 }: {
   label: string;
   submitLabel: string;
-  onCreate: (name: string) => Promise<void>;
+  // A tag is given its colour where it is made, so the first thing a cook sees
+  // after adding one is the tag as it will look everywhere else.
+  withColor?: boolean;
+  onCreate: (name: string, color: string | null) => Promise<void>;
 }) {
   const [name, setName] = useState('');
+  const [color, setColor] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const inputId = `${submitLabel.toLowerCase().replace(/\W+/g, '-')}-name`;
@@ -223,8 +328,9 @@ function CreateForm({
     setMessage(null);
 
     try {
-      await onCreate(name.trim());
+      await onCreate(name.trim(), color);
       setName('');
+      setColor(null);
     } catch (error) {
       // The entered name stays in the box, so a duplicate can be corrected
       // rather than retyped (section 11.2).
@@ -257,6 +363,11 @@ function CreateForm({
           {submitLabel}
         </Button>
       </div>
+      {withColor ? (
+        <div className="mt-1.5">
+          <ColorPicker value={color} subject="the new tag" onSelect={setColor} />
+        </div>
+      ) : null}
       {message ? <FieldError>{message}</FieldError> : null}
     </form>
   );
@@ -375,8 +486,11 @@ export function OrganizePage() {
                           }. The recipes themselves are untouched.`
                         : `Delete "${tag.name}"? Nothing uses it yet.`
                     }
-                    onRename={(id, name) => afterTagChange(renameTag(id, name))}
+                    onRename={(id, name) => afterTagChange(updateTag(id, { name }))}
                     onDelete={(id) => afterTagChange(deleteTag(id))}
+                    onRecolor={(id, color) =>
+                      afterTagChange(updateTag(id, { name: tag.name, color }))
+                    }
                   />
                 ))}
               </ul>
@@ -385,7 +499,8 @@ export function OrganizePage() {
             <CreateForm
               label="New tag"
               submitLabel="Add tag"
-              onCreate={(name) => afterTagChange(createTagRequest(name))}
+              withColor
+              onCreate={(name, color) => afterTagChange(createTagRequest(name, color))}
             />
           </Sheet>
         </>

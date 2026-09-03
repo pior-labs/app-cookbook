@@ -2,7 +2,7 @@ import {
   createCategorySchema,
   createTagSchema,
   renameCategorySchema,
-  renameTagSchema,
+  updateTagSchema,
 } from '@cookbook/domain';
 import { Hono } from 'hono';
 import type { AppEnv } from '../middleware/context.js';
@@ -15,7 +15,7 @@ import {
   removeCategory,
   removeTag,
   renameCategory,
-  renameTag,
+  updateTagDetails,
 } from '../services/organization.js';
 
 // Categories and tags for the recipe form and for `/organize`
@@ -52,14 +52,14 @@ tagsRoute.get('/', async (c) => c.json(await listTags()));
 tagsRoute.post('/', async (c) => {
   const input = await parseBody(c, createTagSchema);
 
-  return c.json(await createTag(input.name), 201);
+  return c.json(await createTag(input.name, input.color ?? null), 201);
 });
 
 tagsRoute.put('/:id', async (c) => {
   const tagId = idParam(c, 'tag');
-  const input = await parseBody(c, renameTagSchema);
+  const input = await parseBody(c, updateTagSchema);
 
-  return c.json(await renameTag(tagId, input.name));
+  return c.json(await updateTagDetails(tagId, input));
 });
 
 tagsRoute.delete('/:id', async (c) => {

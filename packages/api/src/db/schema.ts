@@ -112,6 +112,10 @@ export const tags = pgTable(
     id: serial('id').primaryKey(),
     name: text('name').notNull(),
     normalizedName: text('normalized_name').notNull(),
+    // A hex colour the household gave the tag, or null for the neutral chip.
+    // Nullable rather than defaulted: "no colour" is the ordinary state, and a
+    // default would colour every tag ever made without anyone choosing to.
+    color: text('color'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

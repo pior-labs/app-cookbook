@@ -1,4 +1,4 @@
-import type { CategorySummary, TagSummary } from '@cookbook/domain';
+import type { CategorySummary, TagSummary, UpdateTagInput } from '@cookbook/domain';
 import { db } from '../db/index.js';
 import { conflictError, notFoundError } from '../errors.js';
 import {
@@ -7,6 +7,7 @@ import {
   deleteTag,
   findCategoryById,
   findCategoryByName,
+  findTagById,
   findTagByName,
   insertCategory,
   insertTag,
@@ -14,7 +15,7 @@ import {
   listTagsWithCounts,
   toIso,
   updateCategoryName,
-  updateTagName,
+  updateTag,
   type CategoryRecord,
   type DbExecutor,
   type TagRecord,
@@ -47,7 +48,7 @@ export async function listTags(): Promise<TagSummary[]> {
 // Tags are case-insensitively unique. Creating one that already exists is a
 // conflict rather than a silent alias, so the client can point the cook at the
 // tag they already have.
-export async function createTag(name: string): Promise<TagRecord> {
+export async function createTag(name: string, color: string | null): Promise<TagRecord> {
   return db.transaction(async (tx) => {
     const existing = await findTagByName(tx, name);
     if (existing) {
@@ -56,7 +57,7 @@ export async function createTag(name: string): Promise<TagRecord> {
       });
     }
 
-    return insertTag(tx, name);
+    return insertTag(tx, name, color);
   });
 }
 
@@ -146,11 +147,22 @@ function recipeCount(count: number): string {
   return count === 1 ? '1 recipe' : `${count} recipes`;
 }
 
-export async function renameTag(id: number, name: string): Promise<TagRecord> {
+// A tag carries a name and a colour, and `/organize` edits them one at a time.
+// An omitted colour therefore means "leave it as it is"; an explicit null is
+// how a colour is taken back off, so the two cannot be collapsed.
+export async function updateTagDetails(id: number, input: UpdateTagInput): Promise<TagRecord> {
   return db.transaction(async (tx) => {
-    await assertNameFree(tx, name, id, 'tag');
+    const current = await findTagById(tx, id);
+    if (!current) {
+      throw notFoundError('tag_not_found', 'This tag does not exist.');
+    }
 
-    const row = await updateTagName(tx, id, name);
+    await assertNameFree(tx, input.name, id, 'tag');
+
+    const row = await updateTag(tx, id, {
+      name: input.name,
+      color: input.color === undefined ? current.color : input.color,
+    });
     if (!row) {
       throw notFoundError('tag_not_found', 'This tag does not exist.');
     }

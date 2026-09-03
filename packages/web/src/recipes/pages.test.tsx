@@ -42,7 +42,7 @@ const RECIPE: RecipeDetail = {
     },
   ],
   instructions: [{ id: 1, position: 0, body: 'Brown the beef.' }],
-  tags: [{ id: 7, name: 'Weeknight', createdAt: '', updatedAt: '' }],
+  tags: [{ id: 7, name: 'Weeknight', color: '#6b8db5', createdAt: '', updatedAt: '' }],
   image: null,
 };
 

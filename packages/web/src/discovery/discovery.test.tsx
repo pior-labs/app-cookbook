@@ -60,6 +60,7 @@ const TAGS: TagSummary[] = [
   {
     id: 7,
     name: 'Weeknight',
+    color: '#6b8db5',
     activeRecipeCount: 2,
     createdAt: '2026-08-01T00:00:00.000Z',
     updatedAt: '2026-08-01T00:00:00.000Z',

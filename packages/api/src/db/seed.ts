@@ -19,14 +19,17 @@ import { moveRecipeToTrash } from '../services/trash.js';
 // running this twice does not produce two of everything and never touches work
 // done in the app by hand.
 
+// Each seeded tag carries a colour from the palette, so a fresh database shows
+// what a coloured tag looks like rather than leaving the feature invisible
+// until someone sets one.
 const TAGS = [
-  'Weeknight',
-  'Vegetarian',
-  'Make ahead',
-  'Comfort',
-  'Crowd pleaser',
-  'One pot',
-  'Freezer friendly',
+  { name: 'Weeknight', color: '#6b8db5' },
+  { name: 'Vegetarian', color: '#5b8a5a' },
+  { name: 'Make ahead', color: '#a87cc4' },
+  { name: 'Comfort', color: '#c96442' },
+  { name: 'Crowd pleaser', color: '#e2738a' },
+  { name: 'One pot', color: '#d4a55a' },
+  { name: 'Freezer friendly', color: '#7ec1c1' },
 ] as const;
 
 interface SeedRecipe {
@@ -386,8 +389,8 @@ async function main(): Promise<void> {
   const categories = new Map((await listCategories()).map((row) => [row.name, row.id]));
   const tags = new Map((await listTags()).map((row) => [row.name, row.id]));
 
-  for (const name of TAGS) {
-    if (!tags.has(name)) tags.set(name, (await createTag(name)).id);
+  for (const { name, color } of TAGS) {
+    if (!tags.has(name)) tags.set(name, (await createTag(name, color)).id);
   }
 
   const existing = new Set((await db.select({ name: recipes.name }).from(recipes)).map((r) => r.name));

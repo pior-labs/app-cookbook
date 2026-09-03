@@ -159,6 +159,7 @@ async function loadDetail(
       .map(({ tag }) => ({
         id: tag.id,
         name: tag.name,
+        color: tag.color,
         createdAt: toIso(tag.createdAt),
         updatedAt: toIso(tag.updatedAt),
       }))

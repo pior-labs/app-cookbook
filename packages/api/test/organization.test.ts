@@ -82,6 +82,18 @@ describe('GET /api/tags', () => {
     expect(await (await client.get('/api/tags')).json()).toEqual([]);
   });
 
+  it('carries each tag colour through to the pickers', async () => {
+    await client.post('/api/tags', { name: 'Weeknight', color: '#6b8db5' });
+    await client.post('/api/tags', { name: 'Comfort' });
+
+    const tags = (await (await client.get('/api/tags')).json()) as TagSummary[];
+
+    expect(tags.map((tag) => [tag.name, tag.color])).toEqual([
+      ['Comfort', null],
+      ['Weeknight', '#6b8db5'],
+    ]);
+  });
+
   it('lists tags alphabetically with active recipe counts', async () => {
     const weeknight = await createTag('Weeknight');
     await createTag('Batch cooking');
@@ -108,6 +120,23 @@ describe('POST /api/tags', () => {
     expect(tag.name).toBe('Weeknight');
 
     await createRecipe({ tagIds: [tag.id] });
+  });
+
+  it('stores a colour when one is chosen, and none when it is not', async () => {
+    const colored = await client.post('/api/tags', { name: 'Weeknight', color: '#6B8DB5' });
+    const plain = await client.post('/api/tags', { name: 'Comfort' });
+
+    // Case is not part of the choice: the same colour picked twice must be the
+    // same stored value, or "is this tag already blue" stops being answerable.
+    expect(await colored.json()).toEqual(expect.objectContaining({ color: '#6b8db5' }));
+    expect(await plain.json()).toEqual(expect.objectContaining({ color: null }));
+  });
+
+  it('rejects a colour that is not a hex value', async () => {
+    const response = await client.post('/api/tags', { name: 'Weeknight', color: 'blue' });
+
+    expect(response.status).toBe(400);
+    expect((await response.json()).error.fields.color).toBeDefined();
   });
 
   it('rejects a duplicate regardless of case', async () => {
@@ -261,6 +290,25 @@ describe('PUT /api/tags/:id', () => {
 
     expect(response.status).toBe(409);
     expect((await response.json()).error.code).toBe('tag_already_exists');
+  });
+
+  it('leaves the colour alone on a rename, and takes it off when asked', async () => {
+    const created = (await (
+      await client.post('/api/tags', { name: 'Weeknight', color: '#6b8db5' })
+    ).json()) as { id: number };
+
+    // A rename says nothing about the colour, so the colour survives it.
+    const renamed = await client.put(`/api/tags/${created.id}`, { name: 'Weeknights' });
+    expect(await renamed.json()).toEqual(
+      expect.objectContaining({ name: 'Weeknights', color: '#6b8db5' }),
+    );
+
+    // An explicit null is how it comes back off.
+    const cleared = await client.put(`/api/tags/${created.id}`, {
+      name: 'Weeknights',
+      color: null,
+    });
+    expect(await cleared.json()).toEqual(expect.objectContaining({ color: null }));
   });
 
   it('returns 404 for a tag that does not exist', async () => {

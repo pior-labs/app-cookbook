@@ -15,6 +15,8 @@ import {
   buttonClass,
   chipClass,
   focusRing,
+  tagChipClass,
+  tagChipStyle,
 } from '@/components/ui';
 import { useMediaQuery } from '@/lib/useMediaQuery';
 import { useModalOverlay } from '@/lib/overlay';
@@ -91,6 +93,9 @@ function useDebounced<T>(value: T, delay: number): T {
 interface ActiveFilter {
   key: string;
   label: string;
+  // A tag brings its colour with it, so a chip in this line is recognisably
+  // the chip that was tapped in the filters.
+  color?: string | null;
   remove: () => void;
 }
 
@@ -136,6 +141,7 @@ function activeFilters(
     active.push({
       key: `tag-${tagId}`,
       label: tag.name,
+      color: tag.color,
       remove: () => update({ tagIds: filters.tagIds.filter((id) => id !== tagId) }),
     });
   }
@@ -323,7 +329,8 @@ export function BrowsePage() {
             <span className="mr-0.5 font-serif text-[13px] italic text-ink-3">Narrowed to</span>
             {active.map((filter) => (
               <button
-                className={chipClass(true, 'pr-2.5')}
+                className={tagChipClass(filter.color, true, 'pr-2.5')}
+                style={tagChipStyle(filter.color)}
                 key={filter.key}
                 type="button"
                 aria-label={`Remove filter: ${filter.label}`}
@@ -462,7 +469,8 @@ function FilterFields({
             {organization.tags.map((tag) => (
               <li key={tag.id}>
                 <button
-                  className={chipClass(filters.tagIds.includes(tag.id))}
+                  className={tagChipClass(tag.color, filters.tagIds.includes(tag.id))}
+                  style={tagChipStyle(tag.color)}
                   type="button"
                   aria-pressed={filters.tagIds.includes(tag.id)}
                   onClick={() => toggleTag(tag.id)}
