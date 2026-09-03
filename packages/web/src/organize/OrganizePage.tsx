@@ -349,54 +349,62 @@ function ManagedRow({ item, kind, deleteWarning, onRename, onDelete, onRecolor }
           </Button>
         </form>
       ) : (
-        <div className="flex items-center gap-3">
-          {/* The tag as it is actually seen elsewhere: the row says what the
-              choice looks like, not which hex it was. */}
-          {dot}
+        // A row is measured against itself, not the window: the same row is
+        // half a grid on a desktop, a whole one when it opens, and the width
+        // of a phone in between. Narrow, the name keeps the line to itself and
+        // the actions take the one below - three touch targets and a count
+        // leave a name about a word wide, which is how "Comfort" came to be
+        // set as "Comf ort".
+        <div className="@container">
+          <div className="flex flex-col gap-2 @min-[21rem]:flex-row @min-[21rem]:items-center @min-[21rem]:gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              {/* The tag as it is actually seen elsewhere: the row says what
+                  the choice looks like, not which hex it was. */}
+              {dot}
 
-          {/* Two lines at most. A long name on a phone, where the row is the
-              screen's width minus three touch targets, would otherwise be cut
-              mid-word; a name long enough to pass two lines is cut, because a
-              row in a grid cannot grow without bound. */}
-          <span
-            className="min-w-0 flex-1 font-serif text-[17px] tracking-[-0.01em] break-words text-ink line-clamp-2"
-            title={item.name}
-          >
-            {item.name}
-          </span>
+              {/* Two lines at most: a row in a grid cannot grow without
+                  bound, and the whole name is in the title and in the label
+                  of every action beside it. */}
+              <span
+                className="min-w-0 flex-1 font-serif text-[17px] tracking-[-0.01em] break-words text-ink line-clamp-2"
+                title={item.name}
+              >
+                {item.name}
+              </span>
+            </div>
 
-          <CountPill count={item.activeRecipeCount} />
-
-          <div className="flex shrink-0 items-center gap-1">
-            <RowAction
-              label={`Rename ${item.name}`}
-              icon={Pencil}
-              onClick={() => {
-                setDraft(item.name);
-                setMessage(null);
-                setMode('renaming');
-              }}
-            />
-            {onRecolor ? (
+            <div className="flex shrink-0 items-center gap-1 border-t border-dashed border-ink/12 pt-2 @min-[21rem]:ml-auto @min-[21rem]:border-0 @min-[21rem]:pt-0">
+              <CountPill count={item.activeRecipeCount} />
               <RowAction
-                label={`Colour ${item.name}`}
-                icon={Palette}
-                expanded={mode === 'coloring'}
+                label={`Rename ${item.name}`}
+                icon={Pencil}
                 onClick={() => {
+                  setDraft(item.name);
                   setMessage(null);
-                  setMode(mode === 'coloring' ? 'idle' : 'coloring');
+                  setMode('renaming');
                 }}
               />
-            ) : null}
-            <RowAction
-              label={`Delete ${item.name}`}
-              icon={Trash2}
-              tone="danger"
-              onClick={() => {
-                setMessage(null);
-                setMode('confirming');
-              }}
-            />
+              {onRecolor ? (
+                <RowAction
+                  label={`Colour ${item.name}`}
+                  icon={Palette}
+                  expanded={mode === 'coloring'}
+                  onClick={() => {
+                    setMessage(null);
+                    setMode(mode === 'coloring' ? 'idle' : 'coloring');
+                  }}
+                />
+              ) : null}
+              <RowAction
+                label={`Delete ${item.name}`}
+                icon={Trash2}
+                tone="danger"
+                onClick={() => {
+                  setMessage(null);
+                  setMode('confirming');
+                }}
+              />
+            </div>
           </div>
         </div>
       )}
@@ -594,18 +602,25 @@ function Section({
 }) {
   return (
     <section aria-labelledby={id} className="min-w-0">
-      <div className="mb-3.5 flex flex-wrap items-baseline gap-x-3 gap-y-1 px-0.5">
-        <h2
-          className="m-0 font-serif text-[24px] leading-none font-normal tracking-[-0.02em] text-ink sm:text-[27px]"
-          id={id}
-        >
-          {title}
-        </h2>
-        <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-ink/6 px-2 font-mono text-[11px] text-ink-3">
-          {count}
-        </span>
-        <span className="font-serif text-sm italic text-ink-3">{sub}</span>
-        <span className="ml-auto">{action}</span>
+      {/* Wide enough, the action ends the heading line. On a phone there is no
+          room beside "Categories 6 One per recipe", and an action wrapped under
+          the heading it belongs to sits closer to the first row of the list
+          than to its own section - so it goes above the heading instead, by
+          order rather than by markup: the heading is still read first. */}
+      <div className="mb-3.5 flex flex-col items-start gap-2 px-0.5 sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-x-3 sm:gap-y-1">
+        <div className="order-2 flex flex-wrap items-baseline gap-x-3 gap-y-1 sm:order-none sm:contents">
+          <h2
+            className="m-0 font-serif text-[24px] leading-none font-normal tracking-[-0.02em] text-ink sm:text-[27px]"
+            id={id}
+          >
+            {title}
+          </h2>
+          <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-ink/6 px-2 font-mono text-[11px] text-ink-3">
+            {count}
+          </span>
+          <span className="font-serif text-sm italic text-ink-3">{sub}</span>
+        </div>
+        <span className="order-1 sm:order-none sm:ml-auto">{action}</span>
       </div>
 
       {children}
