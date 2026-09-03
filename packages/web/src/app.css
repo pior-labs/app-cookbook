@@ -181,6 +181,23 @@
   box-shadow: 0 6px 18px -6px color-mix(in srgb, var(--tag-color) 55%, transparent);
 }
 
+/*
+ * A tag's row on `/organize`, washed from its leading corner by the tag's own
+ * colour. The wash stops well short of the far edge: a card that is tinted
+ * end to end competes with the chips the colour is actually for, and the name
+ * on it has to stay as readable as the name on the row below.
+ */
+.cb-row-tint {
+  background:
+    linear-gradient(
+      118deg,
+      color-mix(in srgb, var(--tag-color) 20%, transparent),
+      transparent 58%
+    ),
+    rgba(var(--surface-rgb), 0.66);
+  border-color: color-mix(in srgb, var(--tag-color) 20%, rgba(var(--frost-rgb), 0.7));
+}
+
 /* The swatches on `/organize`, which are the colour itself rather than a
    surface tinted by it. */
 .cb-swatch {

@@ -1,6 +1,7 @@
 import { categoryTagNameSchema, TAG_COLORS, tagColorSchema } from '@cookbook/domain';
 import { useCallback, useState } from 'react';
 import { Ban, Palette, Pencil, Plus, Trash2 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { ApiRequestError } from '../api/client.js';
 import {
   createCategory,
@@ -21,10 +22,10 @@ import {
   FieldLabel,
   Input,
   PageHeader,
-  SectionHeading,
   focusRing,
   tagChipStyle,
 } from '@/components/ui';
+import { cn } from '@/lib/utils';
 import { ErrorState } from '../recipes/states.js';
 
 // Category and tag management (technical design sections 7.3 and 11.1). The
@@ -47,8 +48,63 @@ function validateName(name: string): string | null {
   return parsed.success ? null : (parsed.error.issues[0]?.message ?? 'Enter a name.');
 }
 
+// A row is a card in a two-column grid rather than a full-width strip: a
+// household's tags are a set to look over, and a list one screen tall reads as
+// a queue to work through. A tag's own colour washes the card it sits on
+// (`.cb-row-tint`), so the set is scanned by colour before it is read.
 const ROW =
-  'rounded-[22px] border border-frost/70 bg-[rgba(var(--surface-rgb),0.62)] p-3.5 transition-colors';
+  'rounded-[20px] border border-frost/70 bg-[rgba(var(--surface-rgb),0.62)] p-2.5 pl-3.5 ' +
+  'transition-[box-shadow,border-color] duration-200 ' +
+  'hover:shadow-[0_12px_30px_-18px_color-mix(in_srgb,var(--ink)_45%,transparent)]';
+
+// The actions are icons because there are three of them on every row, twice
+// per line of the grid: the words that used to carry them cost more width than
+// the names they sat beside. Each keeps the label it had, where it counts.
+function RowAction({
+  label,
+  icon: Icon,
+  tone = 'default',
+  expanded,
+  onClick,
+}: {
+  label: string;
+  icon: LucideIcon;
+  tone?: 'default' | 'danger';
+  expanded?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      aria-expanded={expanded}
+      onClick={onClick}
+      className={cn(
+        'inline-grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-full border p-0',
+        'transition-colors duration-200 pointer-coarse:h-11 pointer-coarse:w-11',
+        expanded
+          ? 'border-ink/20 bg-frost/90 text-ink'
+          : 'border-transparent bg-[rgba(var(--surface-rgb),0.55)] text-ink-3',
+        tone === 'danger'
+          ? 'hover:border-destructive/35 hover:bg-destructive/10 hover:text-destructive'
+          : 'hover:border-frost/80 hover:bg-frost/85 hover:text-ink',
+        focusRing,
+      )}
+    >
+      <Icon aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
+    </button>
+  );
+}
+
+// The number is the glance; the phrase is what a screen reader is owed.
+function CountPill({ count }: { count: number }) {
+  return (
+    <span className="inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-ink/6 px-1.5 font-mono text-[11px] text-ink-3">
+      <span aria-hidden="true">{count}</span>
+      <span className="sr-only">{count === 1 ? '1 recipe' : `${count} recipes`}</span>
+    </span>
+  );
+}
 
 // The palette, as the colour itself rather than as a swatch of a named thing:
 // nobody picks "plum", they pick the one that looks right next to the others.
@@ -219,11 +275,29 @@ function ManagedRow({ item, kind, deleteWarning, onRename, onDelete, onRecolor }
     await attempt(() => onRename(item.id, draft.trim()));
   };
 
+  const dot = onRecolor ? (
+    <span
+      aria-hidden="true"
+      className={
+        item.color
+          ? 'cb-swatch h-9 w-9 shrink-0 rounded-full shadow-[0_4px_12px_-3px_color-mix(in_srgb,var(--tag-color)_70%,transparent),inset_0_0_0_1px_rgba(var(--frost-rgb),0.5)]'
+          : 'h-9 w-9 shrink-0 rounded-full border border-dashed border-ink/20'
+      }
+      style={tagChipStyle(item.color)}
+    />
+  ) : null;
+
   return (
-    <li className={ROW}>
+    // An open row takes the whole line: the colours, the rename, and the delete
+    // confirmation all need more width than half a grid gives them, and half a
+    // row of swatches wrapping under a Save button is not a palette.
+    <li
+      className={cn(ROW, item.color ? 'cb-row-tint' : '', mode !== 'idle' ? 'sm:col-span-2' : '')}
+      style={tagChipStyle(item.color)}
+    >
       {mode === 'renaming' ? (
         <form
-          className="flex flex-wrap items-center gap-2.5"
+          className="flex flex-wrap items-center gap-2"
           onSubmit={(event) => {
             event.preventDefault();
             void submitRename();
@@ -233,7 +307,7 @@ function ManagedRow({ item, kind, deleteWarning, onRename, onDelete, onRecolor }
             Rename {item.name}
           </label>
           <Input
-            className="min-w-0 flex-1 sm:max-w-72"
+            className="min-h-10 min-w-0 flex-1 py-1.5"
             id={inputId}
             value={draft}
             autoFocus
@@ -256,75 +330,54 @@ function ManagedRow({ item, kind, deleteWarning, onRename, onDelete, onRecolor }
           </Button>
         </form>
       ) : (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <div className="flex items-center gap-3">
           {/* The tag as it is actually seen elsewhere: the row says what the
               choice looks like, not which hex it was. */}
-          {onRecolor ? (
-            <span
-              aria-hidden="true"
-              className={
-                item.color
-                  ? 'cb-swatch h-4 w-4 shrink-0 rounded-full'
-                  : 'h-4 w-4 shrink-0 rounded-full border border-dashed border-ink/25'
-              }
-              style={tagChipStyle(item.color)}
-            />
-          ) : null}
-          {/* `flex-auto`, not `flex-1`: the name has to bring its own width to
-              the wrap calculation, or the row keeps everything on one line and
-              hands the name a box narrower than the word in it - which a single
-              word cannot wrap out of, so it prints over the count. It still
-              grows into the free space, so a wide row is unchanged. */}
-          <span className="min-w-0 flex-auto break-words font-serif text-[18px] tracking-[-0.01em] text-ink">
+          {dot}
+
+          {/* Two lines at most. A long name on a phone, where the row is the
+              screen's width minus three touch targets, would otherwise be cut
+              mid-word; a name long enough to pass two lines is cut, because a
+              row in a grid cannot grow without bound. */}
+          <span
+            className="min-w-0 flex-1 font-serif text-[17px] tracking-[-0.01em] break-words text-ink line-clamp-2"
+            title={item.name}
+          >
             {item.name}
           </span>
-          <span className="shrink-0 font-serif text-[13px] italic text-ink-3">
-            {item.activeRecipeCount === 1 ? '1 recipe' : `${item.activeRecipeCount} recipes`}
-          </span>
 
-          <div className="flex shrink-0 gap-1.5">
-            {/* The visible word is enough beside the name; the label spells
-                out which row a screen reader is on. */}
-            <Button
-              variant="quiet"
-              size="small"
-              aria-label={`Rename ${item.name}`}
+          <CountPill count={item.activeRecipeCount} />
+
+          <div className="flex shrink-0 items-center gap-1">
+            <RowAction
+              label={`Rename ${item.name}`}
+              icon={Pencil}
               onClick={() => {
                 setDraft(item.name);
                 setMessage(null);
                 setMode('renaming');
               }}
-            >
-              <Pencil aria-hidden="true" className="h-3.5 w-3.5" strokeWidth={2} />
-              Rename
-            </Button>
+            />
             {onRecolor ? (
-              <Button
-                variant="quiet"
-                size="small"
-                aria-label={`Colour ${item.name}`}
-                aria-expanded={mode === 'coloring'}
+              <RowAction
+                label={`Colour ${item.name}`}
+                icon={Palette}
+                expanded={mode === 'coloring'}
                 onClick={() => {
                   setMessage(null);
                   setMode(mode === 'coloring' ? 'idle' : 'coloring');
                 }}
-              >
-                <Palette aria-hidden="true" className="h-3.5 w-3.5" strokeWidth={2} />
-                Colour
-              </Button>
+              />
             ) : null}
-            <Button
-              variant="quiet"
-              size="small"
-              aria-label={`Delete ${item.name}`}
+            <RowAction
+              label={`Delete ${item.name}`}
+              icon={Trash2}
+              tone="danger"
               onClick={() => {
                 setMessage(null);
                 setMode('confirming');
               }}
-            >
-              <Trash2 aria-hidden="true" className="h-3.5 w-3.5" strokeWidth={2} />
-              Delete
-            </Button>
+            />
           </div>
         </div>
       )}
@@ -446,22 +499,46 @@ function CreateForm({
   );
 }
 
-function Sheet({
+// A section is the page itself rather than a card on it: two panels of glass
+// holding two grids of glass rows was one material too many, and the rows are
+// the thing to look at.
+function Section({
+  id,
+  title,
+  sub,
+  count,
   children,
-  labelledBy,
 }: {
+  id: string;
+  title: string;
+  sub: string;
+  count: number;
   children: React.ReactNode;
-  labelledBy: string;
 }) {
   return (
-    <section
-      className="rounded-[26px] border border-frost/80 bg-[rgba(var(--surface-rgb),0.9)] p-5 shadow-[0_10px_34px_-16px_color-mix(in_srgb,var(--ink)_28%,transparent)] sm:rounded-4xl sm:p-7"
-      aria-labelledby={labelledBy}
-    >
+    <section aria-labelledby={id} className="min-w-0">
+      <div className="mb-3.5 flex flex-wrap items-baseline gap-x-3 gap-y-1 px-0.5">
+        <h2
+          className="m-0 font-serif text-[24px] leading-none font-normal tracking-[-0.02em] text-ink sm:text-[27px]"
+          id={id}
+        >
+          {title}
+        </h2>
+        <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-ink/6 px-2 font-mono text-[11px] text-ink-3">
+          {count}
+        </span>
+        <span className="font-serif text-sm italic text-ink-3">{sub}</span>
+      </div>
+
       {children}
     </section>
   );
 }
+
+// Rows sit two to a line where there is room. `items-start` so a row that has
+// opened its colours or its delete confirmation grows on its own rather than
+// stretching the one beside it.
+const GRID = 'm-0 grid list-none grid-cols-1 items-start gap-2.5 p-0 sm:grid-cols-2';
 
 export function OrganizePage() {
   const loadCategories = useCallback((signal: AbortSignal) => listCategories(signal), []);
@@ -530,12 +607,13 @@ export function OrganizePage() {
         </ErrorState>
       ) : (
         <>
-          <Sheet labelledBy="organize-categories">
-            <SectionHeading className="mb-4" id="organize-categories" sub="One per recipe">
-              Categories
-            </SectionHeading>
-
-            <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
+          <Section
+            count={(categories.data ?? []).length}
+            id="organize-categories"
+            sub="One per recipe"
+            title="Categories"
+          >
+            <ul className={GRID}>
               {(categories.data ?? []).map((category) => (
                 <ManagedRow
                   key={category.id}
@@ -553,17 +631,18 @@ export function OrganizePage() {
               submitLabel="Add category"
               onCreate={(name) => afterCategoryChange(createCategory(name))}
             />
-          </Sheet>
+          </Section>
 
-          <Sheet labelledBy="organize-tags">
-            <SectionHeading className="mb-4" id="organize-tags" sub="As many as you like">
-              Tags
-            </SectionHeading>
-
+          <Section
+            count={(tags.data ?? []).length}
+            id="organize-tags"
+            sub="As many as you like"
+            title="Tags"
+          >
             {(tags.data ?? []).length === 0 ? (
               <FieldHint>No tags yet. Add one here, or create one while writing a recipe.</FieldHint>
             ) : (
-              <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
+              <ul className={GRID}>
                 {(tags.data ?? []).map((tag) => (
                   <ManagedRow
                     key={tag.id}
@@ -594,7 +673,7 @@ export function OrganizePage() {
               withColor
               onCreate={(name, color) => afterTagChange(createTagRequest(name, color))}
             />
-          </Sheet>
+          </Section>
         </>
       )}
     </div>
