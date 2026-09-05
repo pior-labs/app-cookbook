@@ -1,8 +1,8 @@
 # Development Status
 
-**Last updated:** 2026-08-23
-**Current stage:** Phase 1 feature-complete — polish and end-to-end coverage implemented (slice 8); production provisioning outstanding
-**Current product phase:** Phase 1 — Core Cookbook
+**Last updated:** 2026-09-04
+**Current stage:** Phase 1 complete and deployed on the household network; MCP v1 implemented
+**Current product phase:** MCP v1 (Phase 1 — Core Cookbook is done)
 
 This file records the application's **actual implementation state**.
 
@@ -14,7 +14,7 @@ Agents and contributors must not infer that a PRD requirement has been implement
 
 ## Current state
 
-The Cookbook scaffold and central SSO integration are implemented and configured to use the hosted issuer. Registering the new shared `localhost:5173` callback in the deployed `service-auth` client remains an external dependency. The product requirements are approved, and the complete Phase 1 technical design and ADRs 0002–0005 are accepted. The pure `@cookbook/domain` package, the normalized recipe database schema, and the first domain migration are implemented (implementation sequence slice 1). Recipe aggregate create, read, and update are implemented behind the authenticated API boundary, with the shared error envelope and API integration tests (slice 2). The primary recipe photo is implemented end to end on the API: authenticated multipart upload, verified decoding, WebP variant generation, authenticated delivery, replacement, deletion, and orphan reconciliation (slice 3). The recipe creation, detail, edit, and serving-scaling screens are implemented on `@pior-labs/design-system` tokens, together with the category/tag read endpoints and the minimal recent-recipe list they depend on (slice 4). Browse/search with cursor pagination, the home discovery response, full category and tag management, and the `/`, `/recipes`, and `/organize` screens are implemented (slice 5). Per-user favorites, 1-5 ratings, and recently viewed history are implemented end to end, including the `/favorites` and `/recent` screens and the favorite and rating browse filters (slice 6). Recoverable deletion is implemented end to end: a recipe moves to Trash without destroying anything, restoration returns it with all of its retained state, and permanent deletion from Trash removes its rows and image files (slice 7). Mobile and accessibility polish and the Playwright critical-path suite are implemented, and the provisioning and restore procedures are documented in [`OPERATIONS.md`](./OPERATIONS.md) (slice 8). Every Phase 1 capability is now implemented and covered by tests. What remains is external and cannot be done from this repository: registering the OAuth client in `service-auth`, provisioning the database, image directory, routes, and DNS in `platform-deploy`, and running the documented restore verification against that environment once it exists.
+The Cookbook scaffold and central SSO integration are implemented and configured to use the hosted issuer. Registering the new shared `localhost:5173` callback in the deployed `service-auth` client remains an external dependency. The product requirements are approved, and the complete Phase 1 technical design and ADRs 0002–0005 are accepted. The pure `@cookbook/domain` package, the normalized recipe database schema, and the first domain migration are implemented (implementation sequence slice 1). Recipe aggregate create, read, and update are implemented behind the authenticated API boundary, with the shared error envelope and API integration tests (slice 2). The primary recipe photo is implemented end to end on the API: authenticated multipart upload, verified decoding, WebP variant generation, authenticated delivery, replacement, deletion, and orphan reconciliation (slice 3). The recipe creation, detail, edit, and serving-scaling screens are implemented on `@pior-labs/design-system` tokens, together with the category/tag read endpoints and the minimal recent-recipe list they depend on (slice 4). Browse/search with cursor pagination, the home discovery response, full category and tag management, and the `/`, `/recipes`, and `/organize` screens are implemented (slice 5). Per-user favorites, 1-5 ratings, and recently viewed history are implemented end to end, including the `/favorites` and `/recent` screens and the favorite and rating browse filters (slice 6). Recoverable deletion is implemented end to end: a recipe moves to Trash without destroying anything, restoration returns it with all of its retained state, and permanent deletion from Trash removes its rows and image files (slice 7). Mobile and accessibility polish and the Playwright critical-path suite are implemented, and the provisioning and restore procedures are documented in [`OPERATIONS.md`](./OPERATIONS.md) (slice 8). Every Phase 1 capability is implemented, covered by tests, and deployed on the household network. Cooking Mode, listed through Phase 1 as a 1.x candidate, is also implemented. MCP v1 is implemented: a read-only stdio server exposing the six capabilities the PRD names, acting as one configured household member.
 
 ## Completed
 
@@ -33,7 +33,7 @@ The Cookbook scaffold and central SSO integration are implemented and configured
 - Responsive login, session restoration, authenticated home, and logout states implemented and exercised locally end to end.
 - Authenticated screens carry the same language as *ambient shell, solid content*: the mesh drifts behind every screen (rendered once in `App`, at a lower blob opacity), the topbar is glass over it, page content sits on its own wash, and cards, panels, and fields stay opaque so recipe text is never set over moving colour.
 - Bloom / Slate theme picker on the sign-in card and in the topbar, persisted by the design system; component tests mount screens through a theme-aware `render` helper.
-- Login and session-restore screens rebuilt to the chosen login concept, "Frosted Recipe Card" ([`design/02-frosted-recipe-card.md`](./design/02-frosted-recipe-card.md)): a ruled recipe card in glass over the design system's drifting mesh, in the same materials as the central `service-auth` sign-in page. The concept gallery now renders the real screen in slot 2, and the template's leftover login palette and dead placeholder styles are gone from `index.css`.
+- Login and session-restore screens rebuilt on the design system's own materials - the drifting mesh, glass, and the Fraunces display the central `service-auth` sign-in page uses - so leaving for SSO and coming back reads as one continuous product. The screen in use is concept 7, "The Index, Lit": a printed index drifting floor to ceiling with one band cut edge to edge through it. The authenticated shell still carries the "Frosted Recipe Card" language it was built on. Earlier concepts remain parked as a design study at `/designs/login/1..4`.
 - Static-only web Caddy runtime, private container ports, and health checks confirmed.
 - CI configured to install, typecheck, test, and build the pnpm workspace.
 - Manual production deployment workflow retained pending external provisioning.
@@ -95,23 +95,30 @@ The Cookbook scaffold and central SSO integration are implemented and configured
 - Mobile pass: the section navigation is one scrollable strip instead of two wrapped rows, photo-less recipe cards no longer reserve a screen of blank space, small controls take a full 44px target on touch devices, and button labels no longer wrap mid-word.
 - Browse filters open on request rather than standing open: the panel is a toolbar (search, sort, and a Filters control carrying the count applied) over a line of chips naming every narrowing in force, with the filters themselves inline on a wide screen and a sheet over the page on a phone, where they had been the entire first screen.
 - Tag colours: a tag can be given a colour (`tags.color`, migration `0002`, nullable so "no colour" stays the ordinary state) - one of seven palette swatches or any six-digit hex typed into the box beside them - set from `/organize`, where a colour or a rename is written into the row it changed rather than by refetching the list, and rendered wherever a tag appears - the browse filters, the recipe form, and the recipe itself - by mixing the tag's hex against the active theme's ink and surface rather than painting it flat.
+- Cooking Mode: a full-screen cooking view reached by "Cook this" on a recipe, with the shell's navigation dropped, 40px step numerals, ingredients that tick off as they go, the serving control kept to hand, and a screen wake lock held while it is on and released the moment it is not. Entering or leaving it returns to the top of the page, so tapping "Cook this" from the bottom of a long recipe does not land mid-list.
+- MCP v1 (`@cookbook/mcp-server`, [ADR 0006](./DECISIONS/0006-read-only-stdio-mcp-server.md), technical design section 20): a read-only stdio server exposing `search_recipes`, `get_recipe`, `get_recipes_by_tag`, `get_favorites`, `get_top_rated_recipes`, and `scale_recipe`.
+- The MCP server calls the API's application services rather than issuing its own SQL or going back through HTTP, so the active-recipe predicate, the household-rating aggregate, and the serving arithmetic have one implementation. `@cookbook/api` gained a narrow `exports` map, and the service barrel re-exports only readers, so read-only is enforced by what resolves rather than by convention.
+- The acting household member is resolved from `COOKBOOK_MCP_USER_EMAIL` at startup and is never a tool argument, so `get_favorites` has exactly one possible subject and an assistant cannot reach the other member's preferences. A configured address that names nobody is a startup failure.
+- MCP tests: rendering and empty-state unit tests, and a contract test that connects a real client over an in-memory transport and asserts the tool inventory, `readOnlyHint` on every tool, that no tool accepts a user, and that every listing tool bounds its results. `pnpm --filter @cookbook/mcp-server smoke` runs the real process over stdio against the development database and is the only check that catches a stray write to stdout.
+- Compose service and Dockerfile for the MCP server, deployed the way `finlens-mcp-server` already is: a long-running container on `pior_data` that clients `exec` into over SSH, with no published port and no route in `platform-deploy`. It reads the same platform-managed connection file as the API, so the database password never reaches a client machine. Its health check asks whether an `exec`'d session would actually work - database reachable, configured user resolving - rather than whether the idle process is up.
 - `docs/OPERATIONS.md`: provisioning checklist for `service-auth`, `platform-deploy`, and this repository; the database-and-images backup set; the restore procedure with its reconciliation and image-read verification; and routine maintenance.
 
 ## In progress
 
-- Nothing in this repository. Phase 1 is feature-complete; the remaining work is
-  external provisioning, listed under **Next**.
+- Nothing. MCP v1 is implemented and tested.
 
 ## Next
 
-1. Register the shared `localhost:5173` callback and reseed the `cookbook` client in the production `service-auth` environment.
-2. Provision the Cookbook database, persistent image directory (`PLATFORM_IMAGE_STORAGE_DIR`), routes, DNS, and connection file in `platform-deploy`.
-3. Run the documented restore verification (`OPERATIONS.md` section 4) against the provisioned environment, then enable the deployment workflow's push trigger.
-4. Once Phase 1 is deployed and stable, begin MCP v1.
+1. Point each household member's assistant at the MCP server and use it, then let real use decide whether MCP v1 needs anything more.
+2. Consider whether per-user writes - favorite and rate, which touch only the
+   acting user's own preferences and are reversible - are worth adding to MCP.
+   ADR 0006 leaves this to a later decision rather than assuming it.
+3. Verify the documented restore procedure (`OPERATIONS.md` section 4) against the deployed environment if it has not been run since deployment.
+4. Begin Phase 2 (meal planning and grocery lists) when the household wants it. The unresolved problem there is canonical cross-recipe ingredient identity for grocery aggregation, deferred in technical design section 18.
 
 ## Phase 1 — Core Cookbook
 
-**Status:** Feature-complete — every listed capability is implemented and tested; production provisioning is the only outstanding work
+**Status:** Complete — every listed capability is implemented, tested, and deployed on the household network
 
 Planned scope includes:
 
@@ -131,18 +138,17 @@ Planned scope includes:
 - Responsive consumer-quality UI/UX
 - Integration with existing Pior Labs authentication
 
-### Phase 1.x candidate
+### Phase 1.x
 
-- Dedicated Cooking Mode
-
-Cooking Mode is desirable but is not required for the initial Phase 1 release.
+- Dedicated Cooking Mode — **implemented**. Timers and step completion remain future ideas rather than current requirements (technical design section 18).
 
 ## MCP v1
 
-**Status:** Not started  
-**Timing:** After Phase 1
+**Status:** Implemented — read-only, stdio, six tools
 
-MCP should begin once the Phase 1 recipe model and API are stable. Initial read-oriented capabilities are expected to cover recipe search, retrieval, favorites, ratings/tags, and serving scaling.
+All six capabilities the PRD names are implemented in `packages/mcp-server`: `search_recipes`, `get_recipe`, `get_recipes_by_tag`, `get_favorites`, `get_top_rated_recipes`, and `scale_recipe`.
+
+Transport, data access, identity, and permissions are recorded in [ADR 0006](./DECISIONS/0006-read-only-stdio-mcp-server.md) and specified in technical design section 20. Writes are deliberately out of scope for v1 and remain deferred.
 
 ## Phase 2 — Meal Planning and Grocery Lists
 

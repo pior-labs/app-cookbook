@@ -52,6 +52,52 @@ services:
         aliases:
           - ${APP_SLUG:-cookbook}-web
 
+  # The MCP server (ADR 0006). Read-only recipe tools for a household member's
+  # own assistant, speaking MCP over stdio.
+  #
+  # Deployed the same way as `finlens-mcp-server`: the container stays up with
+  # stdin held open, and each client gets its own process through
+  #
+  #   docker exec -i cookbook-mcp-server node packages/mcp-server/dist/index.js
+  #
+  # `-i` is required. Without it the process has no stdin, and the failure looks
+  # like a server that never answers rather than a missing flag.
+  #
+  # The container's own CMD process is what holds the container open; it serves
+  # no client itself. Health is therefore not "is the process up" but "could an
+  # exec'd session actually work" - see `src/healthcheck.ts`.
+  #
+  # It joins `pior_data` only. It needs the database and nothing else: no edge
+  # network, no published port, and no route in `platform-deploy`.
+  mcp:
+    build:
+      context: .
+      dockerfile: packages/mcp-server/Dockerfile
+    container_name: cookbook-mcp-server
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${DOCKER_DATABASE_URL:-${DATABASE_URL:-}}
+      DATABASE_URL_FILE: ${DATABASE_URL_FILE:-}
+      # Which household member this server acts as. Per-user tools answer for
+      # this person, so a second member wanting their own favorites needs their
+      # own container rather than a second client pointed at this one.
+      COOKBOOK_MCP_USER_EMAIL: ${COOKBOOK_MCP_USER_EMAIL:-}
+      MCP_LOG_LEVEL: ${MCP_LOG_LEVEL:-info}
+    # Keeps stdin open so the long-running container stays alive. No TTY: a TTY
+    # breaks the JSON-RPC framing on the exec'd session.
+    stdin_open: true
+    tty: false
+    healthcheck:
+      test: ["CMD", "node", "packages/mcp-server/dist/healthcheck.js"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      pior_data:
+
 volumes:
   cookbook_images:
 

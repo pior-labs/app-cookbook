@@ -8,3 +8,14 @@ services:
     volumes:
       - ${PLATFORM_DATABASE_URL_FILE:?Set PLATFORM_DATABASE_URL_FILE to the platform-managed database-url file}:/run/secrets/database_url:ro
       - ${PLATFORM_IMAGE_STORAGE_DIR:?Set PLATFORM_IMAGE_STORAGE_DIR to the platform-managed recipe image directory}:/var/lib/cookbook/images
+
+  # The MCP server reads the same platform-managed connection file as the API,
+  # mounted read-only. The credential stays server-managed and never reaches a
+  # client machine: a household member's assistant runs `docker exec` over SSH
+  # and never sees the password (ADR 0006).
+  mcp:
+    environment:
+      DATABASE_URL: ""
+      DATABASE_URL_FILE: /run/secrets/database_url
+    volumes:
+      - ${PLATFORM_DATABASE_URL_FILE:?Set PLATFORM_DATABASE_URL_FILE to the platform-managed database-url file}:/run/secrets/database_url:ro

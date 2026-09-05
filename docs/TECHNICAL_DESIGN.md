@@ -1,11 +1,11 @@
 # Technical Design
 
-**Document version:** 1.0
+**Document version:** 1.1
 **Status:** Accepted
-**Last updated:** 2026-08-22
-**Current product scope:** Phase 1 — Core Cookbook
+**Last updated:** 2026-09-04
+**Current product scope:** Phase 1 — Core Cookbook, plus MCP v1
 
-This document defines how the approved Phase 1 requirements in [`PRD.md`](./PRD.md) will be implemented. It deliberately excludes later product phases and MCP implementation.
+This document defines how the approved Phase 1 requirements in [`PRD.md`](./PRD.md) will be implemented. It deliberately excludes later product phases. Section 20 covers MCP v1, which follows Phase 1 rather than belonging to it.
 
 ## 1. Goals and constraints
 
@@ -615,7 +615,7 @@ PostgreSQL and `IMAGE_STORAGE_DIR` form one application backup set. Recovery doc
 7. Add Trash, restoration, permanent deletion, and recovery tests.
 8. Complete mobile/accessibility polish, end-to-end coverage, production provisioning, and restore verification.
 
-Each implementation step should be an independently reviewable vertical slice. Do not begin Phase 2+, Recipe Roulette, or MCP work after Phase 1.
+Each implementation step should be an independently reviewable vertical slice. Do not begin Phase 2+ or Recipe Roulette work after Phase 1. MCP v1 (section 20) begins once Phase 1 is deployed and stable.
 
 ## 18. Deferred decisions
 
@@ -628,7 +628,7 @@ The following are intentionally deferred because Phase 1 does not need them:
 - PostgreSQL full-text/trigram search or a separate search service;
 - multiple images per recipe;
 - Cooking Mode timers and progress;
-- MCP transport, permissions, and tool contracts.
+- MCP write permissions and any tool that changes household or per-user state (section 20.4).
 
 These deferrals must not be interpreted as permission to add the features during Phase 1.
 
@@ -640,6 +640,91 @@ Durable decisions are recorded in [`DECISIONS/`](./DECISIONS/README.md):
 - [ADR 0002 — Exact ingredient quantities with application units](./DECISIONS/0002-exact-ingredient-quantities.md) — accepted;
 - [ADR 0003 — Authenticated local recipe image storage](./DECISIONS/0003-authenticated-local-image-storage.md) — accepted;
 - [ADR 0004 — Household-scale relational search](./DECISIONS/0004-household-scale-relational-search.md) — accepted;
-- [ADR 0005 — Recoverable recipe deletion](./DECISIONS/0005-recoverable-recipe-deletion.md) — accepted.
+- [ADR 0005 — Recoverable recipe deletion](./DECISIONS/0005-recoverable-recipe-deletion.md) — accepted;
+- [ADR 0006 — A read-only stdio MCP server with a configured acting user](./DECISIONS/0006-read-only-stdio-mcp-server.md) — accepted.
 
 This technical design and ADRs 0002–0005 were accepted on 2026-08-22, unblocking the Phase 1 domain migration.
+
+## 20. MCP v1
+
+MCP v1 exposes the recipe library to a household member's own assistant. It follows Phase 1 rather than belonging to it, and is implemented in `packages/mcp-server` (`@cookbook/mcp-server`). The decisions below are recorded in [ADR 0006](./DECISIONS/0006-read-only-stdio-mcp-server.md) and resolve what section 18 previously deferred.
+
+### 20.1 Transport
+
+stdio. The client is a household member's assistant running on their own machine, and it launches the server itself. This needs no listening port, no route in `platform-deploy`, no TLS, and no second authentication path into the application.
+
+An HTTP transport would require all four to serve two people, so it is not part of v1.
+
+### 20.2 Data access
+
+The MCP server calls the application services in `packages/api/src/services`. It does not issue its own SQL and does not call the HTTP API. This is the boundary section 3 anticipated.
+
+`@cookbook/api` exposes exactly two entry points through its `exports` map:
+
+- `@cookbook/api/services` — the read services listed in `services/index.ts`;
+- `@cookbook/api/db` — `closeDatabase` for shutdown.
+
+Routes, middleware, repositories, and the image pipeline stay internal. The service barrel re-exports **only readers**, so read-only is enforced by what resolves rather than by convention.
+
+Serving scaling and quantity formatting come from `@cookbook/domain`, so a recipe scaled in conversation matches the same recipe scaled in the browser exactly.
+
+### 20.3 Identity
+
+The acting household member is configuration, not a tool argument.
+
+`COOKBOOK_MCP_USER_EMAIL` is resolved against the unique `users.email` column once at startup, before the transport is connected; a value naming nobody is a startup failure. The resolved local user ID is passed to every per-user service call, exactly as `requireAuth` passes the session user ID at the HTTP boundary (section 6).
+
+Because no tool accepts a user, `get_favorites` has exactly one possible subject and an assistant cannot address another household member's data.
+
+### 20.4 Permissions
+
+Every tool is read-only and annotated `readOnlyHint: true`. Nothing creates, edits, favorites, rates, or deletes.
+
+View recording is also excluded. Section 4.6 separated view recording from reading a recipe so that MCP reads would not change browser history; asking an assistant about a recipe is not opening it, and must not reorder `/recent`.
+
+Write permissions remain deferred (section 18). A later revision should start with favorite and rate, which touch only the acting user's own preferences and are reversible.
+
+### 20.5 Tool contracts
+
+The six capabilities PRD section 10 names:
+
+| Tool | Backing service | Notes |
+| --- | --- | --- |
+| `search_recipes` | `searchRecipes` | Free text plus category, time, rating, and favorites filters. Category is named, not numbered. |
+| `get_recipe` | `getRecipe` | Full aggregate, optionally scaled. |
+| `get_recipes_by_tag` | `listTags` + `searchRecipes` | Match-all by tag name. |
+| `get_favorites` | `searchRecipes` | Scoped to the acting user. |
+| `get_top_rated_recipes` | `searchRecipes` | Household average, sorted by rating. |
+| `scale_recipe` | `getRecipe` + domain scaling | Ingredients only. |
+
+Every tool returns both a text rendering and `structuredContent`. The text is what a cook would be told (`½ cups onion, finely chopped`), because a model relaying a raw fraction object reads it wrong to a person.
+
+Structured output is validated by the client against the declared schema with `additionalProperties: false`, so payloads are constructed field by field rather than spread from a service record — an undeclared field is a failed tool call, not a harmless extra.
+
+A name that does not resolve — an unknown category or tag — is a tool error naming what is available, never a silently widened result.
+
+Every listing tool caps its `limit` at 50 and defaults to 10.
+
+### 20.6 Operational shape
+
+The server runs on the application host as a long-running container that clients `exec` into, matching `finlens-mcp-server` on the same host:
+
+```
+ssh <host> "docker exec -i cookbook-mcp-server node packages/mcp-server/dist/index.js"
+```
+
+`-i` is required, and the container allocates no TTY; a TTY breaks the JSON-RPC framing. Each session gets its own process. The container's own `CMD` process serves no client and exists only to hold the container open.
+
+Health is therefore defined as "could an exec'd session work" — the database is reachable and `COOKBOOK_MCP_USER_EMAIL` resolves to a real household member — rather than "is the process running", so a misconfigured container is visible on the host instead of failing every session.
+
+The container joins `pior_data` only — no edge network, no published port, no route in `platform-deploy`. It reads the same platform-managed connection file as the API (`DATABASE_URL_FILE`), so the credential stays server-managed and never reaches a client machine. Logs are JSON on **stderr**; stdout carries the protocol and nothing else.
+
+Because the acting user is part of the container's environment, one container serves one household member. A second member runs a second service with their own address.
+
+### 20.7 Testing
+
+- Unit tests cover the rendering — ingredient lines, scaling, summary lines, empty states — and need no database.
+- A contract test connects a real client to the server over an in-memory transport and asserts the tool inventory, that every tool is read-only, that no tool accepts a user, and that every listing tool bounds its results.
+- `pnpm --filter @cookbook/mcp-server smoke` launches the real process and calls every tool over stdio against the development database. It is the only check that catches a stray write to stdout.
+
+The queries themselves are already covered by the API integration suite (section 14.2) and are not duplicated here.

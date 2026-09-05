@@ -18,10 +18,12 @@ The application is currently in **Phase 1 — Core Cookbook**. The responsive ap
 ## Repository layout
 
 ```text
-packages/domain/  pure business rules, validation schemas, and domain types
-packages/api/     Hono API, Drizzle tooling, and integration tests
-packages/web/     React application and static Caddy runtime
-docs/             product requirements, technical design, status, and decisions
+packages/domain/      pure business rules, validation schemas, and domain types
+packages/api/         Hono API, Drizzle tooling, and integration tests
+packages/web/         React application and static Caddy runtime
+packages/mcp-server/  read-only MCP access to the cookbook, over stdio
+packages/e2e/         Playwright critical-path suite
+docs/                 product requirements, technical design, status, and decisions
 ```
 
 The product source of truth is [`docs/PRD.md`](docs/PRD.md). Check [`docs/STATUS.md`](docs/STATUS.md) before assuming a documented requirement exists in the application.
@@ -146,7 +148,7 @@ In production the directory must be a persistent mount into the API container, p
 pnpm test
 ```
 
-`@cookbook/domain` runs pure Vitest unit tests. `@cookbook/web` runs React Testing Library tests in jsdom for serving controls and scaled ingredient display, recipe form validation and ordered-row editing, accessible labelling, and page-level error and conflict states. `@cookbook/api` runs Vitest integration tests against a real PostgreSQL database rather than mocked SQL: the suite creates a disposable, per-run `<database>_test_<suffix>` database on the server named by `DATABASE_URL`, applies every migration to it, resets state before each test, and drops it afterwards. Image tests write real files to a disposable temporary directory created and removed by the same harness, so they never touch `IMAGE_STORAGE_DIR`. Two suites can run at once without colliding. `TEST_DATABASE_URL` points the suite at a specific database instead; it must not name the database in `DATABASE_URL`, and the harness refuses to start if it does, because it drops and recreates whatever it is given.
+`@cookbook/domain` runs pure Vitest unit tests. `@cookbook/web` runs React Testing Library tests in jsdom for serving controls and scaled ingredient display, recipe form validation and ordered-row editing, accessible labelling, and page-level error and conflict states. `@cookbook/api` runs Vitest integration tests against a real PostgreSQL database rather than mocked SQL: the suite creates a disposable, per-run `<database>_test_<suffix>` database on the server named by `DATABASE_URL`, applies every migration to it, resets state before each test, and drops it afterwards. Image tests write real files to a disposable temporary directory created and removed by the same harness, so they never touch `IMAGE_STORAGE_DIR`. Two suites can run at once without colliding. `TEST_DATABASE_URL` points the suite at a specific database instead; it must not name the database in `DATABASE_URL`, and the harness refuses to start if it does, because it drops and recreates whatever it is given. `@cookbook/mcp-server` runs rendering unit tests and a contract test that speaks MCP to the server over an in-memory transport; neither needs a database.
 
 ## Authentication
 
@@ -239,6 +241,21 @@ The deployment workflow remains manual until the production runner and these ext
 
 [`docs/OPERATIONS.md`](docs/OPERATIONS.md) carries the full runner setup, provisioning checklist, and backup and restore procedure.
 
+## MCP
+
+`packages/mcp-server` gives a household member's own assistant read-only access to the cookbook over stdio: recipe search, retrieval, tags, favorites, top-rated, and serving scaling.
+
+It calls the API's application services rather than issuing its own SQL, so serving arithmetic and the active-recipe rules have one implementation. The acting household member comes from `COOKBOOK_MCP_USER_EMAIL` and is never a tool argument, so an assistant cannot read the other member's favorites. Nothing it exposes can write.
+
+In production it runs as a long-running container that clients `exec` into over SSH, the same way `finlens-mcp-server` does:
+
+```sh
+claude mcp add cookbook -- ssh <host> \
+  "docker exec -i cookbook-mcp-server node packages/mcp-server/dist/index.js"
+```
+
+See [`packages/mcp-server/README.md`](packages/mcp-server/README.md) for client configuration, [ADR 0006](docs/DECISIONS/0006-read-only-stdio-mcp-server.md) for why it is shaped this way, and technical design section 20 for the contracts.
+
 ## Scope
 
-Phase 1 is feature-complete: recipes, images, the product UI, search and discovery, categories and tags, favorites, ratings, recently viewed history, and Trash are implemented and covered by tests. What remains is external - the OAuth client, database, image directory, and routes listed above. Meal planning, grocery lists, imports, Recipe Roulette, and MCP are later work and are outside the current phase. See [`docs/STATUS.md`](docs/STATUS.md) for the authoritative state.
+Phase 1 is complete and deployed: recipes, images, the product UI, search and discovery, categories and tags, favorites, ratings, recently viewed history, Trash, and Cooking Mode are implemented and covered by tests. MCP v1 is implemented and read-only. Meal planning, grocery lists, imports, and Recipe Roulette are later work and are outside the current phase. See [`docs/STATUS.md`](docs/STATUS.md) for the authoritative state.
