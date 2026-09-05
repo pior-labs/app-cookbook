@@ -8,6 +8,7 @@ import {
 } from '@cookbook/domain';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
+import { track } from '../inflight.js';
 import type { Logger } from '../logger.js';
 
 // The acting household member, resolved from configuration before any tool runs
@@ -34,18 +35,23 @@ export function toolError(message: string): CallToolResult {
 // A failing tool must answer, not throw. An unhandled rejection would take the
 // stdio server down mid-session and leave the client with no reply at all, so
 // every handler runs inside this.
+//
+// It is also what counts a call as in-flight, so a shutdown triggered by the
+// client closing stdin waits for the call rather than cutting it off mid-query.
 export async function runTool(
   logger: Logger,
   tool: string,
   run: () => Promise<CallToolResult>,
 ): Promise<CallToolResult> {
-  try {
-    return await run();
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unexpected error while running the tool.';
-    logger.warn('Tool call failed', { tool, error: message });
-    return toolError(message);
-  }
+  return track(async () => {
+    try {
+      return await run();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unexpected error while running the tool.';
+      logger.warn('Tool call failed', { tool, error: message });
+      return toolError(message);
+    }
+  });
 }
 
 export function formatCount(count: number, noun: string): string {

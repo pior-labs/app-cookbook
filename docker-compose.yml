@@ -85,9 +85,16 @@ services:
       # own container rather than a second client pointed at this one.
       COOKBOOK_MCP_USER_EMAIL: ${COOKBOOK_MCP_USER_EMAIL:-}
       MCP_LOG_LEVEL: ${MCP_LOG_LEVEL:-info}
-    # Keeps stdin open so the long-running container stays alive. No TTY: a TTY
-    # breaks the JSON-RPC framing on the exec'd session.
-    stdin_open: true
+    # The container exists to be `exec`'d into, one server process per client
+    # session (ADR 0006 section 4). Its own main process serves nobody, so it is
+    # a keep-alive rather than an idle MCP server that nobody talks to - which
+    # would hold a Postgres connection open for no one, and would now exit the
+    # moment anything closed the container's stdin, taking the container with
+    # it.
+    #
+    # The image's CMD is still the server, so `docker run -i` on it works.
+    command: ["sleep", "infinity"]
+    # No TTY: a TTY breaks the JSON-RPC framing on the exec'd session.
     tty: false
     healthcheck:
       test: ["CMD", "node", "packages/mcp-server/dist/healthcheck.js"]

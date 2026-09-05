@@ -1,3 +1,4 @@
+import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
@@ -27,6 +28,84 @@ function text(result: unknown): string {
 
 function heading(label: string): void {
   console.log(`\n${'='.repeat(70)}\n${label}\n${'='.repeat(70)}`);
+}
+
+// Regression check for the leak the first production probe exposed. The SDK's
+// stdio transport listens for `data` and `error` on stdin and nothing else, so a
+// client that simply goes away - closing the pipe without signalling - used to
+// leave the server sitting on an idle transport with an open database pool,
+// which held the event loop open forever. Deployed as one long-running
+// container that clients `docker exec` into, that meant a leaked process and a
+// leaked Postgres connection per session, accumulating with nothing to reap
+// them.
+//
+// `client.close()` cannot catch this: it kills the subprocess outright. Only
+// closing stdin and waiting does.
+async function checkExitsOnStdinClose(): Promise<void> {
+  const child = spawn(process.execPath, ['--import', 'tsx', serverEntry], {
+    cwd: fileURLToPath(new URL('..', import.meta.url)),
+    env: process.env as Record<string, string>,
+    stdio: ['pipe', 'pipe', 'inherit'],
+  });
+
+  const exited = new Promise<number | null>((resolve) => child.once('exit', resolve));
+
+  // The server says nothing until it is spoken to, so ask it something and wait
+  // for the answer. That the reply arrives is what proves it is fully started
+  // rather than still resolving its identity - shutting down mid-bootstrap
+  // would exit for the wrong reason and prove nothing.
+  let replies = '';
+  child.stdout.on('data', (chunk: Buffer) => {
+    replies += chunk.toString();
+  });
+
+  const request = (message: unknown) => child.stdin.write(`${JSON.stringify(message)}\n`);
+
+  request({
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'initialize',
+    params: {
+      protocolVersion: '2024-11-05',
+      capabilities: {},
+      clientInfo: { name: 'cookbook-smoke-shutdown', version: '0.1.0' },
+    },
+  });
+
+  await new Promise<void>((resolve, reject) => {
+    child.stdout.once('data', () => resolve());
+    child.once('exit', (code) =>
+      reject(new Error(`Server exited (${code}) before it answered initialize.`)),
+    );
+  });
+
+  // A tool call written immediately before EOF - the shape a script or a
+  // batch session has, and the one that first exposed this. Shutdown must
+  // drain it rather than exit with the answer still in flight.
+  request({ jsonrpc: '2.0', method: 'notifications/initialized' });
+  request({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'get_favorites', arguments: {} } });
+  child.stdin.end();
+
+  const timer = setTimeout(() => child.kill('SIGKILL'), 10_000);
+  const code = await exited;
+  clearTimeout(timer);
+
+  if (code !== 0) {
+    throw new Error(
+      `Server did not exit cleanly when stdin closed (exit ${code}). It is holding the event loop open, which leaks a process and a database connection per session.`,
+    );
+  }
+
+  const answered = replies
+    .split('\n')
+    .filter(Boolean)
+    .some((line) => (JSON.parse(line) as { id?: number }).id === 2);
+
+  if (!answered) {
+    throw new Error(
+      'Server exited without answering a tool call that was in flight when stdin closed. Shutdown is cutting off work instead of draining it.',
+    );
+  }
 }
 
 async function main() {
@@ -107,6 +186,11 @@ async function main() {
   console.log(text(await client.callTool({ name: 'get_recipe', arguments: { recipeId: 999_999 } })));
 
   await client.close();
+
+  heading('Exits when the client closes stdin');
+  await checkExitsOnStdinClose();
+  console.log('Server exited on its own when stdin closed.');
+
   console.log('\nSmoke check complete.');
 }
 
