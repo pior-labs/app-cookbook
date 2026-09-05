@@ -15,11 +15,17 @@ loadEnv({ path: fileURLToPath(new URL('../../../.env.local', import.meta.url)) }
 loadEnv();
 
 const environmentSchema = z.object({
-  // Read by `@cookbook/api`'s own database module. It is validated here as well
-  // so a missing connection string is reported as configuration at startup
-  // rather than as a connection failure on the first tool call.
-  DATABASE_URL: z.string().min(1).optional(),
-  DATABASE_URL_FILE: z.string().min(1).optional(),
+  // Read by `@cookbook/api`'s own database module. Checked here as well so a
+  // missing connection string is reported as configuration at startup rather
+  // than as a connection failure on the first tool call.
+  //
+  // Deliberately not `.min(1)`: production sets `DATABASE_URL: ""` alongside
+  // `DATABASE_URL_FILE` so the password stays in a platform-managed file, and a
+  // length rule here would reject that arrangement instead of falling through
+  // to the file. Empty and unset both mean "not provided"; the check below
+  // treats them the same, as `@cookbook/api`'s `requiredEnvOrFile` does.
+  DATABASE_URL: z.string().optional(),
+  DATABASE_URL_FILE: z.string().optional(),
 
   // Which household member this server acts as. Per-user tools - favorites and
   // the caller's own ratings - answer for this person and no one else, and the
@@ -63,7 +69,7 @@ export function mcpEnv(): McpEnv {
     );
   }
 
-  if (!DATABASE_URL && !DATABASE_URL_FILE) {
+  if (!DATABASE_URL?.trim() && !DATABASE_URL_FILE?.trim()) {
     throw new Error(
       'Invalid MCP server configuration - set DATABASE_URL, or DATABASE_URL_FILE in production so the password stays server-managed.',
     );
