@@ -1,4 +1,5 @@
 export * from './shared.js';
+export * from './users.js';
 export * from './cursor.js';
 export * from './categories.js';
 export * from './tags.js';
