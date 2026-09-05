@@ -13,6 +13,7 @@
 import { closeDatabase } from '@cookbook/api/db';
 import { resolveUserByEmail } from '@cookbook/api/services';
 import { mcpEnv } from './env.js';
+import { describeCause } from './errors.js';
 
 try {
   const env = mcpEnv();
@@ -22,7 +23,10 @@ try {
     throw new Error(`COOKBOOK_MCP_USER_EMAIL "${env.userEmail}" is not a Cookbook user.`);
   }
 } catch (error) {
-  console.error(error instanceof Error ? error.message : String(error));
+  // Through `describeCause` for the same reason startup uses it: an unreachable
+  // database otherwise reports itself as a failed `select`, and whoever is
+  // reading `docker inspect` output goes looking at the query.
+  console.error(describeCause(error));
   process.exitCode = 1;
 } finally {
   await closeDatabase();

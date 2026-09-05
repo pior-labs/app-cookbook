@@ -125,16 +125,20 @@ like a server that never answers rather than a missing flag. The container must
 not allocate a TTY, which would corrupt the JSON-RPC framing.
 
 This is the pattern `finlens-mcp-server` already uses on the same host, and
-matching it is the point: one way to run an MCP server across the platform is
-worth more than the idle process it costs. Each client session gets its own
-`exec`'d process; the container's own `CMD` process serves no client and exists
-only to hold the container open.
+matching it is the point.
 
-That idle process is the real cost of this choice, and it is why health is
-defined as "could an `exec`'d session work" - the database is reachable and the
-configured user resolves - rather than "is the process running". A container
-whose main process is healthy but whose configuration is wrong would otherwise
-look fine while every session failed.
+Each client session gets its own `exec`'d process. The container's main process
+serves no client and exists only to hold the container open, so compose runs it
+as `sleep infinity` rather than as an MCP server that nobody talks to. An idle
+server there would hold a Postgres connection open for no one, and -
+since a stdio server must exit when its client closes stdin - would stop the
+container the moment anything closed the container's own stdin.
+
+Because the main process is therefore deliberately inert, health cannot be "is
+the process running". It is defined instead as "could an `exec`'d session work":
+the database is reachable and the configured user resolves. A container whose
+main process is up but whose configuration is wrong would otherwise look fine
+while every session failed.
 
 The alternative considered and rejected was a per-session container
 (`docker compose run --rm -T`), which leaves nothing idle and matches a stdio

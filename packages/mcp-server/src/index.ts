@@ -2,6 +2,8 @@ import { closeDatabase } from '@cookbook/api/db';
 import { resolveUserByEmail } from '@cookbook/api/services';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { mcpEnv } from './env.js';
+import { describeCause } from './errors.js';
+import { track, whenIdle } from './inflight.js';
 import { createLogger } from './logger.js';
 import { createServer } from './server.js';
 import type { ActingUser } from './tools/helpers.js';
@@ -9,19 +11,10 @@ import type { ActingUser } from './tools/helpers.js';
 // The Cookbook MCP server (ADR 0006): read-only tools over stdio, acting as one
 // configured household member.
 
-// A driver error's `message` describes the statement that failed; the reason it
-// failed - refused connection, unknown host, bad password - is on `cause`.
-// Reporting only the message sends an operator looking at the wrong thing.
-function describeCause(error: unknown): string {
-  if (!(error instanceof Error)) return String(error);
-
-  const cause = error.cause;
-  if (cause instanceof Error && cause.message !== error.message) {
-    return `${cause.message} (while running: ${error.message.split('\n')[0]})`;
-  }
-
-  return error.message.split('\n')[0];
-}
+// How long shutdown waits for in-flight work. Long enough for a tool call
+// already talking to the database to finish and answer, short enough that a
+// stuck one does not outlive the client that asked.
+const SHUTDOWN_DRAIN_MS = 5_000;
 
 async function main() {
   const env = mcpEnv();
@@ -53,12 +46,16 @@ async function main() {
   const { server, tools } = createServer(user, logger);
 
   let shuttingDown = false;
-  const shutdown = async (signal: NodeJS.Signals) => {
+  const shutdown = async (reason: string) => {
     if (shuttingDown) return;
     shuttingDown = true;
-    logger.info('Shutting down', { signal });
+    logger.info('Shutting down', { reason });
 
     try {
+      // Let anything already running finish and be written before the transport
+      // and the pool go away. Bounded, so a query that never returns cannot
+      // keep this process alive past its client.
+      await whenIdle(SHUTDOWN_DRAIN_MS);
       await server.close();
       await closeDatabase();
       process.exitCode = 0;
@@ -73,7 +70,33 @@ async function main() {
   process.once('SIGINT', () => void shutdown('SIGINT'));
   process.once('SIGTERM', () => void shutdown('SIGTERM'));
 
-  await server.connect(new StdioServerTransport());
+  // A client that goes away without signalling closes stdin and nothing else,
+  // and `StdioServerTransport` does not watch for that - it only listens for
+  // `data` and `error`. Without this the process would sit on an idle
+  // transport holding a database pool open, which the pool then holds the event
+  // loop with, forever.
+  //
+  // That is not hypothetical here: the deployed shape is one long-running
+  // container that clients `docker exec` into (ADR 0006 section 4), so an
+  // abandoned process is not reaped by anything - it accumulates inside a
+  // container that stays up, one leaked Postgres connection per session.
+  //
+  // Both events, because which one arrives depends on how stdin was handed to
+  // us: a pipe at EOF emits `end` and then `close`, while a handle that is
+  // simply closed may only emit `close`. `shutdown` is idempotent, so hearing
+  // both costs nothing.
+  const endOfInput = () => void shutdown('stdin closed');
+  process.stdin.once('end', endOfInput);
+  process.stdin.once('close', endOfInput);
+
+  // Replies are counted as in-flight too. A handler returning is not the same
+  // as its answer having reached the client, and shutting down in between loses
+  // the reply to a call that had already done its work.
+  const transport = new StdioServerTransport();
+  const send = transport.send.bind(transport);
+  transport.send = (message) => track(() => send(message));
+
+  await server.connect(transport);
 
   // Startup detail goes to stderr. stdout belongs to the transport.
   logger.info('Cookbook MCP server started', {
