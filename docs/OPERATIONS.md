@@ -10,41 +10,46 @@ owns the application, its migrations, and its containers.
 
 ## 1. Provisioning checklist
 
-These are external dependencies. Until every box is ticked, the deploy workflow
-stays manual (`workflow_dispatch`) and the application cannot serve production
-traffic.
+These are the external dependencies Cookbook needs in order to serve production
+traffic. All of them are provisioned; the list is kept as the record of what was
+set up and where, so a rebuild or a second environment has the steps rather than
+having to rediscover them.
+
+The deploy workflow stays manual (`workflow_dispatch`) by choice, not because
+something is missing. A household cookbook is deployed when somebody decides to
+deploy it.
 
 ### service-auth
 
-- [ ] The `cookbook` client exists and is seeded with the production secret.
-- [ ] Its registered callbacks include the canonical
+- [x] The `cookbook` client exists and is seeded with the production secret.
+- [x] Its registered callbacks include the canonical
       `https://cookbook.szarans.ca/api/auth/oauth2/callback/auth-pior` **and**
       the shared local one, `http://localhost:5173/api/auth/oauth2/callback/auth-pior`.
 
 ### platform-deploy
 
-- [ ] Cookbook database and role provisioned.
-- [ ] Connection file written to
+- [x] Cookbook database and role provisioned.
+- [x] Connection file written to
       `/opt/docker/pior-labs/secrets/app-cookbook/database-url`, readable only
       by the deploy user, and referenced by `PLATFORM_DATABASE_URL_FILE`.
-- [ ] Persistent image directory created at
+- [x] Persistent image directory created at
       `/opt/docker/pior-labs/data/app-cookbook/images`, owned by the API
       container's user, and referenced by `PLATFORM_IMAGE_STORAGE_DIR`.
-- [ ] The image directory is included in the same backup schedule as the
+- [x] The image directory is included in the same backup schedule as the
       database (see section 3 - they are one set).
-- [ ] `pior_edge` and `pior_data` networks reachable by the app containers.
-- [ ] Caddy routes `cookbook.szarans.ca/api/*` to `cookbook-api:3000` and
+- [x] `pior_edge` and `pior_data` networks reachable by the app containers.
+- [x] Caddy routes `cookbook.szarans.ca/api/*` to `cookbook-api:3000` and
       everything else to `cookbook-web:80`.
-- [ ] Split-horizon DNS resolves `cookbook.szarans.ca` inside and outside.
+- [x] Split-horizon DNS resolves `cookbook.szarans.ca` inside and outside.
 
 ### This repository
 
-- [ ] `DEPLOY_DIR` repository variable set.
-- [ ] `APP_ENV` repository secret holds the production `.env`, including
+- [x] `DEPLOY_DIR` repository variable set.
+- [x] `APP_ENV` repository secret holds the production `.env`, including
       `PLATFORM_DATABASE_URL_FILE`, `PLATFORM_IMAGE_STORAGE_DIR`,
-      `CENTRAL_AUTH_CLIENT_SECRET`, and a `BETTER_AUTH_SECRET` that is not
-      shared with any other application.
-- [ ] A self-hosted runner labelled `self-hosted, linux, prod` is online.
+      `CENTRAL_AUTH_CLIENT_SECRET`, `COOKBOOK_MCP_USER_EMAIL`, and a
+      `BETTER_AUTH_SECRET` that is not shared with any other application.
+- [x] A self-hosted runner labelled `self-hosted, linux, prod` is online.
 
 ### Dedicated production runner
 
@@ -164,6 +169,22 @@ files second - never the other way around. A file written after the dump is an
 orphan the reconciler can clean up; a row written after the files is a recipe
 with a missing photo, which needs a human.
 
+`pg_dump` and `pg_restore` run on the host, not in a container - the API image is
+`node:22-alpine` and carries no PostgreSQL client. Their major version must match
+the server's, or `pg_restore` will refuse the archive:
+
+```bash
+pg_dump --version && psql -tAc 'show server_version;'
+```
+
+Neither command takes the connection string from the application environment, so
+read it from the platform-managed file first. It is the same file the API
+container mounts, and it is the only place the password lives:
+
+```bash
+export COOKBOOK_DATABASE_URL="$(sudo cat /opt/docker/pior-labs/secrets/app-cookbook/database-url)"
+```
+
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.production.yml stop api
 pg_dump --format=custom --file=cookbook-$(date +%F).dump "$COOKBOOK_DATABASE_URL"
@@ -184,12 +205,19 @@ read.
    docker compose -f docker-compose.yml -f docker-compose.production.yml down
    ```
 
-2. Restore the database into an empty database, then point the connection file
-   at it:
+2. Restore the database in place, over whatever is currently there:
 
    ```bash
+   export COOKBOOK_DATABASE_URL="$(sudo cat /opt/docker/pior-labs/secrets/app-cookbook/database-url)"
    pg_restore --clean --if-exists --dbname "$COOKBOOK_DATABASE_URL" cookbook-YYYY-MM-DD.dump
    ```
+
+   `--clean` drops each object before recreating it and `--if-exists` keeps that
+   quiet when the object is not there, so this same command is correct whether
+   the target is populated or freshly created. Restoring in place means the
+   connection file keeps pointing at the right database and no secret has to be
+   rewritten. Restoring into a *new* database instead is a bigger operation -
+   `platform-deploy` owns that file - and is not this procedure.
 
 3. Restore the image directory from the **matching** archive, preserving
    ownership and permissions:
@@ -213,13 +241,22 @@ read.
      exec api node packages/api/dist/images/reconcile.js
    ```
 
-   - `orphanedFolders` are files no recipe references. After a clean restore
-     this is usually empty; a few are expected if the files were captured after
-     the dump. Remove them only once the restore is confirmed good, by re-running
-     with `--delete`.
+   It exits non-zero when `missingKeys` is not empty, so this step can be
+   scripted: a failing status means storage came back incomplete. Orphaned files
+   alone still exit `0`, because they are not a restore failure.
+
    - `missingKeys` are recipes whose image files are **not** there. This is the
-     serious direction: it means the two halves came from different points in
-     time. Restore the matching image archive rather than deleting anything.
+     serious direction and the one that decides whether the restore succeeded:
+     it means the two halves came from different points in time. Restore the
+     matching image archive rather than deleting anything.
+   - `orphanedFolders` are files no recipe references. This count says nothing
+     about restore quality - it reflects however much churn the directory has
+     accumulated, since every photo replacement leaves the old folder behind for
+     this command to collect. A drill against the development set found 100
+     orphaned folders against 10 referenced ones, all of it ordinary history.
+     Do not read a large number as a failed restore, and do not run `--delete`
+     to tidy it until `missingKeys` is empty and the restore is confirmed good -
+     against a half-restored database those "orphans" are live recipes.
 
 6. Read a representative image end to end, as a signed-in browser would:
 
@@ -231,6 +268,26 @@ read.
 7. Confirm the application itself, not just its storage: sign in, open a recipe,
    scale its servings, and check Trash still lists what it listed before.
 
+### When this was last exercised
+
+2026-09-07, as a drill against the development database and image directory:
+dumped, restored into a scratch database, extracted the image archive to a
+scratch root, and reconciled the two. The dump/restore round-trip preserved
+every row, the image archive extracted byte-identical with ownership intact, and
+`missingKeys` was empty. Deliberately deleting one referenced folder then made
+`missingKeys` report both of its variants, so step 5 does catch the mismatch it
+exists to catch.
+
+The drill also found that the reconciler exited `0` in that state, which would
+have let a scripted restore check pass over an incomplete restore. It now exits
+non-zero on missing files, covered by the reconcile command exit-status tests in
+`packages/api/test/photos.test.ts`.
+
+Not covered by that drill, because dev cannot exercise it: `sudo` access to the
+platform secret file, PostgreSQL client/server versions on the production host,
+and steps 6 and 7, which need the deployed application and a signed-in browser.
+Run those against production before trusting this end to end.
+
 ## 5. Routine maintenance
 
 - **Orphaned image files.** Interrupted uploads and post-commit cleanup failures
@@ -241,3 +298,72 @@ read.
   ([ADR 0005](./DECISIONS/0005-recoverable-recipe-deletion.md)). Trashed recipes
   keep their rows and image files until somebody deletes them permanently. That
   is deliberate: adding expiry is a product decision, not an operational one.
+
+## 6. The MCP server
+
+`cookbook-mcp-server` is a third container in the same stack
+([ADR 0006](./DECISIONS/0006-read-only-stdio-mcp-server.md), technical design
+section 20). It publishes no port, joins `pior_data` only, and has no route in
+`platform-deploy`, so there is nothing to provision for it beyond the stack
+itself. It reads the same platform-managed connection file as the API.
+
+It is read-only. Nothing it exposes can create, edit, favorite, rate, or delete
+a recipe, so it is not part of the backup set and cannot corrupt one.
+
+### One container per household member
+
+`COOKBOOK_MCP_USER_EMAIL` names the household member the server acts as, and it
+comes from the container's environment rather than from the client. `get_favorites`
+therefore has exactly one possible subject.
+
+A second household member needs a **second service** with their own address, not
+a second client pointed at this one. The address must belong to someone who has
+signed in through central SSO at least once - `service-auth` is the only thing
+that creates Cookbook users - and an address naming nobody is a startup failure
+rather than a server that answers with empty results.
+
+### Checking it
+
+The container's own process is `sleep infinity`; it serves no client and exists
+only to hold the container open. So "is the process up" says nothing useful, and
+the health check asks whether an `exec`'d session *would* work - database
+reachable, configured user resolving:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.production.yml \
+  ps mcp
+docker inspect --format '{{.State.Health.Status}}' cookbook-mcp-server
+```
+
+An `unhealthy` container is a misconfiguration visible on the host, rather than
+every client session failing with nothing to look at.
+
+### Client setup
+
+Each household member configures their own client to `exec` into the container
+over SSH:
+
+```sh
+claude mcp add cookbook -- ssh <host> \
+  "docker exec -i cookbook-mcp-server node packages/mcp-server/dist/index.js"
+```
+
+`-i` is required; without it the process gets no stdin and the failure looks
+like a server that never answers. The container allocates no TTY, because a TTY
+breaks the JSON-RPC framing.
+
+The database password never reaches a client machine: PostgreSQL publishes no
+host port, so the client needs SSH rather than a route to the database.
+
+### When something is wrong
+
+Logs are JSON on **stderr**; stdout carries the MCP protocol and nothing else.
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.production.yml \
+  logs --tail 100 mcp
+```
+
+A session that connects and then goes quiet is usually a stray write to stdout
+corrupting the protocol stream. `pnpm --filter @cookbook/mcp-server smoke` is
+the check that catches that; no unit test can.
