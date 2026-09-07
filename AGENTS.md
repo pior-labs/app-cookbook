@@ -6,7 +6,7 @@ This repository is the Pior Labs Cookbook, a private household recipe management
 
 Before making product or architectural changes, use the repository documentation in this order:
 
-1. `docs/PRD.md` — what the Cookbook should do.
+1. `docs/PRD.md` — what the Cookbook should do. Its Phase 1 and MCP v1 sections are delivered; sections 11-13 are the unbuilt phases. Read its "How to read this document" preamble before treating anything in it as outstanding work.
 2. `docs/TECHNICAL_DESIGN.md` — how approved Cookbook-specific requirements are implemented.
 3. `docs/STATUS.md` — what is actually implemented today.
 4. `docs/DECISIONS/` — durable architectural decisions and their rationale.
@@ -16,11 +16,20 @@ Do not assume a requirement in the PRD has already been implemented. Check `docs
 
 ## Current product scope
 
-The current product phase is **Phase 1 — Core Cookbook**.
+**Phase 1 — Core Cookbook is complete**, deployed on the household network, and
+covered by tests. **MCP v1** is implemented: a read-only stdio server
+(`packages/mcp-server`) exposing six recipe tools.
 
-Do not implement Phase 2+ features unless the task explicitly changes scope. MCP v1 is planned after Phase 1 once the recipe model and API are stable.
+Nothing is currently in flight. Phase 2 (meal planning and grocery lists) begins
+when the household wants it; do not start Phase 2+ work unless the task
+explicitly opens that scope.
 
-Important Phase 1 product constraints include:
+Because Phase 1 is done, most work now is change to existing behavior rather
+than new capability. Check `docs/STATUS.md` and the code before adding
+something - the likeliest mistake is now rebuilding what exists, not missing a
+requirement.
+
+The Phase 1 product constraints still hold, and still govern changes:
 
 - Recipes are shared household data.
 - Favorites, ratings, and recently viewed history are per-user.
@@ -30,7 +39,7 @@ Important Phase 1 product constraints include:
 - The UI should feel like a polished consumer cooking application, not primarily an administrative CRUD interface.
 - Mobile usability is important because recipes will be referenced while cooking.
 
-When a product requirement is unclear, prefer the PRD over inference from the template.
+When a product requirement is unclear, prefer the PRD over inference from the existing code.
 
 ## Before making architectural changes
 
@@ -83,16 +92,17 @@ This repository owns:
 - Keep public ports closed unless there is a documented reason to publish them.
 - Use health checks for long-running services.
 
-## Template cleanup
+## Keeping the documentation honest
 
-When this template becomes a real app:
+The scaffold's template cleanup is done: the names, technical design, domain
+schema, migrations, OAuth client, `platform-deploy` provisioning, and deployment
+configuration are all real.
 
-1. replace generic names and descriptions;
-2. complete the Cookbook-specific technical design;
-3. define the real domain schema;
-4. generate and commit the first Drizzle migration;
-5. register the OAuth client;
-6. provision the database and routes in `platform-deploy`;
-7. configure deployment variables/secrets;
-8. update `docs/STATUS.md` as capabilities become real;
-9. update this file only where the application genuinely deviates from platform conventions.
+What remains is ongoing. `docs/STATUS.md` is the one file that claims what
+exists, so update it whenever a capability changes state - and correct
+`README.md` and `docs/TECHNICAL_DESIGN.md` in the same change when a feature
+lands, rather than leaving them describing the application as it used to be. A
+stale document is worse than a missing one, because it is believed.
+
+Record durable architectural choices in `docs/DECISIONS/`, and update this file
+only where the application genuinely deviates from platform conventions.

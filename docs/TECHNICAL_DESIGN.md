@@ -1,8 +1,8 @@
 # Technical Design
 
-**Document version:** 1.1
+**Document version:** 1.2
 **Status:** Accepted
-**Last updated:** 2026-09-04
+**Last updated:** 2026-09-07
 **Current product scope:** Phase 1 — Core Cookbook, plus MCP v1
 
 This document defines how the approved Phase 1 requirements in [`PRD.md`](./PRD.md) will be implemented. It deliberately excludes later product phases. Section 20 covers MCP v1, which follows Phase 1 rather than belonging to it.
@@ -27,7 +27,7 @@ The implementation follows the Pior Labs paved road:
 - pnpm workspaces, Docker Compose, and GitHub Actions;
 - platform-managed Caddy routing and TLS.
 
-Phase 1 does not implement meal planning, grocery lists, recipe importing, Recipe Roulette, nutrition, pantry tracking, public sharing, or MCP.
+Phase 1 does not implement meal planning, grocery lists, recipe importing, Recipe Roulette, nutrition, pantry tracking, or public sharing. MCP is not part of Phase 1 either; it follows it, and is specified separately in section 20.
 
 ## 2. Established foundation
 
@@ -101,7 +101,7 @@ This boundary lets a future MCP server import domain rules and call application 
 | --- | --- |
 | `users`, `accounts`, `sessions`, `verifications` | Existing Better Auth-managed local identity and session records. |
 | `categories` | Shared categories: `id`, `name`, `normalized_name`, timestamps. `normalized_name` is unique. |
-| `tags` | Shared custom tags: `id`, `name`, `normalized_name`, timestamps. `normalized_name` is unique. No tags are seeded. |
+| `tags` | Shared custom tags: `id`, `name`, `normalized_name`, nullable `color`, timestamps. `normalized_name` is unique. No tags are seeded. |
 | `recipes` | Shared recipe record: name, description, base servings, prep/cook minutes, notes, category, source, created-by, optimistic version, timestamps, and soft-delete metadata. |
 | `recipe_ingredients` | Ordered structured ingredients with exact optional quantity, optional unit, name, preparation text, and position. |
 | `recipe_instructions` | Ordered instruction body and position. |
@@ -175,6 +175,8 @@ Recipes require exactly one category. Seed the starter categories Breakfast, Lun
 Deleting a category referenced by any active or trashed recipe returns `409 category_in_use` with the number of affected recipes. The user must reassign those recipes before deletion. This preserves the category of recipes in Trash so restoration is lossless.
 
 Tags are optional and many-to-many. Deleting a tag removes its join rows and does not delete recipes. Renames reject case-insensitive conflicts.
+
+A tag may carry a colour: `tags.color` holds a six-digit hex string, added in migration `0002`. It is nullable rather than defaulted, because "no colour" is the ordinary state and a default would colour every tag ever made without anyone choosing to. The colour is set from `/organize`, either from a small palette or by typing a hex value. It is presentation only - nothing filters, sorts, or groups by it - and it is rendered by mixing the hex against the active theme's ink and surface rather than painting it flat, so a tag stays legible in both Bloom and Slate.
 
 ### 4.6 User-specific state
 
@@ -443,11 +445,14 @@ Phase 1 has no automatic retention policy. A later policy may be added only with
 | `/organize` | Category and tag management. |
 | `/trash` | Restore and permanently delete recipes. |
 
-Dedicated Cooking Mode remains a Phase 1.x candidate and is not required by this design.
+Cooking Mode is not a route. It is a full-screen mode over `/recipes/:id`, entered by "Cook this" and held in a `CookModeProvider` context that the shell reads to drop its navigation. Keeping it out of the URL means leaving it cannot land the cook on a different screen, and a shared recipe link never opens somebody else straight into cooking. Entering or leaving it returns to the top of the page.
+
+It drops the shell chrome, sets step numerals at 40px, lets ingredients tick off as they go, keeps the serving control to hand, and holds a screen wake lock while it is on, releasing it the moment it is not. Timers and step completion remain deferred (section 18).
 
 ### 11.2 Interaction principles
 
-- The visual system follows the chosen login concept, "Frosted Recipe Card" ([`design/02-frosted-recipe-card.md`](./design/02-frosted-recipe-card.md)): the design system's drifting mesh is the ambient layer behind every screen, chrome that floats on it - the sign-in card, the application topbar - is glass, and everything a cook reads sits on an opaque surface above it. Long recipe text is never set over moving colour.
+- The visual system is *ambient shell, solid content*: the design system's drifting mesh is the ambient layer behind every screen, rendered once in `App` at a lower blob opacity; chrome that floats on it - the sign-in card, the application topbar - is glass; and everything a cook reads sits on an opaque surface above it. Cards, panels, and fields stay opaque, so long recipe text is never set over moving colour.
+- The sign-in screen is the "The Index, Lit" concept: a printed index drifting floor to ceiling with one band cut edge to edge through it. It is built from the same materials the central `service-auth` sign-in page uses - the drifting mesh, glass, and the Fraunces display face - so leaving for SSO and coming back reads as one continuous product. The earlier login concepts stay parked as a design study at `/designs/login/1..4`.
 - The active theme (Bloom / Slate) is a per-person preference offered on the sign-in screen and in the topbar, persisted by the design system.
 - Home and browse use visual cards, not data tables.
 - Recipe detail prioritizes photo, name, time, servings, ingredients, and instructions. Edit and delete actions remain secondary.
