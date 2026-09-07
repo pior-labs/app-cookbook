@@ -2,12 +2,33 @@
 
 ## Product Requirements Document
 
-**Document version:** 1.0
+**Document version:** 1.1
 **Status:** Approved
 **Approved:** 2026-08-17
+**Last amended:** 2026-09-07
 **Product:** Cookbook  
 **Repository:** `pior-labs/app-cookbook`  
 **Category:** Self-hosted household productivity application
+
+## How to read this document
+
+This is the approved record of what the Cookbook should do. It is deliberately
+written in the language of requirements rather than of the running application,
+and it is **not** a description of what exists today.
+
+Two halves, which are read differently:
+
+- **Delivered.** Phase 1 (section 6) and MCP v1 (section 10) are implemented and
+  deployed. Read these for the intent behind a behaviour and for the constraints
+  a change must not break - not as a to-do list. [`STATUS.md`](./STATUS.md) is
+  authoritative for what exists, and a requirement here appearing undone almost
+  certainly means this document has not been amended, not that work is missing.
+- **Live.** Phase 2 (section 11), Phase 3 (section 12), and Phase 4 (section 13)
+  are not started. These are the forward-looking part and the input to planning
+  those phases.
+
+Amendments to the delivered half are recorded in section 20 rather than by
+rewriting history in place.
 
 ## 1. Product overview
 
@@ -183,6 +204,12 @@ There should be **no predefined tags**. Household users create their own tags th
 Potential examples include `Late Night`, `Quick Meal`, `High Protein`, `Comfort Food`, `Date Night`, `Spicy`, `Meal Prep`, and `Summer`; these are examples only and should not exist automatically.
 
 Users must be able to create, rename, delete, add, and remove tags through the application.
+
+A tag may optionally carry a colour, so the tags a household actually uses are
+recognizable at a glance rather than reading as an undifferentiated row of
+chips. Colour is presentation only: nothing filters, sorts, or groups by it, and
+an uncoloured tag is the ordinary case rather than a missing value. It must stay
+legible against whichever theme is active. Added by amendment; see section 20.
 
 ### 6.7 Favorites
 
@@ -649,3 +676,16 @@ The intended progression is:
 **Core Cookbook → MCP v1 → Meal Planning & Grocery Lists → Smart Import → Recipe Roulette**
 
 A successful Phase 1 should create a stable structured foundation for later capabilities without requiring the core Cookbook concept to be rebuilt.
+
+## 20. Amendments since approval
+
+Changes to the delivered half of this document (sections 6 and 10) after the
+2026-08-17 approval. Each records what changed and why, so the original scope
+stays legible rather than being quietly rewritten.
+
+| Date | Section | Amendment |
+| --- | --- | --- |
+| 2026-09-07 | 6.6 | Tags may carry an optional colour. Built during Phase 1 polish and documented here afterwards - the requirement was implied by principle 5.1 (consumer-quality experience) rather than stated, and the gap was found in a documentation review, not in use. |
+
+Phase 1 and MCP v1 are otherwise delivered as approved. No requirement in the
+delivered half has been withdrawn.
