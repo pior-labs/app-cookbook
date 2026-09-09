@@ -1,8 +1,9 @@
 # Cookbook operations
 
-How Cookbook is provisioned, deployed, backed up, and restored. It expands
-[`TECHNICAL_DESIGN.md`](./TECHNICAL_DESIGN.md) sections 15.2 and 15.3 into the
-steps someone actually runs, and records who owns each one.
+How Cookbook is provisioned, deployed, backed up, and restored: the steps
+someone actually runs, and who owns each one. This is the one document that has
+to work when the application does not, so it is kept even though everything else
+about the running system is described by the code.
 
 `platform-deploy` owns the server, reverse proxy, DNS, database provisioning,
 and persistent host directories. `service-auth` owns identity. This repository
@@ -295,15 +296,14 @@ Run those against production before trusting this end to end.
   storage. Run the reconciler periodically and, once its report looks right,
   again with `--delete`.
 - **Trash.** Phase 1 has no automatic retention policy
-  ([ADR 0005](./DECISIONS/0005-recoverable-recipe-deletion.md)). Trashed recipes
+  ([decision 0005](./DECISIONS.md#0005---recoverable-recipe-deletion)). Trashed recipes
   keep their rows and image files until somebody deletes them permanently. That
   is deliberate: adding expiry is a product decision, not an operational one.
 
 ## 6. The MCP server
 
 `cookbook-mcp-server` is a third container in the same stack
-([ADR 0006](./DECISIONS/0006-read-only-stdio-mcp-server.md), technical design
-section 20). It publishes no port, joins `pior_data` only, and has no route in
+([decision 0006](./DECISIONS.md#0006---a-read-only-stdio-mcp-server-with-a-configured-acting-user)). It publishes no port, joins `pior_data` only, and has no route in
 `platform-deploy`, so there is nothing to provision for it beyond the stack
 itself. It reads the same platform-managed connection file as the API.
 

@@ -1,53 +1,76 @@
 # Pior Labs Application Agent Instructions
 
-This repository is the Pior Labs Cookbook, a private household recipe management application.
+This repository is the Pior Labs Cookbook, a private household recipe management
+application.
 
-## Source-of-truth hierarchy
+## How documentation works here
 
-Before making product or architectural changes, use the repository documentation in this order:
+**The code is the description of the application.** There is no document that
+restates the schema, the endpoints, the routes, or the tool inventory, because
+such a document is wrong the moment someone edits the code and forgets it, and a
+stale document is worse than a missing one - it gets believed.
 
-1. `docs/PRD.md` — what the Cookbook should do. Its Phase 1 and MCP v1 sections are delivered; sections 11-13 are the unbuilt phases. Read its "How to read this document" preamble before treating anything in it as outstanding work.
-2. `docs/TECHNICAL_DESIGN.md` — how approved Cookbook-specific requirements are implemented.
-3. `docs/STATUS.md` — what is actually implemented today.
-4. `docs/DECISIONS/` — durable architectural decisions and their rationale.
-5. The current issue, task, or PR — the immediate scope of work.
+Four documents exist, and each one holds something code cannot:
 
-Do not assume a requirement in the PRD has already been implemented. Check `docs/STATUS.md` and the codebase.
+| File | Holds |
+| --- | --- |
+| `docs/DECISIONS.md` | Why the code is the way it is, and what was deliberately **not** built. |
+| `docs/OPERATIONS.md` | Provisioning, deploying, backups, and restore. Procedures for when the code is not running. |
+| `docs/IDEAS.md` | Product intent for things that do not exist yet. |
+| `docs/IMPLEMENTING.md` | The brief for the work in flight. Temporary. Deleted when it lands. |
 
-## Current product scope
+Everything else goes in a comment next to the code it explains. This repository
+comments densely and at the level of *why*, not *what* -
+`packages/mcp-server/src/inflight.ts` and
+`packages/api/src/services/index.ts` are the standard to match.
 
-**Phase 1 — Core Cookbook is complete**, deployed on the household network, and
-covered by tests. **MCP v1** is implemented: a read-only stdio server
-(`packages/mcp-server`) exposing six recipe tools.
+### The rules that keep this honest
 
-Nothing is currently in flight. Phase 2 (meal planning and grocery lists) begins
-when the household wants it; do not start Phase 2+ work unless the task
-explicitly opens that scope.
+- **Do not create a status file, a technical design, or a PRD.** They existed,
+  they drifted, and they were deleted on purpose. `git log` and the code
+  already answer "what is implemented".
+- **Do not cite documents from code comments by section number.** Comments must
+  stand on their own. Citing `DECISIONS.md` by ADR number is fine; those
+  numbers are stable.
+- **`docs/IMPLEMENTING.md` is deleted as the last step of the work it
+  describes,** not as cleanup afterwards. Before it goes, its durable claims
+  must land in a code comment or in `docs/DECISIONS.md`. Deleting it without
+  that is just amnesia.
+- **Add to `docs/DECISIONS.md` only when reading the code would not recover the
+  reasoning.** The strongest signal is an absence: a thing considered and
+  rejected has no code to comment, so it has to go there or it is lost. A
+  decision visible in the code belongs in a comment.
 
-Because Phase 1 is done, most work now is change to existing behavior rather
-than new capability. Check `docs/STATUS.md` and the code before adding
-something - the likeliest mistake is now rebuilding what exists, not missing a
-requirement.
+## Current scope
 
-The Phase 1 product constraints still hold, and still govern changes:
+Phase 1 (the core Cookbook) and MCP v1 are built, deployed on the household
+network, and covered by tests. Read the code for what that means in detail.
 
-- Recipes are shared household data.
-- Favorites, ratings, and recently viewed history are per-user.
-- Ingredients must remain structured because serving scaling and future grocery aggregation depend on them.
-- Serving adjustments must not mutate the saved base recipe.
-- Recipe deletion must be recoverable.
-- The UI should feel like a polished consumer cooking application, not primarily an administrative CRUD interface.
-- Mobile usability is important because recipes will be referenced while cooking.
+Work in flight is described by `docs/IMPLEMENTING.md` if that file exists. If it
+does not, nothing is in flight, and new capability needs a brief before it needs
+a commit.
 
-When a product requirement is unclear, prefer the PRD over inference from the existing code.
+Most work now changes existing behaviour rather than adding capability. **The
+likeliest mistake is rebuilding something that already exists**, so search the
+code before adding.
+
+## Product constraints that still govern changes
+
+- Recipes are shared household data. Favorites, ratings, and recently viewed
+  history are per-user.
+- Ingredients must stay structured. Serving scaling and grocery aggregation both
+  depend on it, and a free-text ingredient cannot be scaled or added up.
+- Serving adjustment must never mutate the saved recipe.
+- Recipe deletion must stay recoverable.
+- The UI is a polished consumer cooking application, not an admin CRUD screen.
+- Mobile usability matters more than usual, because recipes are read while
+  cooking and grocery lists are read while shopping.
 
 ## Before making architectural changes
 
-Read the current public platform documentation in `pior-labs/platform` and, when starting a new application, use `platform/prompts/new-webapp-bootstrap.md` as bootstrap context.
-
-When implementation details conflict with this template, current platform/service documentation wins. Cookbook-specific approved decisions in `docs/TECHNICAL_DESIGN.md` may refine the paved road where explicitly documented.
-
-Record durable deviations or major architectural choices in `docs/DECISIONS/`.
+Read the current public platform documentation in `pior-labs/platform`. When
+implementation details conflict with it, current platform documentation wins.
+`docs/DECISIONS.md` records where Cookbook deliberately deviates.
 
 ## Default architecture
 
@@ -65,44 +88,30 @@ Prefer the established Pior Labs paved road:
 - platform Caddy for production routing and TLS
 - a minimal Caddy runtime inside the web container for static SPA serving only
 
-`platform-deploy` owns production reverse-proxy behavior. The app web container must not proxy `/api/*`; platform Caddy routes API traffic directly to the app API container and all other traffic to the app web container.
+`platform-deploy` owns production reverse-proxy behavior. The app web container
+must not proxy `/api/*`; platform Caddy routes API traffic directly to the app
+API container and all other traffic to the app web container.
 
-Do not add a second authentication system, app-level reverse proxy, database server, or shared design system without a concrete requirement.
+Do not add a second authentication system, app-level reverse proxy, database
+server, or shared design system without a concrete requirement.
 
 ## Repository ownership
 
-This repository owns:
+This repository owns product code, the app-specific database schema and
+migrations, app-specific containers, the static web-server configuration used
+only to serve the compiled SPA, and CI and deployment workflows.
 
-- product code
-- app-specific database schema and migrations
-- app-specific containers
-- the static web-server configuration used only to serve the compiled SPA
-- CI and app deployment workflow
-- application documentation
-
-`platform-deploy` owns production infrastructure, Caddy reverse-proxy routing, shared Docker networks, database/role provisioning, and server-managed database credentials.
+`platform-deploy` owns production infrastructure, Caddy reverse-proxy routing,
+shared Docker networks, database and role provisioning, and server-managed
+database credentials.
 
 `service-auth` owns user authentication and trusted OAuth client registration.
 
 ## Security
 
 - Never commit secrets.
-- Prefer `DATABASE_URL_FILE` in production so database passwords remain server-managed.
+- Prefer `DATABASE_URL_FILE` in production so database passwords remain
+  server-managed.
 - Never expose OAuth client secrets through `VITE_*` variables.
 - Keep public ports closed unless there is a documented reason to publish them.
 - Use health checks for long-running services.
-
-## Keeping the documentation honest
-
-The scaffold's template cleanup is done: the names, technical design, domain
-schema, migrations, OAuth client, `platform-deploy` provisioning, and deployment
-configuration are all real.
-
-What remains is ongoing. `docs/STATUS.md` is the one file that claims what
-exists, so update it whenever a capability changes state - and correct
-`README.md` and `docs/TECHNICAL_DESIGN.md` in the same change when a feature
-lands, rather than leaving them describing the application as it used to be. A
-stale document is worse than a missing one, because it is believed.
-
-Record durable architectural choices in `docs/DECISIONS/`, and update this file
-only where the application genuinely deviates from platform conventions.

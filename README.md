@@ -23,10 +23,10 @@ packages/api/         Hono API, Drizzle tooling, and integration tests
 packages/web/         React application and static Caddy runtime
 packages/mcp-server/  read-only MCP access to the cookbook, over stdio
 packages/e2e/         Playwright critical-path suite
-docs/                 product requirements, technical design, status, and decisions
+docs/                 decisions, operations, ideas, and the current brief
 ```
 
-The product source of truth is [`docs/PRD.md`](docs/PRD.md). Check [`docs/STATUS.md`](docs/STATUS.md) before assuming a documented requirement exists in the application.
+The code is the description of the application. [`docs/DECISIONS.md`](docs/DECISIONS.md) records why it is shaped the way it is and what was deliberately left out; [`AGENTS.md`](AGENTS.md) explains how documentation works here.
 
 ## Local development
 
@@ -258,8 +258,8 @@ claude mcp add cookbook -- ssh <host> \
   "docker exec -i cookbook-mcp-server node packages/mcp-server/dist/index.js"
 ```
 
-See [`packages/mcp-server/README.md`](packages/mcp-server/README.md) for client configuration, [ADR 0006](docs/DECISIONS/0006-read-only-stdio-mcp-server.md) for why it is shaped this way, and technical design section 20 for the contracts.
+See [`packages/mcp-server/README.md`](packages/mcp-server/README.md) for client configuration and the tools, and [decision 0006](docs/DECISIONS.md#0006---a-read-only-stdio-mcp-server-with-a-configured-acting-user) for why it is shaped this way.
 
 ## Scope
 
-Phase 1 is complete and deployed: recipes, images, the product UI, search and discovery, categories and tags, favorites, ratings, recently viewed history, Trash, and Cooking Mode are implemented and covered by tests. MCP v1 is implemented and read-only. Meal planning, grocery lists, imports, and Recipe Roulette are later work and are outside the current phase. See [`docs/STATUS.md`](docs/STATUS.md) for the authoritative state.
+Phase 1 is complete and deployed: recipes, images, the product UI, search and discovery, categories and tags, favorites, ratings, recently viewed history, Trash, and Cooking Mode are implemented and covered by tests. MCP v1 is implemented and read-only. Meal planning and grocery lists are the work in flight ([`docs/IMPLEMENTING.md`](docs/IMPLEMENTING.md)). Imports and Recipe Roulette are ideas rather than plans ([`docs/IDEAS.md`](docs/IDEAS.md)).

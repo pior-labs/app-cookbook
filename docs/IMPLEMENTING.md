@@ -1,3 +1,21 @@
+# Implementing: meal planning and grocery lists
+
+**This file is temporary and gets deleted when the work lands.**
+
+It is the brief for what is being built right now. There is only ever one of
+these. When the work is done, anything durable in it moves into a code comment
+or into [`DECISIONS.md`](./DECISIONS.md), and this file goes away rather than
+staying behind to describe the application as it was during construction.
+
+Nothing here is a description of what exists. For that, read the code.
+
+Relevant decisions already made: [0007](./DECISIONS.md#0007---no-canonical-ingredient-identity-for-grocery-aggregation)
+(ingredient aggregation, and the evidence for it) and
+[0006](./DECISIONS.md#0006---a-read-only-stdio-mcp-server-with-a-configured-acting-user)
+(which currently forbids the MCP writes section 18 asks for - that conflict is
+real and has to be decided, not worked around).
+
+---
 
 # 1. Product Goal
 
@@ -720,8 +738,8 @@ Phase 2 is complete when:
 21. MCP and UI operate on the same persisted meal-plan/grocery data.
 22. Existing Phase 1 functionality continues to work.
 23. Relevant tests, typechecking, linting, and builds pass.
-24. `docs/STATUS.md` is updated to reflect the implementation.
-25. `docs/TECHNICAL_DESIGN.md` and ADRs are updated for any new durable architectural decisions.
+24. New durable decisions - and anything deliberately **not** built - are recorded in `docs/DECISIONS.md`.
+25. This file is deleted, its durable content having moved into code comments or `docs/DECISIONS.md`.
 
 ---
 

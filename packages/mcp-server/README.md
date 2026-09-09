@@ -5,7 +5,7 @@ assistant.
 
 The decisions behind it - stdio, the service layer, read-only, and the
 configured acting user - are recorded in
-[ADR 0006](../../docs/DECISIONS/0006-read-only-stdio-mcp-server.md).
+[decision 0006](../../docs/DECISIONS.md#0006---a-read-only-stdio-mcp-server-with-a-configured-acting-user).
 
 ## Tools
 
