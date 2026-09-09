@@ -11,7 +11,7 @@ services:
       DATABASE_URL: ${DOCKER_DATABASE_URL:-${DATABASE_URL:-}}
       IMAGE_STORAGE_DIR: /var/lib/cookbook/images
     # Recipe images are app-owned persistent state mounted only into the API
-    # container; the web container never sees them (technical design section 8).
+    # container; the web container never sees them.
     volumes:
       - cookbook_images:/var/lib/cookbook/images
     expose:

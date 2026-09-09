@@ -22,9 +22,9 @@ import {
   type TestClient,
 } from './helpers.js';
 
-// Recoverable deletion end to end (technical design section 10, ADR 0005).
-// The question every test here asks is the one a cook cares about: after the
-// mistake, is the recipe still the recipe?
+// Recoverable deletion end to end (ADR 0005). The question every test here asks
+// is the one a cook cares about: after the mistake, is the recipe still the
+// recipe?
 
 const app: AppUnderTest = createTestApp();
 

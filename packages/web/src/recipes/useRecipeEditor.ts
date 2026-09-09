@@ -5,8 +5,7 @@ import { useApiResource } from '../api/hooks.js';
 import { createTag as createTagRequest, listCategories, listTags } from '../api/recipes.js';
 
 // Shared plumbing for the create and edit screens: the pickers the form needs,
-// dirty tracking, and the browser-level guard on leaving unsaved work
-// (technical design section 11.2).
+// dirty tracking, and the browser-level guard on leaving unsaved work.
 
 export interface Organization {
   categories: CategorySummary[];

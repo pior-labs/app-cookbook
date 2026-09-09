@@ -16,8 +16,7 @@ import { activeRecipe, type DbExecutor } from './shared.js';
 
 // Browse, search, and home discovery reads. Everything here is one query per
 // list: the aggregate rating and the acting user's own state are computed in
-// the same statement rather than looked up per row (technical design
-// sections 7.2 and 9).
+// the same statement rather than looked up per row.
 
 export interface RecipeSummaryRow {
   id: number;

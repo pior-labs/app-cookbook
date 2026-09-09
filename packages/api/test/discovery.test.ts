@@ -17,7 +17,7 @@ import {
 } from './helpers.js';
 
 // Browse, search, filtering, and home discovery against a real migrated
-// database (technical design sections 7.2, 9, and 14.2).
+// database.
 
 const app: AppUnderTest = createTestApp();
 

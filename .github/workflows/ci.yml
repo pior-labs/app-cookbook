@@ -13,8 +13,7 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     # API integration tests run against a real migrated PostgreSQL database
-    # rather than mocked SQL, so migration application is validated in CI too
-    # (technical design section 14.2).
+    # rather than mocked SQL, so migration application is validated in CI too.
     services:
       postgres:
         image: postgres:17-alpine
@@ -51,7 +50,7 @@ jobs:
 
   # The browser suite runs separately: it needs a browser download and starts
   # its own API and web servers, and it must not slow the check that gates every
-  # push (technical design section 14.3).
+  # push.
   browser:
     runs-on: ubuntu-latest
     services:

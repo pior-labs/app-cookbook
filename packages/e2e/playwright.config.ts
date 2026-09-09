@@ -1,7 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 
-// The small critical-path browser suite from technical design section 14.
-// Everything below it - domain rules, API behaviour, and screen state - is
+// The small critical-path browser suite. Everything below it - domain rules, API behaviour, and screen state - is
 // already covered by faster tests; these exist to prove the pieces are wired
 // together in a real browser against a real database.
 

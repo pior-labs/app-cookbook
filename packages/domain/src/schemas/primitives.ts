@@ -10,7 +10,7 @@ import { normalizeWhitespace } from '../text/normalize.js';
 export const MAX_INT32 = 2_147_483_647;
 
 // The largest denominator a stored quantity may have. Anything more precise is
-// rejected rather than silently rounded. See technical design section 12.
+// rejected rather than silently rounded.
 export const MAX_QUANTITY_DENOMINATOR = 10_000;
 
 // A positive integer surrogate key as it appears in JSON request bodies.
@@ -89,7 +89,7 @@ export const unitCodeSchema = z
   .refine(isKnownUnitCode, { message: 'Unknown unit.' });
 
 // A free-form custom unit label such as `clove` or `can`. Whitespace is
-// normalized but casing is preserved. See technical design section 5.2.
+// normalized but casing is preserved.
 export const customUnitSchema = z
   .string()
   .transform(normalizeWhitespace)

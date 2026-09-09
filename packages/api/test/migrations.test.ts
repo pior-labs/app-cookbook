@@ -6,7 +6,7 @@ import { STARTER_CATEGORIES, resetDatabase } from './helpers.js';
 
 // The whole suite runs against a database built by applying every migration to
 // an empty one, so this file asserts what the migrations are supposed to leave
-// behind (technical design section 14.2).
+// behind.
 
 afterAll(async () => {
   await closeDatabase();

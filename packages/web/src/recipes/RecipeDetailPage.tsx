@@ -26,13 +26,12 @@ import { ServingControl } from './ServingControl.jsx';
 import { ErrorState, RecipeSkeleton } from './states.jsx';
 
 // Consumer-oriented recipe detail. Photo, name, time, servings, ingredients,
-// and instructions lead; edit stays a secondary action
-// (technical design section 11.2).
+// and instructions lead; edit stays a secondary action.
 //
 // The page has two readings of the same recipe. The default one is browsing
-// distance. Cook mode is standing distance: the navigation goes, the
-// atmosphere settles, the ingredients become a checklist, and the steps get
-// the size they need to be read across a hot pan.
+// distance. Cook mode is standing distance: the navigation goes, the atmosphere
+// settles, the ingredients become a checklist, and the steps get the size they
+// need to be read across a hot pan.
 
 function formatMinutes(minutes: number | null): string | null {
   if (minutes == null || minutes === 0) return null;
@@ -158,8 +157,8 @@ function PreferenceBar({ recipe }: { recipe: RecipeDetail }) {
 }
 
 // Deleting is recoverable, so it asks once and says where the recipe is going
-// rather than warning about a loss that is not happening (technical design
-// section 10). The screen then follows it to Trash, where undoing is one press.
+// rather than warning about a loss that is not happening. The screen then
+// follows it to Trash, where undoing is one press.
 function DeleteAction({ recipe }: { recipe: RecipeDetail }) {
   const navigate = useNavigate();
   const [confirming, setConfirming] = useState(false);

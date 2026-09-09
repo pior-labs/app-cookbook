@@ -3,10 +3,10 @@ import { ButtonLink, PageHeader } from '@/components/ui';
 import { RecipeResults } from '../discovery/RecipeResults.jsx';
 import { useRecipePages } from '../discovery/useRecipePages.js';
 
-// The current user's favorites (technical design section 11.1). It is browse
-// with one filter pinned, so it pages and renders identically; only the empty
-// state is its own, because "nothing matches" and "you have not favorited
-// anything" are different problems.
+// The current user's favorites. It is browse with one filter pinned, so it
+// pages and renders identically; only the empty state is its own, because
+// "nothing matches" and "you have not favorited anything" are different
+// problems.
 
 const FAVORITES = { ...EMPTY_FILTERS, favorite: true };
 

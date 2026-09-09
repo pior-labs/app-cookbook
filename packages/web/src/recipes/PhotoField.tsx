@@ -6,8 +6,8 @@ import { deleteRecipePhoto, uploadRecipePhoto } from '../api/recipes.js';
 import { Button, FieldError, FieldHint, buttonClass } from '@/components/ui';
 
 // Photo upload is a separate request from the recipe JSON, so an upload failure
-// never discards the rest of the form (technical design section 7.4). The
-// recipe must exist first, which is why creation offers this only after saving.
+// never discards the rest of the form. The recipe must exist first, which is
+// why creation offers this only after saving.
 
 const ACCEPTED = 'image/jpeg,image/png,image/webp';
 

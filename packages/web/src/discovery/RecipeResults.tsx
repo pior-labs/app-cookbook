@@ -5,8 +5,8 @@ import { RecipeCardGrid, RecipeCardSkeleton } from './RecipeCard.jsx';
 import type { RecipePages } from './useRecipePages.js';
 
 // The result list every paginated recipe screen shows: count, skeleton, error,
-// empty state, and "load more" (technical design section 11.3). Browse and
-// favorites differ in what they ask for, not in how the answer looks.
+// empty state, and "load more". Browse and favorites differ in what they ask
+// for, not in how the answer looks.
 
 function resultLabel(count: number, more: boolean): string {
   if (count === 0) return 'No recipes';

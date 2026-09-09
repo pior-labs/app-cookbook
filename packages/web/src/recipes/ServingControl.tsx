@@ -5,8 +5,7 @@ import { cn } from '@/lib/utils';
 import { focusRing } from '@/components/ui';
 
 // Serving adjustment is local view state only. The saved recipe is never
-// mutated, the base count stays visible, and returning to it is one action
-// (technical design section 11.2, PRD 6.3).
+// mutated, the base count stays visible, and returning to it is one action.
 
 interface ServingControlProps {
   baseServings: number;

@@ -1,11 +1,11 @@
 import { databaseUrl } from '../src/env.js';
 
 // Integration tests run against a disposable database on the configured
-// PostgreSQL server, never the development database (technical design
-// section 14.2). The name carries a per-run suffix so two suites running at
-// once (a second terminal, a background agent) cannot drop each other's
-// database mid-test. `TEST_DATABASE_URL` overrides the whole thing when a
-// specific target is wanted; concurrent runs then share it by definition.
+// PostgreSQL server, never the development database. The name carries a per-run
+// suffix so two suites running at once (a second terminal, a background agent)
+// cannot drop each other's database mid-test. `TEST_DATABASE_URL` overrides the
+// whole thing when a specific target is wanted; concurrent runs then share it
+// by definition.
 
 function withDatabaseName(url: string, name: string): string {
   const parsed = new URL(url);

@@ -2,7 +2,7 @@
 // so the registry can grow without a schema migration. Phase 1 does not convert
 // between units: a recipe saved in grams stays in grams while scaling. The
 // singular/plural labels are for display only and never change the stored
-// measure. See technical design section 5.2 and ADR 0002.
+// measure.2 and ADR 0002.
 
 export type UnitSystem = 'mass' | 'volume';
 

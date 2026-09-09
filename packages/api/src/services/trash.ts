@@ -14,11 +14,11 @@ import {
 } from '../repositories/index.js';
 import { withCursorErrors } from './pagination.js';
 
-// Recoverable deletion (technical design section 10, ADR 0005). Deleting a
-// recipe moves it to Trash and removes nothing: rows and image files stay
-// exactly where they are, so restoring gives a cook back the recipe they had
-// rather than a reconstruction of it. Only permanent deletion, and only from
-// Trash, actually destroys anything.
+// Recoverable deletion (ADR 0005). Deleting a recipe moves it to Trash and
+// removes nothing: rows and image files stay exactly where they are, so
+// restoring gives a cook back the recipe they had rather than a reconstruction
+// of it. Only permanent deletion, and only from Trash, actually destroys
+// anything.
 
 function toTrashedRecipe(row: TrashedRecipeRow): TrashedRecipe {
   return {

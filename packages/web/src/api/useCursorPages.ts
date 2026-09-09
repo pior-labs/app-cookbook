@@ -4,8 +4,7 @@ import { useApiResource } from './hooks.js';
 
 // Cursor pagination for any list the API pages: browse, favorites, and Trash
 // all count, empty out, extend, and recover from a failed extension in exactly
-// the same way (technical design sections 7.2 and 11.3). Only what is being
-// listed differs.
+// the same way. Only what is being listed differs.
 
 export interface CursorPage<T> {
   items: T[];

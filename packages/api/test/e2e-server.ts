@@ -7,11 +7,11 @@ import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
 import { connectionOptions, namedDatabaseUrl } from './test-database-url.js';
 
-// The API the browser suite runs against (technical design section 14.3). It is
-// the real application - real routes, real database, real migrations - with one
-// substitution: the session comes from a cookie the test sets rather than from
-// central SSO. That is the "controlled authenticated test state" the design
-// allows, so a browser run does not depend on a live OAuth provider.
+// The API the browser suite runs against. It is the real application - real
+// routes, real database, real migrations - with one substitution: the session
+// comes from a cookie the test sets rather than from central SSO. That is the
+// "controlled authenticated test state" the design allows, so a browser run
+// does not depend on a live OAuth provider.
 //
 // This lives in `test/`, which the build excludes, so no path through the
 // shipped image can reach it.

@@ -5,9 +5,9 @@ import { ButtonLink, PageHeader } from '@/components/ui';
 import { RecipeCardGrid, RecipeCardSkeleton } from '../discovery/RecipeCard.jsx';
 import { EmptyState, ErrorState } from '../recipes/states.jsx';
 
-// The current user's recent history (technical design section 11.1). Unlike
-// browse it is not paginated: recent history is short by nature and grows only
-// as fast as one person opens recipes, so the API returns a capped list.
+// The current user's recent history. Unlike browse it is not paginated: recent
+// history is short by nature and grows only as fast as one person opens
+// recipes, so the API returns a capped list.
 
 export function RecentPage() {
   const load = useCallback((signal: AbortSignal) => listRecentlyViewed(signal), []);

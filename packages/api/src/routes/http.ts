@@ -6,7 +6,7 @@ import type { AppEnv } from '../middleware/context.js';
 
 // Request parsing shared by every route module. Routes translate HTTP into
 // validated input and nothing else; domain schemas own the rules and services
-// own the transaction (technical design section 3).
+// own the transaction.
 
 export function idParam(c: Context<AppEnv>, label: string, name = 'id'): number {
   const parsed = idParamSchema.safeParse(c.req.param(name));

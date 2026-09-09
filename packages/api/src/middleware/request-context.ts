@@ -5,7 +5,7 @@ import type { AppEnv } from './context.js';
 // Every request carries an ID that appears in structured request and error logs
 // and in the `x-request-id` response header, so a user-reported failure can be
 // traced without logging tokens, cookies, secrets, recipe content, or image
-// bytes (technical design section 16).
+// bytes.
 
 // An inbound request ID is echoed back and written into every log line for the
 // request, and this middleware runs ahead of authorization. Bounding length and

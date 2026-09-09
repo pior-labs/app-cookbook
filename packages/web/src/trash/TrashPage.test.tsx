@@ -7,9 +7,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { RecipeDetailPage } from '../recipes/RecipeDetailPage.jsx';
 import { TrashPage } from './TrashPage.jsx';
 
-// Recoverable deletion on the screens (technical design sections 10, 11.3, and
-// 14.3). Restoring is one press; destroying a recipe is not, and the tests care
-// most about the difference between them.
+// Recoverable deletion on the screens. Restoring is one press; destroying a
+// recipe is not, and the tests care most about the difference between them.
 
 vi.mock('../auth', () => ({
   useAuth: () => ({

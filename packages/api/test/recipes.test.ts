@@ -13,7 +13,7 @@ import {
 } from './helpers.js';
 
 // Integration coverage for the recipe aggregate: create, read, update,
-// validation, and optimistic concurrency (technical design section 14.2).
+// validation, and optimistic concurrency.
 
 const app: AppUnderTest = createTestApp();
 

@@ -6,8 +6,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { OrganizePage } from './OrganizePage.jsx';
 
-// Category and tag management, including the conflicts that block a delete
-// (technical design sections 7.3 and 11.3).
+// Category and tag management, including the conflicts that block a delete.
 
 vi.mock('../auth', () => ({
   useAuth: () => ({

@@ -28,9 +28,9 @@ import {
 import { cn } from '@/lib/utils';
 import { ErrorState } from '../recipes/states.js';
 
-// Category and tag management (technical design sections 7.3 and 11.1). The
-// API owns every rule; this screen's job is to explain the outcome, especially
-// the conflicts that block a delete (section 11.3).
+// Category and tag management. The API owns every rule; this screen's job is to
+// explain the outcome, especially the conflicts that block a delete (section
+// 11.3).
 
 interface ManagedItem {
   id: number;

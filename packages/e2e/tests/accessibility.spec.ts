@@ -2,8 +2,7 @@ import { expect, test } from '@playwright/test';
 
 // Keyboard behaviour that only a real browser can prove: the rest of the
 // accessible markup is asserted by the component tests, but focus order and
-// focus movement are the browser's own (technical design sections 11.2
-// and 14.3).
+// focus movement are the browser's own.
 
 test.beforeEach(async ({ page }) => {
   await page.context().addCookies([

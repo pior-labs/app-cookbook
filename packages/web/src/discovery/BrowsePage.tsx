@@ -23,15 +23,15 @@ import { useModalOverlay } from '@/lib/overlay';
 import { RecipeResults } from './RecipeResults.jsx';
 import { useRecipePages, type RecipePages } from './useRecipePages.js';
 
-// Search, filter, sort, and browse (technical design sections 9 and 11.1).
-// The URL is the source of truth for the query, so a filtered view can be
-// shared, bookmarked, and restored by the back button.
+// Search, filter, sort, and browse. The URL is the source of truth for the
+// query, so a filtered view can be shared, bookmarked, and restored by the back
+// button.
 //
 // The screen leads with the results, not with the controls that narrow them.
 // What stays on the page is the toolbar - search, sort, and a way in to the
 // filters - and a line of chips naming whatever is currently narrowing the
-// list. The filters themselves open on request: inline on a wide screen, and
-// as a sheet over the page on a phone, where a permanently open panel was the
+// list. The filters themselves open on request: inline on a wide screen, and as
+// a sheet over the page on a phone, where a permanently open panel was the
 // whole first screen and the recipes were below it.
 
 const SORT_LABELS: Record<RecipeSort, string> = {

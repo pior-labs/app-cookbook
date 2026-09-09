@@ -32,7 +32,7 @@ beforeAll(async () => {
 });
 
 describe('the tool surface', () => {
-  it('registers exactly the six capabilities the PRD names for MCP v1', async () => {
+  it('registers exactly the six read-only recipe capabilities', async () => {
     const { tools } = await client.listTools();
     expect(tools.map((tool) => tool.name).sort()).toEqual(EXPECTED_TOOLS);
   });

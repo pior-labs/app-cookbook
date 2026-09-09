@@ -29,7 +29,7 @@ import {
 
 // Orchestration for the recipe aggregate. The recipe, its ingredients, its
 // instructions, and its tag assignments are created and updated as one unit in
-// one transaction (technical design section 13).
+// one transaction.
 
 function parentValues(input: CreateRecipeInput | UpdateRecipeInput): RecipeParentValues {
   return {

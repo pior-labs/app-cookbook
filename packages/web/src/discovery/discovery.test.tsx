@@ -7,8 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BrowsePage } from './BrowsePage.jsx';
 import { HomePage } from './HomePage.jsx';
 
-// Home discovery and browse/search behaviour (technical design sections 11.1,
-// 11.3, and 14.3).
+// Home discovery and browse/search behaviour on the screens.
 
 vi.mock('../auth', () => ({
   useAuth: () => ({

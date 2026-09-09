@@ -2,9 +2,9 @@ import sharp, { type Metadata } from 'sharp';
 import { imageEnv } from '../env.js';
 import { validationError, type ApiError } from '../errors.js';
 
-// Upload validation and variant generation (technical design section 8). The
-// decoded image is the source of truth: the declared MIME type and the filename
-// are never trusted, and nothing derived from either reaches the filesystem.
+// Upload validation and variant generation. The decoded image is the source of
+// truth: the declared MIME type and the filename are never trusted, and nothing
+// derived from either reaches the filesystem.
 
 export const IMAGE_VARIANTS = ['card', 'detail'] as const;
 export type ImageVariant = (typeof IMAGE_VARIANTS)[number];

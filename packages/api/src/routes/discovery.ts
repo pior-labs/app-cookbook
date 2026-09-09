@@ -5,8 +5,7 @@ import { homeSections, recentlyViewed } from '../services/discovery.js';
 import { parseQuery } from './http.js';
 
 // The two discovery reads that are not browse: the home screen's sections, and
-// the acting user's own recent history (technical design sections 7.2 and
-// 11.1).
+// the acting user's own recent history.
 
 export const homeRoute = new Hono<AppEnv>();
 

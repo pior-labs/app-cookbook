@@ -8,9 +8,9 @@ import {
   unfavoriteRecipe,
 } from '../api/preferences.js';
 
-// Favoriting and rating are the only optimistic interactions in the app
-// (technical design section 11.3). A tap flips immediately, a failure puts the
-// previous value back, and the error is announced rather than swallowed.
+// Favoriting and rating are the only optimistic interactions in the app. A tap
+// flips immediately, a failure puts the previous value back, and the error is
+// announced rather than swallowed.
 
 export interface PreferenceState {
   userState: RecipeUserState;

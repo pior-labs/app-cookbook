@@ -2,7 +2,7 @@ import { normalizeName } from './normalize.js';
 
 // How search input becomes match tokens. This is a domain rule rather than a
 // repository detail so the API, the web app's result summaries, and future
-// consumers all agree on what a query means (technical design section 9).
+// consumers all agree on what a query means.
 
 // Every token must match somewhere for a recipe to be a result, so an
 // unbounded query would mean an unbounded number of `ILIKE` predicates. Extra

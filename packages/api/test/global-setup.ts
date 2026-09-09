@@ -52,8 +52,7 @@ export async function setup(project: TestProject): Promise<void> {
   const name = testDatabaseName();
 
   // Image storage is disposable for the same reason the database is: the suite
-  // writes real files and must never touch the development image directory
-  // (technical design section 14.2).
+  // writes real files and must never touch the development image directory.
   imageStorageDir = await mkdtemp(join(tmpdir(), 'cookbook-images-'));
 
   await dropTestDatabase(name);

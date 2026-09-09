@@ -23,8 +23,7 @@ export interface AppDependencies {
   // Authorization is deny-by-default for `/api/*`; the concrete session lookup
   // is injected so the boundary can be exercised without a live OAuth provider.
   requireAuth: MiddlewareHandler<AppEnv>;
-  // OAuth initiation and callback. Public by design (technical design
-  // section 6).
+  // OAuth initiation and callback. Public by design.
   authHandler?: (request: Request) => Response | Promise<Response>;
 }
 
@@ -37,7 +36,7 @@ export function createApp(deps: AppDependencies) {
   app.get('/api/health', (c) => c.json({ status: 'ok', service: service.slug }));
   app.get('/api', (c) => c.json(service));
   // Readiness covers both halves of the application's persistent state: the
-  // database and the mounted image directory (technical design section 15).
+  // database and the mounted image directory.
   app.get('/api/readiness', async (c) => {
     const connection = databaseConnection();
     const client = postgres(connection.url, { ...connection.options, max: 1 });

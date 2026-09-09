@@ -22,8 +22,7 @@ import {
 } from './helpers.js';
 
 // Integration coverage for multipart image validation, replacement, delivery,
-// and cleanup against a disposable image directory (technical design
-// section 14.2).
+// and cleanup against a disposable image directory.
 
 const app: AppUnderTest = createTestApp();
 

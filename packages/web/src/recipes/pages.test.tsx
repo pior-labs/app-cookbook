@@ -7,8 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EditRecipePage } from './EditRecipePage.jsx';
 import { RecipeDetailPage } from './RecipeDetailPage.jsx';
 
-// Page-level loading, error, and version-conflict behaviour
-// (technical design sections 11.3 and 14.3).
+// Page-level loading, error, and version-conflict behaviour.
 
 const RECIPE: RecipeDetail = {
   id: 12,

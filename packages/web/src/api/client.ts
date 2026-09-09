@@ -1,7 +1,6 @@
 // The single place the web app talks to the API. Every response is either a
 // typed payload or an `ApiRequestError` carrying the shared error envelope, so
-// screens never parse raw responses or invent their own error shapes
-// (technical design section 7.1).
+// screens never parse raw responses or invent their own error shapes.
 
 export type ErrorFields = Record<string, string[]>;
 

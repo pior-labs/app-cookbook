@@ -4,8 +4,7 @@ import type { DbExecutor } from './shared.js';
 
 // Per-user recipe state: favorites, ratings, and recently viewed. Recipes are
 // shared household data, but all three of these belong to one person, so every
-// statement here is keyed by user as well as by recipe (technical design
-// section 4.6).
+// statement here is keyed by user as well as by recipe.
 
 // Favoriting twice is the same as favoriting once. The composite primary key
 // makes that a conflict, and ignoring it is what "idempotent" means here

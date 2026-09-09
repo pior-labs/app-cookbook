@@ -15,9 +15,9 @@ import {
 import { Banner, EmptyState, ErrorState } from '../recipes/states.jsx';
 
 // Trash: everything that was deleted, and the two things that can be done about
-// it (technical design sections 10 and 11.1). Restoring is one press because a
-// deletion is usually the mistake. Destroying a recipe is not, so it asks for
-// the recipe's name first and says plainly that nothing can bring it back.
+// it. Restoring is one press because a deletion is usually the mistake.
+// Destroying a recipe is not, so it asks for the recipe's name first and says
+// plainly that nothing can bring it back.
 
 function formatDeletedAt(value: string): string {
   const date = new Date(value);

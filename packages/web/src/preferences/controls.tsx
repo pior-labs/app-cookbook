@@ -3,9 +3,9 @@ import { useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { focusRing } from '@/components/ui';
 
-// Favorite and rating controls (technical design sections 11.2 and 11.3).
-// Both are toggles a cook uses while cooking, so they carry a full touch
-// target and say what they do rather than relying on the icon alone.
+// Favorite and rating controls. Both are toggles a cook uses while cooking, so
+// they carry a full touch target and say what they do rather than relying on
+// the icon alone.
 
 const STARS = [1, 2, 3, 4, 5] as const;
 

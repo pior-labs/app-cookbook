@@ -3,8 +3,7 @@ import type { ErrorFields } from '../api/client.js';
 import { FieldError, FieldHint, FieldLabel } from '@/components/ui';
 
 // Shared form primitives. Each field owns its own label/description/error
-// wiring so every input in the recipe form announces errors the same way
-// (technical design section 11.3).
+// wiring so every input in the recipe form announces errors the same way.
 
 export function fieldError(fields: ErrorFields, path: string): string | null {
   const messages = fields[path];

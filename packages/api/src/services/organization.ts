@@ -22,7 +22,7 @@ import {
 } from '../repositories/index.js';
 
 // Categories and tags: the pickers the recipe form reads, and the management
-// operations `/organize` performs (technical design section 7.3).
+// operations `/organize` performs.
 
 // `count(...)` comes back as a string from Postgres because a bigint does not
 // fit a JS number safely; household counts always do.
@@ -111,7 +111,7 @@ export async function renameCategory(id: number, name: string): Promise<Category
 
 // A category is deleted only when nothing is filed under it. A trashed recipe
 // still needs its category to exist for restoration, so it blocks the delete
-// too, with its own explanation (technical design sections 7.3 and 10).
+// too, with its own explanation.
 export async function removeCategory(id: number): Promise<void> {
   await db.transaction(async (tx) => {
     const category = await findCategoryById(tx, id);

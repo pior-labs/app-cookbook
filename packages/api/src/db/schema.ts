@@ -90,8 +90,8 @@ export const verifications = pgTable(
 // tags, and single image, plus shared categories/tags and per-user favorites,
 // ratings, and recently viewed history. Normalized names back case-insensitive
 // uniqueness and search. Soft deletion keeps rows and image files, so foreign
-// keys cascade only on permanent (hard) deletion of a parent. See the technical
-// design, sections 4-5, and ADRs 0002-0005.
+// keys cascade only on permanent (hard) deletion of a parent. See ADRs
+// 0002-0005.
 // ---------------------------------------------------------------------------
 
 export const categories = pgTable(

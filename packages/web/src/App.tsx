@@ -33,8 +33,7 @@ function isDesignStudy() {
 }
 
 // Routes are only mounted for an authenticated session, so losing the session
-// returns to login rather than rendering a protected shell
-// (technical design section 11.3).
+// returns to login rather than rendering a protected shell.
 //
 // Every screen is a child of one layout route, so the navigation rail is
 // mounted once and does not remount between sections. The ambient mesh sits

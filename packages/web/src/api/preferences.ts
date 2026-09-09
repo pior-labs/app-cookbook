@@ -2,8 +2,7 @@ import type { RecipePreferences, RecipeSummary } from '@cookbook/domain';
 import { apiGet, apiSend } from './client.js';
 
 // Favorites, ratings, and recently viewed for the signed-in cook. The acting
-// user is never sent: the API takes it from the session
-// (technical design section 4.6).
+// user is never sent: the API takes it from the session.
 
 export function favoriteRecipe(id: number): Promise<RecipePreferences> {
   return apiSend<RecipePreferences>(`/api/recipes/${id}/favorite`, 'PUT');

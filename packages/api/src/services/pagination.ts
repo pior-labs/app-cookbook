@@ -3,8 +3,7 @@ import { InvalidCursorError } from '../repositories/index.js';
 
 // Every paginated list answers a bad cursor the same way. A cursor is opaque,
 // so a client cannot repair one: naming the parameter that is wrong lets the
-// screen drop it and reload the first page instead of showing a dead end
-// (technical design sections 7.2 and 11.3).
+// screen drop it and reload the first page instead of showing a dead end.
 export async function withCursorErrors<T>(run: () => Promise<T>): Promise<T> {
   try {
     return await run();

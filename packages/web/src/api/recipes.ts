@@ -10,7 +10,7 @@ import { apiGet, apiSend, apiUpload } from './client.js';
 import type { TagRecord } from './discovery.js';
 
 // Typed calls for everything the recipe screens need. The API is authoritative
-// for every mutation; these are transport only (technical design section 3).
+// for every mutation; these are transport only.
 
 export function getRecipe(id: number, signal?: AbortSignal): Promise<RecipeDetail> {
   return apiGet<RecipeDetail>(`/api/recipes/${id}`, signal);

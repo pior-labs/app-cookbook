@@ -11,13 +11,12 @@ import { useModalOverlay } from '@/lib/overlay';
 
 // The navigation every screen shares. Home, browse, favorites, and recent are
 // four ways into the same shelf, so they sit together; organize and trash tend
-// the shelf itself, so they sit under their own heading
-// (technical design section 11.1).
+// the shelf itself, so they sit under their own heading.
 //
-// The rail is glass over the ambient mesh `App` renders, the material the
-// sign-in screen introduced. Content surfaces stay opaque: a recipe is read
-// while cooking, and text over moving colour is not
-// (login design study, docs/design/README.md).
+// The rail is glass over the ambient mesh `App` renders, the material the sign-
+// in screen introduced. Content surfaces stay opaque: a recipe is read while
+// cooking, and text over moving colour is not (login design study,
+// docs/design/README.md).
 
 interface NavItem {
   to: string;

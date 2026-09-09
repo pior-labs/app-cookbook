@@ -7,8 +7,7 @@ import { FavoriteButton } from '../preferences/controls.jsx';
 import { useRecipePreferences } from '../preferences/usePreferences.js';
 
 // The one recipe card. Home rails and browse results are the same summary
-// shape, so they render through the same component and stay visually identical
-// (technical design section 11.1).
+// shape, so they render through the same component and stay visually identical.
 //
 // The photograph is the card. Everything else - category, name, time, rating -
 // rides on a frosted panel across its base, because the reason to look at a

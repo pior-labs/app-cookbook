@@ -3,10 +3,10 @@ import { type Fraction, makeFraction } from './fractions.js';
 // Scale an ingredient quantity from a recipe's base servings to a requested
 // serving count using exact integer fraction arithmetic:
 //
-//   scaled = quantity * requestedServings / baseServings
+// scaled = quantity * requestedServings / baseServings
 //
 // Requested servings are temporary view state and are never persisted. The
-// original recipe is never mutated by scaling. See technical design section 5.3.
+// original recipe is never mutated by scaling.
 export function scaleQuantity(
   quantity: Fraction,
   baseServings: number,
