@@ -27,6 +27,10 @@ export const STARTER_CATEGORIES = [
 ] as const;
 
 const TRUNCATED_TABLES = [
+  'grocery_items',
+  'grocery_lists',
+  'meal_plan_items',
+  'meal_plans',
   'recently_viewed_recipes',
   'user_ratings',
   'user_favorites',
@@ -191,4 +195,3 @@ export function asUser(app: AppUnderTest, userId: number | string | null): TestC
       app.request(path, { ...init, headers: headers(init.headers as Record<string, string>) }),
   };
 }
-

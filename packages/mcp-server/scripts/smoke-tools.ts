@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { PLANNING_WRITE_TOOLS } from '../src/tools/planning.js';
 
 // End-to-end smoke check: launch the real server as a subprocess, speak MCP to
 // it over stdio, and call every tool.
@@ -134,11 +135,11 @@ async function main() {
     console.log(`- ${tool.name} (${readOnly})`);
   }
 
-  // The read-only claim is the point of ADR 0006, so the smoke check asserts it
-  // rather than only printing it.
+  // ADR 0008 permits only planning/list writes. Check the allowlist without
+  // running a mutation against the development household database.
   const writable = tools.filter((tool) => tool.annotations?.readOnlyHint !== true);
-  if (writable.length > 0) {
-    throw new Error(`Tools not marked read-only: ${writable.map((t) => t.name).join(', ')}`);
+  if (JSON.stringify(writable.map(t => t.name).sort()) !== JSON.stringify([...PLANNING_WRITE_TOOLS].sort())) {
+    throw new Error('The writable tool surface differs from the approved planning/list capabilities.');
   }
 
   heading('search_recipes (no filters)');

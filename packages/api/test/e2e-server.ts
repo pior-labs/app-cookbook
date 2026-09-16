@@ -95,6 +95,11 @@ async function main(): Promise<void> {
   process.env.DATABASE_URL = databaseUrl;
   delete process.env.DATABASE_URL_FILE;
   process.env.IMAGE_STORAGE_DIR = imageStorageDir;
+  // Browser verification never spends live provider tokens. Provider success
+  // and validation are exercised with fixtures in service/adapter tests.
+  delete process.env.OPENAI_API_KEY;
+  delete process.env.OPENAI_API_KEY_FILE;
+  delete process.env.COOKBOOK_AI_MODEL;
 
   const [{ serve }, { createApp }, { createRequireAuth }, { db }, { users }] = await Promise.all([
     import('@hono/node-server'),

@@ -9,11 +9,12 @@ import { homeRoute, recentRoute } from './routes/discovery.js';
 import { categoriesRoute, tagsRoute } from './routes/organization.js';
 import { recipesRoute } from './routes/recipes.js';
 import { trashRoute } from './routes/trash.js';
+import { groceryListsRoute, mealPlansRoute } from './routes/planning.js';
 
 export const service = {
   name: 'Pior Labs Cookbook API',
   slug: 'cookbook',
-  phase: 'Phase 1 — Core Cookbook',
+  phase: 'Phase 2 — Meal Planning and Grocery Lists',
   version: '0.1.0',
 } as const;
 
@@ -89,6 +90,8 @@ export function createApp(deps: AppDependencies) {
   app.route('/api/categories', categoriesRoute);
   app.route('/api/tags', tagsRoute);
   app.route('/api/trash', trashRoute);
+  app.route('/api/meal-plans', mealPlansRoute);
+  app.route('/api/grocery-lists', groceryListsRoute);
 
   app.notFound(notFoundHandler);
   app.onError(errorHandler);

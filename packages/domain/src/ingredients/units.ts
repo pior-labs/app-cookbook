@@ -15,6 +15,7 @@ export interface UnitDefinition {
 }
 
 export const UNIT_DEFINITIONS: readonly UnitDefinition[] = [
+  { code: 'mg', system: 'mass', abbreviation: 'mg', singular: 'milligram', plural: 'milligrams' },
   { code: 'g', system: 'mass', abbreviation: 'g', singular: 'gram', plural: 'grams' },
   { code: 'kg', system: 'mass', abbreviation: 'kg', singular: 'kilogram', plural: 'kilograms' },
   { code: 'oz', system: 'mass', abbreviation: 'oz', singular: 'ounce', plural: 'ounces' },

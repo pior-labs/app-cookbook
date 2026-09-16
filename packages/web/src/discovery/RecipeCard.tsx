@@ -2,7 +2,7 @@ import type { RecipeSummary } from '@cookbook/domain';
 import { Clock, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Eyebrow, focusRing } from '@/components/ui';
+import { Button, Eyebrow, focusRing } from '@/components/ui';
 import { FavoriteButton } from '../preferences/controls.jsx';
 import { useRecipePreferences } from '../preferences/usePreferences.js';
 
@@ -39,7 +39,7 @@ const CARD_FRAME =
   'hover:-translate-y-0.5 hover:shadow-[0_20px_46px_-14px_color-mix(in_srgb,var(--ink)_30%,transparent)] ' +
   'motion-reduce:hover:translate-y-0';
 
-export function RecipeCard({ recipe, className }: { recipe: RecipeSummary; className?: string }) {
+export function RecipeCard({ recipe, className, onSelect }: { recipe: RecipeSummary; className?: string; onSelect?: (recipe: RecipeSummary) => void }) {
   const time = timeLabel(recipe);
   const { average, count } = recipe.rating;
   const rated = average != null && count > 0;
@@ -98,6 +98,7 @@ export function RecipeCard({ recipe, className }: { recipe: RecipeSummary; class
           ) : null}
         </span>
       </Link>
+      {onSelect ? <Button className="mt-2 w-full" onClick={() => onSelect(recipe)}>Choose {recipe.name}</Button> : null}
 
       {/* A sibling of the link rather than a child: a button inside a link is
           neither valid nor operable. */}
@@ -118,11 +119,11 @@ export function RecipeCard({ recipe, className }: { recipe: RecipeSummary; class
   );
 }
 
-export function RecipeCardGrid({ recipes }: { recipes: RecipeSummary[] }) {
+export function RecipeCardGrid({ recipes, onSelect }: { recipes: RecipeSummary[]; onSelect?: (recipe: RecipeSummary) => void }) {
   return (
     <ul className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-4 p-0 sm:gap-5">
       {recipes.map((recipe) => (
-        <RecipeCard key={recipe.id} recipe={recipe} />
+        <RecipeCard key={recipe.id} recipe={recipe} onSelect={onSelect} />
       ))}
     </ul>
   );

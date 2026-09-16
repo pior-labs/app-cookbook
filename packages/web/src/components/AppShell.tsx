@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import type { LucideIcon } from 'lucide-react';
-import { FolderTree, Heart, History, House, Menu, Plus, Search, Trash2, X } from 'lucide-react';
+import { FolderTree, Heart, History, House, Menu, Plus, Search, Trash2, X, Utensils } from 'lucide-react';
 import { useAuth } from '@/auth';
 import { useCookMode } from '@/components/CookMode';
 import { Wordmark } from '@/components/BrandMark';
@@ -28,6 +28,7 @@ interface NavItem {
 const COOK_NAV: NavItem[] = [
   { to: '/', label: 'Home', icon: House, end: true },
   { to: '/recipes', label: 'Browse', icon: Search, end: true },
+  { to: '/meal-plans', label: 'Meal plans', icon: Utensils, end: false },
   { to: '/favorites', label: 'Favorites', icon: Heart, end: false },
   { to: '/recent', label: 'Recent', icon: History, end: false },
 ];

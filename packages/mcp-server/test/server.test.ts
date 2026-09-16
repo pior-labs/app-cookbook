@@ -19,6 +19,10 @@ const EXPECTED_TOOLS = [
   'get_favorites',
   'get_top_rated_recipes',
   'scale_recipe',
+  'list_meal_plans', 'create_meal_plan', 'get_meal_plan', 'add_recipe_to_meal_plan',
+  'update_meal_plan_item', 'remove_recipe_from_meal_plan', 'generate_grocery_list',
+  'get_grocery_list', 'add_grocery_list_item', 'update_grocery_list_item',
+  'remove_grocery_list_item', 'check_grocery_list_item', 'resolve_grocery_merge',
 ].sort();
 
 let client: Client;
@@ -32,17 +36,21 @@ beforeAll(async () => {
 });
 
 describe('the tool surface', () => {
-  it('registers exactly the six read-only recipe capabilities', async () => {
+  it('preserves six recipe capabilities and adds the planning/list surface', async () => {
     const { tools } = await client.listTools();
     expect(tools.map((tool) => tool.name).sort()).toEqual(EXPECTED_TOOLS);
   });
 
-  // The load-bearing assertion of ADR 0006. A write tool added later without
-  // revisiting that decision fails here.
-  it('marks every tool read-only', async () => {
+  // ADR 0008 relaxes ADR 0006 only for plans and groceries. Adding recipe
+  // mutation still fails this independently maintained contract assertion.
+  it('allows only the explicitly approved planning and grocery mutations', async () => {
     const { tools } = await client.listTools();
     const writable = tools.filter((tool) => tool.annotations?.readOnlyHint !== true);
-    expect(writable.map((tool) => tool.name)).toEqual([]);
+    expect(writable.map((tool) => tool.name).sort()).toEqual([
+      'create_meal_plan', 'add_recipe_to_meal_plan', 'update_meal_plan_item', 'remove_recipe_from_meal_plan',
+      'generate_grocery_list', 'add_grocery_list_item', 'update_grocery_list_item',
+      'remove_grocery_list_item', 'check_grocery_list_item', 'resolve_grocery_merge',
+    ].sort());
   });
 
   it('never accepts a user, so a tool cannot be pointed at another household member', async () => {

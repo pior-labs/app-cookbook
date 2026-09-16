@@ -187,11 +187,11 @@ export COOKBOOK_DATABASE_URL="$(sudo cat /opt/docker/pior-labs/secrets/app-cookb
 ```
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.production.yml stop api
+docker compose -f docker-compose.yml -f docker-compose.production.yml stop api mcp
 pg_dump --format=custom --file=cookbook-$(date +%F).dump "$COOKBOOK_DATABASE_URL"
 tar --numeric-owner -czf cookbook-images-$(date +%F).tar.gz \
   -C /opt/docker/pior-labs/data/app-cookbook images
-docker compose -f docker-compose.yml -f docker-compose.production.yml start api
+docker compose -f docker-compose.yml -f docker-compose.production.yml start api mcp
 ```
 
 `--numeric-owner` matters: the API container writes these files as its own uid,
@@ -307,8 +307,10 @@ Run those against production before trusting this end to end.
 `platform-deploy`, so there is nothing to provision for it beyond the stack
 itself. It reads the same platform-managed connection file as the API.
 
-It is read-only. Nothing it exposes can create, edit, favorite, rate, or delete
-a recipe, so it is not part of the backup set and cannot corrupt one.
+MCP can write meal plans and grocery lists through the shared application
+services. Stop both API and MCP during a quiesced backup; their persisted data
+is included in the same database dump. Recipe editing remains unavailable over
+MCP. The container itself has no additional persistent volume to back up.
 
 ### One container per household member
 
@@ -367,3 +369,48 @@ docker compose -f docker-compose.yml -f docker-compose.production.yml \
 A session that connects and then goes quiet is usually a stray write to stdout
 corrupting the protocol stream. `pnpm --filter @cookbook/mcp-server smoke` is
 the check that catches that; no unit test can.
+
+## 7. AI configuration and evaluation
+
+Configure `COOKBOOK_AI_MODEL` with an OpenAI model supporting Responses API
+structured outputs, and supply `OPENAI_API_KEY` only to the server environment.
+The existing Compose `env_file` supplies it to API and MCP, not the web bundle.
+No AI credential belongs in a `VITE_*` variable or in git.
+
+For a server-managed file, have `platform-deploy` provision a readable secret,
+set `PLATFORM_OPENAI_API_KEY_FILE` to its host path, and include the optional
+`-f docker-compose.ai.yml` overlay when starting the stack. This mounts the same
+read-only secret into API and MCP and sets `OPENAI_API_KEY_FILE`. Include that
+overlay in subsequent Compose operations on this stack. Direct local runs can
+set `OPENAI_API_KEY_FILE` to a readable local path instead.
+
+The provider calls `https://api.openai.com/v1/responses` over outbound HTTPS.
+MCP needs that egress as well as database access, but no inbound port or Caddy
+route. `COOKBOOK_AI_TIMEOUT_MS` defaults to 20000 and accepts 100–60000. The
+adapter bounds concurrent requests per process and falls back on overload.
+Missing keys, missing model configuration, timeouts, refusals, and invalid
+structured output leave grocery generation usable with exact-name matching.
+Recommendations fall back to filtered choices with an explicit warning that
+free-text preferences were not interpreted. These fallbacks are resilience,
+not evidence that live AI is configured successfully.
+
+`cookbook_ai` JSON events go to stderr and include model, latency, token usage,
+validation/failure and fallback metadata. No recipe text, preference text, raw
+provider response or credentials are logged. Normalization results and original
+ingredient contributions can be inspected through the authenticated grocery list.
+
+Before enabling a model or changing the normalization prompt, run the synthetic
+evaluation against that configuration:
+
+```bash
+pnpm --filter @cookbook/domain build
+pnpm --filter @cookbook/api eval:normalization
+```
+
+This command makes paid provider calls. It emits JSONL with each expected and
+observed decision, automatic/review behavior, latency, usage and summary counts.
+Optional `AI_EVAL_INPUT_USD_PER_MILLION` and `AI_EVAL_OUTPUT_USD_PER_MILLION` supply
+current operator-verified prices for approximate cost comparison. Keep results
+outside the source tree and compare runs for prompt/model changes; false merges,
+missed merges and fallbacks cause a nonzero exit. Unit and integration tests use
+fixtures and do not substitute for this live evaluation.

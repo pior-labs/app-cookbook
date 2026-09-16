@@ -1,25 +1,19 @@
 # @cookbook/mcp-server
 
-Read-only MCP access to the household cookbook, for a household member's own
-assistant.
+MCP access to household recipes, meal plans and grocery lists, for a household
+member's own assistant.
 
-The decisions behind it - stdio, the service layer, read-only, and the
+The decisions behind it - stdio, the service layer, recipe read-only access, and the
 configured acting user - are recorded in
 [decision 0006](../../docs/DECISIONS.md#0006---a-read-only-stdio-mcp-server-with-a-configured-acting-user).
 
-## Tools
+## Capabilities
 
-All six are read-only. None of them can create, edit, favorite, rate, or delete
-anything, and none records a recipe as viewed.
-
-| Tool | Answers |
-| --- | --- |
-| `search_recipes` | Free text across name, description, ingredients, category, and tags, narrowed by category, time, rating, or favorites. |
-| `get_recipe` | One full recipe - ingredients, instructions, notes, source - optionally scaled to a serving count. |
-| `get_recipes_by_tag` | Recipes carrying every named tag. |
-| `get_favorites` | The configured member's own favorites. |
-| `get_top_rated_recipes` | Highest household-average ratings, best first. |
-| `scale_recipe` | A recipe's ingredients recalculated for a serving count. |
+Recipe tools remain read-only and do not record views. Planning and grocery
+tools operate on the same persisted data as the web application, with explicit
+version checks and configured-user attribution. The tool definitions in
+`src/tools/` are the contract; [ADR 0008](../../docs/DECISIONS.md#0008---semantic-ai-deterministic-quantities-shared-planning-services)
+records why planning writes were added without exposing recipe mutations.
 
 Ingredient amounts are exact fractions from `@cookbook/domain` - the same
 arithmetic the recipe screen runs - rendered as a cook would read them
@@ -115,12 +109,18 @@ COOKBOOK_MCP_USER_EMAIL=you@example.com pnpm --filter @cookbook/mcp-server smoke
 ```
 
 The smoke check launches the real server as a subprocess, speaks MCP to it over
-stdio, calls every tool against the development database, and asserts that all
-six report `readOnlyHint`. It is the only check that catches a stray write to
+stdio, exercises recipe reads against the development database, and verifies
+the approved planning-write allowlist without executing those mutations. It
+catches a stray write to
 stdout, which corrupts the protocol stream and cannot be caught by a unit test.
 
 ```sh
 pnpm --filter @cookbook/mcp-server test
 ```
 
-covers the rendering and the tool contract, and needs no database.
+covers rendering and the tool contract, then runs a real planning workflow over
+an in-memory MCP transport against a disposable PostgreSQL database using the
+API test harness. AI is fixture-controlled; no live provider calls are made.
+
+See [AI operations](../../docs/OPERATIONS.md#7-ai-configuration-and-evaluation)
+for provider configuration and live normalization evaluation.

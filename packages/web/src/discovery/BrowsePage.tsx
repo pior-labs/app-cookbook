@@ -1,4 +1,4 @@
-import { RECIPE_SORTS, type RecipeSort } from '@cookbook/domain';
+import { RECIPE_SORTS, type RecipeSort, type RecipeSummary } from '@cookbook/domain';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowDownUp, Heart, Search, SlidersHorizontal, X } from 'lucide-react';
@@ -172,7 +172,7 @@ function FilterGroup({ label, children }: { label: string; children: React.React
   );
 }
 
-export function BrowsePage() {
+export function BrowsePage({ onSelect }: { onSelect?: (recipe: RecipeSummary) => void }) {
   const [params, setParams] = useSearchParams();
   const filters = useMemo(() => readFilters(params), [params]);
   const organization = useOrganization();
@@ -366,6 +366,7 @@ export function BrowsePage() {
       ) : null}
 
       <RecipeResults
+        onSelect={onSelect}
         pages={pages}
         filtered={isFiltered(filters)}
         loadingLabel="Searching recipes…"

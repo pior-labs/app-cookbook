@@ -15,6 +15,7 @@
     }
   },
   "scripts": {
+    "eval:normalization": "tsx evals/normalization.ts",
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/index.js",

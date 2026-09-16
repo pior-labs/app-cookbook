@@ -1,0 +1,15 @@
+# Optional production secret-file overlay. Include only after platform-deploy
+# provisions this file. The base stack also accepts OPENAI_API_KEY from .env.
+services:
+  api:
+    environment:
+      OPENAI_API_KEY: ""
+      OPENAI_API_KEY_FILE: /run/secrets/openai_api_key
+    volumes:
+      - ${PLATFORM_OPENAI_API_KEY_FILE:?Set PLATFORM_OPENAI_API_KEY_FILE}:/run/secrets/openai_api_key:ro
+  mcp:
+    environment:
+      OPENAI_API_KEY: ""
+      OPENAI_API_KEY_FILE: /run/secrets/openai_api_key
+    volumes:
+      - ${PLATFORM_OPENAI_API_KEY_FILE:?Set PLATFORM_OPENAI_API_KEY_FILE}:/run/secrets/openai_api_key:ro

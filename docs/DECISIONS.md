@@ -153,7 +153,7 @@ until somebody acts. Adding expiry is a product decision.
 
 ## 0006 - A read-only stdio MCP server with a configured acting user
 
-**Accepted 2026-09-04. Amended 2026-09-09 (lifecycle).**
+**Accepted 2026-09-04. Amended 2026-09-09 (lifecycle), 2026-09-15 (planning writes; ADR 0008).**
 
 The MCP server is stdio, calls the API's application services directly rather
 than issuing SQL or going back through HTTP, and acts as exactly one household
@@ -166,11 +166,11 @@ household member's preferences. Because identity is resolved before any tool
 runs, a per-user tool has exactly one possible subject. This is why each member
 runs their own container rather than sharing one.
 
-**Read-only is enforced structurally, not by convention.**
-`packages/api/src/services/index.ts` re-exports only readers, so a write tool
-fails to resolve its import rather than reaching the household's recipes. The
-contract test and the smoke check both assert it independently. Anyone adding
-writes must change all three deliberately (see 0007).
+**Recipe read-only access is enforced structurally, not by convention.**
+MCP v1 exported only readers. Phase 2 deliberately adds planning and grocery
+mutations to the service surface, contract tests, and smoke-check allowlist.
+Recipe, favorite, and rating mutations remain excluded. The acting-user and
+stdio decisions continue to apply.
 
 **View recording is excluded on purpose.** Asking an assistant about a recipe is
 not the same act as opening it, and it must not reorder what `/recent` shows.
@@ -199,11 +199,11 @@ waiting for. See `packages/mcp-server/src/inflight.ts`.
 
 ## 0007 - No canonical ingredient identity for grocery aggregation
 
-**Decided 2026-09-07. Not yet implemented.**
+**Decided 2026-09-07. Amended 2026-09-15 by ADR 0008 for LLM semantics.**
 
-Grocery aggregation will combine ingredients on a normalization key computed at
-generation time and never stored. There will be no canonical ingredient entity
-and no learned alias table.
+Grocery aggregation combines ingredients using identities computed at generation
+time. The grocery snapshot retains display names and provenance, but there is
+no global canonical ingredient entity or learned alias table.
 
 **Why this is written down before it is built:** it records a decision *not* to
 build the thing that looks most obviously correct. Without this, canonical
@@ -259,3 +259,57 @@ merit, and is the natural second step if normalization alone proves too blunt.
 Density conversion (`1 cup flour` to grams) is the one to stay away from: it
 needs per-ingredient data and is the most likely to produce a confidently wrong
 number.
+
+---
+
+## 0008 - Semantic AI, deterministic quantities, shared planning services
+
+**Accepted 2026-09-15.**
+
+The narrow seed-data evidence in ADR 0007 is not grounds to replace the Phase 2
+LLM requirement with string matching. Semantic normalization and guided meal
+recommendations are intentional engineering capabilities. A deterministic-only
+implementation, or an AI interface without a working provider, was rejected.
+
+OpenAI Responses structured output is the initial provider boundary. The model
+is deployment configuration, not a baked-in assertion about price or quality.
+An application-local adapter is sufficient for two bounded tasks; no platform
+AI gateway, vector database, background worker, or general chat UI is introduced.
+Recipe text is data, not instructions, and the provider gets no mutation tools.
+Arithmetic, availability checks, serving validation, and persistence stay in
+application code. Provider failures and invalid output yield conservative,
+visible fallbacks.
+
+**Model confidence is not a calibrated probability.** Reviewed equivalence
+families covered by evaluation examples can be automatically merged only when
+the LLM agrees with high confidence. Other semantic groupings require review,
+even when the model claims certainty. These families are not applied during
+fallback. This deliberately trades missed automatic merges for avoiding silent
+false totals until live evaluation warrants a broader policy. The evaluation
+includes negative examples and reports proposed and automatic decisions
+separately; fixture tests do not establish live model quality.
+
+**No inferred regional measurement convention.** Existing recipes do not say
+whether a cup is US customary, metric, or imperial. Spoon units convert within
+their family, metric units within theirs, and pounds/ounces within theirs;
+cross-family volume conversions and density conversions are deferred. This
+keeps an unknown cup definition from silently changing the shopping quantity.
+
+Plans and lists are shared household artifacts with explicit creator/editor
+attribution. Per-user ownership was rejected because one member should be able
+to finish the other's shopping. Favorites and ratings keep their existing scope.
+MCP uses those same services and the configured household identity from ADR 0006;
+it gains no recipe-editing authority and no second authentication mechanism.
+
+Regeneration creates another snapshot. Destructively rebuilding the current
+list would erase manual shopping edits and is therefore rejected. Model calls
+run outside database transactions; plan and recipe versions are rechecked before
+saving so a slow recommendation/normalization cannot silently save stale work.
+
+Guided suggestions retrieve existing recipes through the current discovery
+service. The first 100 matching candidates bound latency and model context;
+the UI discloses truncation. "Recently used" means recipes in the last five
+updated meal plans, not recipe views or an invented cooking-history signal.
+Free-text preferences are not claimed to be satisfied during deterministic
+fallback. A proposal is explicitly reviewed before replacing meals, with recipe
+availability validated again at acceptance.
