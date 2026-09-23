@@ -9,7 +9,7 @@
     "dev:web": "pnpm --filter @cookbook/web dev",
     "build": "pnpm --recursive build",
     "typecheck": "pnpm --recursive typecheck",
-    "test": "pnpm --recursive test",
+    "test": "pnpm --filter @cookbook/domain build && pnpm --recursive test",
     "test:e2e": "pnpm --filter @cookbook/domain build && pnpm --filter @cookbook/e2e test:e2e",
     "db:generate": "pnpm --filter @cookbook/api db:generate",
     "db:migrate": "pnpm --filter @cookbook/api db:migrate",
