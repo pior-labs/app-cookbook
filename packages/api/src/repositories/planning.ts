@@ -1,5 +1,13 @@
 import { and, desc, eq, isNull, sql } from 'drizzle-orm';
-import { groceryItems, groceryLists, mealPlanItems, mealPlans, recipes } from '../db/schema.js';
+import {
+  categories,
+  groceryItems,
+  groceryLists,
+  mealPlanItems,
+  mealPlans,
+  recipeImages,
+  recipes,
+} from '../db/schema.js';
 import type { DbExecutor } from './shared.js';
 import type { GeneratedItem, MergeSuggestion } from '@cookbook/domain';
 
@@ -14,6 +22,10 @@ export async function listPlans(exec: DbExecutor) {
     .orderBy(desc(mealPlans.updatedAt), desc(mealPlans.id))
     .limit(100);
 }
+// The joins past `recipes` are what let a planned meal be drawn as a recipe
+// card rather than a line of text. They are all left joins off an already-left-
+// joined recipe, so a meal whose recipe was trashed still returns its row with
+// the stored name and no card furniture.
 export async function planItems(exec: DbExecutor, id: number) {
   return exec
     .select({
@@ -24,9 +36,15 @@ export async function planItems(exec: DbExecutor, id: number) {
       position: mealPlanItems.position,
       currentName: recipes.name,
       deletedAt: recipes.deletedAt,
+      categoryName: categories.name,
+      prepMinutes: recipes.prepMinutes,
+      cookMinutes: recipes.cookMinutes,
+      hasImage: sql<boolean>`${recipeImages.recipeId} is not null`,
     })
     .from(mealPlanItems)
     .leftJoin(recipes, eq(mealPlanItems.recipeId, recipes.id))
+    .leftJoin(categories, eq(recipes.categoryId, categories.id))
+    .leftJoin(recipeImages, eq(recipeImages.recipeId, recipes.id))
     .where(eq(mealPlanItems.mealPlanId, id))
     .orderBy(mealPlanItems.position, mealPlanItems.id);
 }
@@ -44,6 +62,9 @@ export async function insertPlan(exec: DbExecutor, name: string, userId: number)
       .values({ name, createdByUserId: userId, updatedByUserId: userId })
       .returning()
   )[0];
+}
+export async function setPlanName(exec: DbExecutor, id: number, name: string) {
+  await exec.update(mealPlans).set({ name }).where(eq(mealPlans.id, id));
 }
 export async function touchPlan(exec: DbExecutor, id: number, userId: number) {
   await exec
@@ -85,6 +106,14 @@ export async function changeMeal(
   value: Partial<{ recipeId: number; recipeName: string; servings: number; position: number }>,
 ) {
   await exec.update(mealPlanItems).set(value).where(eq(mealPlanItems.id, id));
+}
+// Grocery items cascade off their list, and meal plan items cascade off the
+// plan, so these two statements take the whole tree.
+export async function deletePlanLists(exec: DbExecutor, planId: number) {
+  await exec.delete(groceryLists).where(eq(groceryLists.mealPlanId, planId));
+}
+export async function deletePlan(exec: DbExecutor, id: number) {
+  await exec.delete(mealPlans).where(eq(mealPlans.id, id));
 }
 export async function deleteMeal(exec: DbExecutor, id: number) {
   await exec.delete(mealPlanItems).where(eq(mealPlanItems.id, id));

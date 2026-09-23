@@ -1,5 +1,6 @@
-import { ArrowLeft, ChevronDown } from 'lucide-react';
+import { ArrowLeft, ChevronDown, MoreHorizontal } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import type {
   ButtonHTMLAttributes,
   CSSProperties,
@@ -104,6 +105,137 @@ export function IconButton({
       )}
       {...rest}
     />
+  );
+}
+
+// ---- overflow menu ----------------------------------------------------
+
+// The rare actions on a thing, behind one control, so the frequent one can stay
+// out in the open. A meal card, a plan card and a plan's own title all need
+// this, and the click-outside and Escape handling is not worth writing three
+// times.
+
+const MenuCloseContext = createContext<() => void>(() => {});
+
+export function MenuItem({
+  children,
+  onSelect,
+  disabled,
+  tone = 'default',
+}: {
+  children: ReactNode;
+  onSelect: () => void;
+  disabled?: boolean;
+  tone?: 'default' | 'danger';
+}) {
+  const close = useContext(MenuCloseContext);
+
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      disabled={disabled}
+      className={cn(
+        'w-full cursor-pointer rounded-xl border-0 bg-transparent px-3 py-2.5 text-left font-[inherit]',
+        'text-[13px] transition-colors disabled:pointer-events-none disabled:opacity-45',
+        tone === 'danger'
+          ? 'text-[var(--cb-danger-ink-strong)] hover:bg-destructive/10'
+          : 'text-ink hover:bg-ink/5',
+        focusRing,
+      )}
+      onClick={() => {
+        close();
+        onSelect();
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+export function MenuDivider() {
+  return <div className="my-1 border-t border-dashed border-ink/10" />;
+}
+
+export function OverflowMenu({
+  label,
+  children,
+  disabled,
+  size = 'default',
+  placement = 'bottom',
+}: {
+  label: string;
+  children: ReactNode;
+  disabled?: boolean;
+  // `small` is the round control that rides under a card; `default` matches
+  // `IconButton`, so it sits level with the other controls on a page header.
+  size?: 'default' | 'small';
+  placement?: 'top' | 'bottom';
+}) {
+  const [open, setOpen] = useState(false);
+  const holder = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+
+  const close = useCallback(() => setOpen(false), []);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const onDocClick = (event: MouseEvent) => {
+      if (holder.current && !holder.current.contains(event.target as Node)) setOpen(false);
+    };
+    // Escape returns focus to the control that opened the menu, the same way
+    // the modal overlay does.
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      setOpen(false);
+      trigger.current?.focus();
+    };
+
+    document.addEventListener('mousedown', onDocClick);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDocClick);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  return (
+    <div className="relative" ref={holder}>
+      <button
+        ref={trigger}
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={label}
+        title={label}
+        disabled={disabled}
+        onClick={() => setOpen((value) => !value)}
+        className={cn(
+          'inline-grid shrink-0 cursor-pointer place-items-center border border-ink/12',
+          'bg-frost/55 text-ink-2 backdrop-blur-md transition-colors duration-200',
+          'hover:bg-frost/85 hover:text-ink disabled:pointer-events-none disabled:opacity-45',
+          size === 'small' ? 'h-9 w-9 rounded-full' : 'h-11 w-11 rounded-2xl',
+          open ? 'bg-frost/85 text-ink' : '',
+          focusRing,
+        )}
+      >
+        <MoreHorizontal aria-hidden="true" className="h-4 w-4" strokeWidth={2.2} />
+      </button>
+
+      {open ? (
+        <div
+          role="menu"
+          className={cn(
+            'absolute right-0 z-20 w-46 rounded-[18px] border border-frost/80 bg-[var(--cb-menu-bg)]',
+            'p-1.5 shadow-[var(--cb-menu-shadow)] backdrop-blur-xl backdrop-saturate-150',
+            placement === 'top' ? 'bottom-full mb-1.5' : 'top-full mt-1.5',
+          )}
+        >
+          <MenuCloseContext.Provider value={close}>{children}</MenuCloseContext.Provider>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -244,16 +376,15 @@ export function Eyebrow({ children, className }: { children: ReactNode; classNam
 }
 
 // One way back, in one place, on every screen that is not a top-level section.
+const BACK = cn(
+  'inline-flex items-center gap-1.5 rounded-full py-1 text-[14px] text-ink-2 transition-colors hover:text-ink',
+  focusRing,
+);
+
 export function Breadcrumb({ to, children }: { to: string; children: ReactNode }) {
   return (
     <nav aria-label="Breadcrumb">
-      <Link
-        className={cn(
-          'inline-flex items-center gap-1.5 rounded-full py-1 text-[14px] text-ink-2 transition-colors hover:text-ink',
-          focusRing,
-        )}
-        to={to}
-      >
+      <Link className={BACK} to={to}>
         <ArrowLeft aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
         {children}
       </Link>
@@ -261,24 +392,55 @@ export function Breadcrumb({ to, children }: { to: string; children: ReactNode }
   );
 }
 
+// The same way back for a step that is a change of state rather than a change
+// of address - picking a recipe for a meal plan happens over the plan, not at
+// its own URL. It has to be a button: a button inside a link is neither valid
+// nor operable, and a link that goes nowhere is a lie to a keyboard.
+export function BackButton({ onClick, children }: { onClick: () => void; children: ReactNode }) {
+  return (
+    <button className={cn(BACK, 'cursor-pointer border-0 bg-transparent p-0 font-[inherit]')} type="button" onClick={onClick}>
+      <ArrowLeft aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
+      {children}
+    </button>
+  );
+}
+
 export function PageHeader({
   kicker,
   title,
+  titleAction,
   lede,
   actions,
 }: {
   kicker?: ReactNode;
   title: ReactNode;
+  // A control that acts on the title itself - renaming it, most obviously -
+  // and so sits beside it rather than out in `actions` with the controls that
+  // act on the page. Kept outside the heading: a button inside an `h1` becomes
+  // part of the heading's name, and "This week Rename meal plan" is not what
+  // the heading says.
+  titleAction?: ReactNode;
   lede?: ReactNode;
   actions?: ReactNode;
 }) {
+  const heading = (
+    <h1 className="my-1.5 min-w-0 font-serif text-[36px] leading-none font-normal tracking-[-0.03em] text-ink sm:text-[44px] lg:text-[52px]">
+      {title}
+    </h1>
+  );
+
   return (
     <header className="flex flex-wrap items-end justify-between gap-5 px-0.5 pt-1 sm:px-1">
       <div className="min-w-0">
         {kicker ? <div className="text-[13px] tracking-wide text-ink-3">{kicker}</div> : null}
-        <h1 className="my-1.5 font-serif text-[36px] leading-none font-normal tracking-[-0.03em] text-ink sm:text-[44px] lg:text-[52px]">
-          {title}
-        </h1>
+        {titleAction ? (
+          <div className="flex flex-wrap items-center gap-3">
+            {heading}
+            {titleAction}
+          </div>
+        ) : (
+          heading
+        )}
         {lede ? <p className="m-0 max-w-140 text-[15px] text-ink-2 sm:text-base">{lede}</p> : null}
       </div>
       {actions ? <div className="flex flex-wrap items-center gap-2.5">{actions}</div> : null}

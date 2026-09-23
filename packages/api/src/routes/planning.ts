@@ -18,6 +18,14 @@ mealPlansRoute.post('/recommendations', async (c) =>
   c.json(await recommendMeals(await body(c), c.get('userId'))),
 );
 mealPlansRoute.get('/:id', async (c) => c.json(await service.getMealPlan(idParam(c, 'meal plan'))));
+mealPlansRoute.put('/:id', async (c) =>
+  c.json(await service.renameMealPlan(idParam(c, 'meal plan'), await body(c), c.get('userId'))),
+);
+mealPlansRoute.delete('/:id', async (c) => {
+  const { version } = await parseBody(c, versionInputSchema);
+  await service.deleteMealPlan(idParam(c, 'meal plan'), version, c.get('userId'));
+  return c.body(null, 204);
+});
 mealPlansRoute.post('/:id/items', async (c) =>
   c.json(
     await service.addRecipeToMealPlan(idParam(c, 'meal plan'), await body(c), c.get('userId')),

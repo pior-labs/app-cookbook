@@ -307,9 +307,12 @@ export function GroceryListPage() {
         >
           Copy list
         </Button>
+        {/* "Regenerate list", not "Regenerate": the meal plan one screen away
+            has its own regenerate, and that one replaces the meals. Two
+            different actions must not share one name. */}
         {!shopping ? (
           <Button disabled={action.busy} onClick={() => setRegenerate(true)}>
-            Regenerate
+            Regenerate list
           </Button>
         ) : null}
       </div>

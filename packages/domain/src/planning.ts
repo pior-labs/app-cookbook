@@ -9,8 +9,13 @@ import {
 import type { Fraction } from './ingredients/fractions.js';
 
 export const versionSchema = z.number().int().positive();
-export const createMealPlanSchema = z
-  .object({ name: z.string().trim().max(160).default('') })
+// A plan's name is optional at creation and stays optional afterwards: an
+// untitled plan is a legitimate thing to have, so renaming to blank is allowed
+// rather than rejected.
+const mealPlanNameSchema = z.string().trim().max(160).default('');
+export const createMealPlanSchema = z.object({ name: mealPlanNameSchema }).strict();
+export const renameMealPlanSchema = z
+  .object({ version: versionSchema, name: mealPlanNameSchema })
   .strict();
 export const mealSelectionSchema = z
   .object({ recipeId: idSchema, servings: servingsSchema })
@@ -60,6 +65,12 @@ export const recommendationPreferencesSchema = z
   })
   .strict();
 export type RecommendationPreferences = z.infer<typeof recommendationPreferencesSchema>;
+// A planned meal carries enough of its recipe to be drawn as the card the rest
+// of the app draws recipes as. It is deliberately not a full `RecipeSummary`:
+// the household rating and the acting user's favorite need user-scoped joins,
+// and a meal plan is shared household data read without a user in scope. The
+// three fields here are the ones the card paints with, and they are all null
+// or false once the recipe behind the meal is gone.
 export interface MealPlanItem {
   id: number;
   recipeId: number | null;
@@ -67,6 +78,9 @@ export interface MealPlanItem {
   servings: number;
   position: number;
   unavailable: boolean;
+  categoryName: string | null;
+  totalMinutes: number | null;
+  hasImage: boolean;
 }
 export interface MealPlan {
   id: number;

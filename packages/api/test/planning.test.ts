@@ -10,6 +10,7 @@ import {
   softDeleteRecipe,
 } from './helpers.js';
 import * as planning from '../src/services/planning.js';
+import * as recipeService from '../src/services/recipes.js';
 import { recommendMeals } from '../src/services/recommendations.js';
 import type { ModelProvider } from '../src/ai/provider.js';
 
@@ -95,6 +96,61 @@ describe('persisted planning and grocery services', () => {
     );
     expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
     expect(results.filter((r) => r.status === 'rejected')).toHaveLength(1);
+  });
+  it('renames a plan, keeps its meals, allows an untitled name and rejects a stale version', async () => {
+    const plan = await planWithMeal();
+    const renamed = await planning.renameMealPlan(
+      plan.id,
+      { version: plan.version, name: '  Dinners this week  ' },
+      user.id,
+    );
+    // Trimmed on the way in, and the meals are untouched by a rename.
+    expect(renamed.name).toBe('Dinners this week');
+    expect(renamed.items).toHaveLength(1);
+    expect(renamed.version).toBeGreaterThan(plan.version);
+
+    // Going back to untitled is a legitimate edit, not a validation failure.
+    const cleared = await planning.renameMealPlan(
+      plan.id,
+      { version: renamed.version, name: '' },
+      user.id,
+    );
+    expect(cleared.name).toBe('');
+
+    await expect(
+      planning.renameMealPlan(plan.id, { version: plan.version, name: 'Too late' }, user.id),
+    ).rejects.toThrow();
+    await expect(
+      planning.renameMealPlan(plan.id, { version: cleared.version, name: 'x'.repeat(161) }, user.id),
+    ).rejects.toThrow();
+  });
+  it('deletes a plan with its grocery lists, leaves recipes alone and rejects a stale version', async () => {
+    const plan = await planWithMeal();
+    const list = await planning.generateGroceryList(plan.id, plan.version, user.id, unavailable);
+
+    // Generating a list is not a change to the plan and does not bump its
+    // version, so an actual edit is needed to make the old one stale.
+    const edited = await planning.renameMealPlan(
+      plan.id,
+      { version: plan.version, name: 'Edited elsewhere' },
+      user.id,
+    );
+    expect(edited.version).toBeGreaterThan(plan.version);
+
+    // A stale version is refused here exactly as it is for any other write, so
+    // a plan someone else has just edited is not deleted out from under them.
+    await expect(planning.deleteMealPlan(plan.id, plan.version, user.id)).rejects.toThrow();
+
+    await planning.deleteMealPlan(plan.id, edited.version, user.id);
+    await expect(planning.getMealPlan(plan.id)).rejects.toThrow();
+
+    // `grocery_lists.meal_plan_id` is `restrict`, so this only passes because
+    // the service takes the lists down deliberately and first.
+    await expect(planning.getGroceryList(list.id)).rejects.toThrow();
+
+    // The recipes the plan pointed at are untouched.
+    const still = await recipeService.getRecipe(recipe.id, user.id);
+    expect(still.name).toBe(recipe.name);
   });
   it('uses LLM identity with deterministic scaling, conversion, arithmetic and provenance', async () => {
     const plan = await planWithMeal();

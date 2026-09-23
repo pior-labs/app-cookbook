@@ -24,14 +24,24 @@ test('plans meals, reviews suggestions and shops from a persistent mobile grocer
   });
   expect(created.status()).toBe(201);
   await page.goto('/meal-plans');
+  await page.getByRole('button', { name: 'New meal plan' }).click();
   await page.getByLabel('Plan name').fill('A few dinners');
   await page.getByRole('button', { name: 'Create meal plan' }).click();
   await expect(page.getByRole('heading', { name: 'A few dinners' })).toBeVisible();
   const planUrl = page.url();
-  await page.getByRole('button', { name: 'Add another meal' }).click();
+  await page.getByRole('button', { name: 'Add a meal', exact: true }).click();
   await page.getByRole('button', { name: 'Choose Planning test soup', exact: true }).click();
   await expect(page.getByText('2 servings', { exact: false }).first()).toBeVisible();
   await page.reload();
+  await expect(page.getByRole('heading', { name: 'Planning test soup' })).toBeVisible();
+  // Renaming keeps the plan and everything in it, and survives a reload.
+  await page.getByRole('button', { name: 'Meal plan options' }).click();
+  await page.getByRole('menuitem', { name: 'Rename plan' }).click();
+  await page.getByLabel('Plan name').fill('Dinners this week');
+  await page.getByRole('button', { name: 'Save name' }).click();
+  await expect(page.getByRole('heading', { name: 'Dinners this week' })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Dinners this week' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Planning test soup' })).toBeVisible();
   await page.getByRole('button', { name: 'Help me choose' }).click();
   const dialog = page.getByRole('dialog', { name: 'Help me choose' });
@@ -83,8 +93,31 @@ test('plans meals, reviews suggestions and shops from a persistent mobile grocer
     await page.keyboard.press('Escape');
     await expect(page.getByRole('button', { name: 'Copy list', exact: true })).toBeFocused();
   }
-  await page.getByRole('button', { name: 'Regenerate', exact: true }).click();
+  await page.getByRole('button', { name: 'Regenerate list', exact: true }).click();
   await page.getByRole('button', { name: 'Generate fresh list' }).click();
   await expect(page.getByText('250 g chicken breast', { exact: true })).toBeVisible();
   await expect(page.getByText('2 Paper towels', { exact: true })).toHaveCount(0);
+
+  // A stale plan is cleared away, and takes its grocery lists with it.
+  const listId = page.url().split('/').at(-1);
+  await page.getByRole('link', { name: 'Back to meal plan' }).click();
+  await expect(page.getByRole('heading', { name: 'Dinners this week' })).toBeVisible();
+
+  // Now that a list exists, suggestions are a replacement rather than an
+  // invitation, so the header offers the guarded version instead.
+  await expect(page.getByRole('button', { name: 'Help me choose' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Regenerate plan' }).click();
+  const replace = page.getByRole('dialog', { name: 'Replace the meals in this plan?' });
+  await expect(replace).toContainText('A list only changes when you regenerate it.');
+  await replace.getByRole('button', { name: 'Keep these meals' }).click();
+  await expect(replace).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Planning test soup' })).toBeVisible();
+  await page.getByRole('button', { name: 'Meal plan options' }).click();
+  await page.getByRole('menuitem', { name: 'Delete plan' }).click();
+  const confirm = page.getByRole('dialog', { name: 'Delete this meal plan?' });
+  await expect(confirm).toContainText('grocery list');
+  await confirm.getByRole('button', { name: 'Delete meal plan' }).click();
+  await expect(page).toHaveURL(/\/meal-plans$/);
+  await expect(page.getByRole('heading', { name: 'Dinners this week' })).toHaveCount(0);
+  expect((await page.request.get(`/api/grocery-lists/${listId}`)).status()).toBe(404);
 });

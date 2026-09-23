@@ -3,6 +3,7 @@ import {
   addMealSchema,
   applyMealsSchema,
   createMealPlanSchema,
+  renameMealPlanSchema,
   idSchema,
   updateMealSchema,
   versionSchema,
@@ -12,6 +13,7 @@ import {
   groceryItemInputSchema,
   addQuantities,
   measureKey,
+  totalMinutes,
   type GroceryList,
   type MealPlan,
   type IngredientSource,
@@ -54,14 +56,23 @@ async function readPlan(tx: DbExecutor, id: number): Promise<MealPlan> {
     ...row,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
-    items: items.map((item) => ({
-      id: item.id,
-      recipeId: item.recipeId,
-      recipeName: item.currentName ?? item.recipeName,
-      servings: item.servings,
-      position: item.position,
-      unavailable: !item.recipeId || item.deletedAt != null,
-    })),
+    items: items.map((item) => {
+      // A meal whose recipe was deleted keeps the name it was planned under,
+      // and loses the rest: there is no card to draw for a recipe that is not
+      // there, and showing its last known photo would imply it still is.
+      const unavailable = !item.recipeId || item.deletedAt != null;
+      return {
+        id: item.id,
+        recipeId: item.recipeId,
+        recipeName: item.currentName ?? item.recipeName,
+        servings: item.servings,
+        position: item.position,
+        unavailable,
+        categoryName: unavailable ? null : item.categoryName,
+        totalMinutes: unavailable ? null : totalMinutes(item.prepMinutes, item.cookMinutes),
+        hasImage: unavailable ? false : item.hasImage,
+      };
+    }),
     groceryListIds: (await repo.planLists(tx, id)).map((list) => list.id),
   };
 }
@@ -88,6 +99,45 @@ export async function createMealPlan(input: unknown, userId: number): Promise<Me
   return db.transaction(async (tx) =>
     readPlan(tx, (await repo.insertPlan(tx, value.name, userId)).id),
   );
+}
+// Renaming takes the plan's version like every other write to it, so two people
+// editing the same plan from two phones get the same stale-version answer they
+// would get for any other change rather than one silently overwriting the other.
+export async function renameMealPlan(
+  id: number,
+  input: unknown,
+  userId: number,
+): Promise<MealPlan> {
+  const value = parse(renameMealPlanSchema, input);
+  parse(idSchema, userId);
+  return db.transaction(async (tx) => {
+    await lockPlan(tx, id, value.version);
+    await repo.setPlanName(tx, id, value.name);
+    await repo.touchPlan(tx, id, userId);
+    return readPlan(tx, id);
+  });
+}
+// A plan goes stale - a week passes, the meals were cooked - and there is no
+// value in keeping it. Unlike a recipe, which ADR 0005 makes recoverable
+// because it is written once and hard to reproduce, a plan is a handful of
+// pointers and a serving count, so this destroys it outright.
+//
+// `grocery_lists.meal_plan_id` is `restrict` on purpose: ADR 0008 protects a
+// list's manual shopping edits from being destroyed as a side effect of a plan
+// operation. Deleting the lists here, explicitly and first, is the deliberate
+// exception - and leaving the constraint in place keeps it a guard, so no
+// future path can take a shopping list down with a plan without saying so.
+export async function deleteMealPlan(
+  id: number,
+  version: number,
+  userId: number,
+): Promise<void> {
+  parse(idSchema, userId);
+  await db.transaction(async (tx) => {
+    await lockPlan(tx, id, version);
+    await repo.deletePlanLists(tx, id);
+    await repo.deletePlan(tx, id);
+  });
 }
 async function addSelectedMeal(
   tx: DbExecutor,

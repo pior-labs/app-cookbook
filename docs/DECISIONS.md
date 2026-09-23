@@ -313,3 +313,34 @@ updated meal plans, not recipe views or an invented cooking-history signal.
 Free-text preferences are not claimed to be satisfied during deterministic
 fallback. A proposal is explicitly reviewed before replacing meals, with recipe
 availability validated again at acceptance.
+
+---
+
+## 0009 - Meal plans are deleted outright, and take their grocery lists
+
+**Accepted 2026-09-23.**
+
+Deleting a meal plan destroys it, its meals, and every grocery list generated
+from it. There is no Trash for plans and no restore.
+
+**Why this does not follow ADR 0005.** A recipe is written once, by hand, and
+cannot be reproduced from anything the application still holds - so recipe
+deletion is recoverable. A meal plan is a name, an ordered set of recipe
+pointers, and a serving count per pointer. Rebuilding one takes the minute it
+took to build the first time, and the recipes it pointed at are untouched.
+Recoverable plan deletion was rejected: it would mean a second Trash concept,
+a restore path, and a soft-deleted state threaded through every planning query,
+to protect something that costs a minute to recreate.
+
+**Why the grocery lists go too, when ADR 0008 protects them.** ADR 0008 made
+`grocery_lists.meal_plan_id` `restrict` so a list's manual shopping edits could
+never be destroyed as a *side effect* of a plan operation - regeneration
+snapshots rather than rebuilds for the same reason. Deleting the plan is not a
+side effect; it is someone saying the whole plan is finished with. The
+constraint stays `restrict` rather than becoming `cascade`, and the service
+deletes the lists explicitly and first. That keeps the database refusing any
+future path that has not deliberately decided what happens to the lists, and
+the confirmation names how many lists will go before they go.
+
+**What is absent:** no bulk delete and no automatic expiry of stale plans. Both
+are product decisions, and neither is needed to clear out a plan by hand.

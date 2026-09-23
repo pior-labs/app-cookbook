@@ -13,12 +13,14 @@ import { useRecipePreferences } from '../preferences/usePreferences.js';
 // rides on a frosted panel across its base, because the reason to look at a
 // page of recipes is the food.
 
-export function timeLabel(recipe: RecipeSummary): string | null {
-  if (recipe.totalMinutes == null || recipe.totalMinutes === 0) return null;
-  if (recipe.totalMinutes < 60) return `${recipe.totalMinutes} min`;
+// Takes the minutes rather than the recipe, because a planned meal carries the
+// same number without being a `RecipeSummary`.
+export function timeLabel(minutes: number | null): string | null {
+  if (minutes == null || minutes === 0) return null;
+  if (minutes < 60) return `${minutes} min`;
 
-  const hours = Math.floor(recipe.totalMinutes / 60);
-  const rest = recipe.totalMinutes % 60;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
   return rest === 0 ? `${hours} hr` : `${hours} hr ${rest} min`;
 }
 
@@ -32,15 +34,54 @@ export function toneFor(id: number): string {
   return TONES[Math.abs(id) % TONES.length];
 }
 
-const CARD_FRAME =
+// Exported because a planned meal is drawn as the same object: the meal plan
+// builds its own card from this frame and `CardPhoto` rather than restating
+// the shape, so a dish looks identical wherever it is seen.
+export const CARD_FRAME =
   'relative block aspect-[4/3] overflow-hidden rounded-[26px] border border-frost/80 ' +
   'shadow-[0_12px_36px_-12px_color-mix(in_srgb,var(--ink)_22%,transparent)] ' +
   'transition-[transform,box-shadow] duration-300 ease-out ' +
   'hover:-translate-y-0.5 hover:shadow-[0_20px_46px_-14px_color-mix(in_srgb,var(--ink)_30%,transparent)] ' +
   'motion-reduce:hover:translate-y-0';
 
+// The face of a card: the photograph, or the recipe's own initial on one of the
+// three accent washes when nobody has photographed it yet, under just enough
+// shade at the top for a control to read over a bright picture.
+export function CardPhoto({
+  id,
+  name,
+  hasImage,
+}: {
+  id: number;
+  name: string;
+  hasImage: boolean;
+}) {
+  return (
+    <>
+      {hasImage ? (
+        <img
+          className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04] motion-reduce:group-hover:scale-100"
+          src={`/api/recipes/${id}/photo/card`}
+          alt=""
+          loading="lazy"
+        />
+      ) : (
+        <span className={cn('absolute inset-0 grid place-items-center', toneFor(id))} aria-hidden="true">
+          <span className="pb-14 font-serif text-[92px] leading-none italic text-ink/15">
+            {name.trim()[0]?.toUpperCase() ?? '?'}
+          </span>
+        </span>
+      )}
+      <span
+        aria-hidden="true"
+        className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[color-mix(in_srgb,var(--ink)_34%,transparent)] to-transparent opacity-70"
+      />
+    </>
+  );
+}
+
 export function RecipeCard({ recipe, className, onSelect }: { recipe: RecipeSummary; className?: string; onSelect?: (recipe: RecipeSummary) => void }) {
-  const time = timeLabel(recipe);
+  const time = timeLabel(recipe.totalMinutes);
   const { average, count } = recipe.rating;
   const rated = average != null && count > 0;
 
@@ -52,27 +93,7 @@ export function RecipeCard({ recipe, className, onSelect }: { recipe: RecipeSumm
   return (
     <li className={cn('group relative', className)}>
       <Link className={cn(CARD_FRAME, focusRing)} to={`/recipes/${recipe.id}`}>
-        {recipe.hasImage ? (
-          <img
-            className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04] motion-reduce:group-hover:scale-100"
-            src={`/api/recipes/${recipe.id}/photo/card`}
-            alt=""
-            loading="lazy"
-          />
-        ) : (
-          <span className={cn('absolute inset-0 grid place-items-center', toneFor(recipe.id))} aria-hidden="true">
-            <span className="pb-14 font-serif text-[92px] leading-none italic text-ink/15">
-              {recipe.name.trim()[0]?.toUpperCase() ?? '?'}
-            </span>
-          </span>
-        )}
-
-        {/* Just enough shade at the top for the heart to read over a bright
-            photograph. */}
-        <span
-          aria-hidden="true"
-          className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[color-mix(in_srgb,var(--ink)_34%,transparent)] to-transparent opacity-70"
-        />
+        <CardPhoto id={recipe.id} name={recipe.name} hasImage={recipe.hasImage} />
 
         <span className="absolute inset-x-2.5 bottom-2.5 block rounded-[18px] border border-frost/70 bg-[rgba(var(--surface-rgb),0.9)] px-3.5 py-3 shadow-[0_8px_20px_-10px_color-mix(in_srgb,var(--ink)_35%,transparent)] backdrop-blur-xl backdrop-saturate-150">
           <Eyebrow>{recipe.categoryName}</Eyebrow>
