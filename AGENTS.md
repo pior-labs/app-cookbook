@@ -44,7 +44,9 @@ comments densely and at the level of *why*, not *what* -
 ## Current scope
 
 Phase 1 (the core Cookbook) and MCP v1 are built, deployed on the household
-network, and covered by tests. Read the code for what that means in detail.
+network, and covered by tests. Phase 2 (meal planning, AI suggestions, and one
+grocery list per plan, with the MCP planning tools) is built and covered by
+tests. Read the code for what that means in detail.
 
 Work in flight is described by `docs/IMPLEMENTING.md` if that file exists. If it
 does not, nothing is in flight, and new capability needs a brief before it needs

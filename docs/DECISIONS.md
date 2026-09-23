@@ -412,3 +412,28 @@ key from ADR 0009 stays.
 **What is absent:** no history of past versions of a list, and no way to see a
 list as it was before a rebuild. The flags on changed items say what moved;
 keeping every version would bring back the snapshot pile this replaced.
+
+---
+
+## 0011 - Meal planning stays ad-hoc, and rich planning belongs to the chatbot
+
+**Accepted 2026-09-23. Recorded when the Phase 2 brief was retired.**
+
+Meal planning is deliberately ad-hoc: choose a few meals, set servings, save,
+shop. It is not calendar-driven and does not assume weekly use.
+
+**Rejected for Phase 2, and not built:** recurring weekly scheduling, calendar
+synchronization, pantry inventory, expiration tracking, grocery-store
+integrations, grocery pricing, automated purchasing, nutrition tracking, and a
+complete global ingredient taxonomy (ADR 0007 covers the last). Some of these
+are product ideas for later and are listed in `docs/IDEAS.md`; none of them is
+missing by accident.
+
+**Two kinds of recommendation, one set of capabilities.** Cookbook offers a
+bounded guided flow, Help me choose, over its own recipes. Richer free-form
+planning ("five dinners for two, mostly under 45 minutes, chicken at most
+twice") belongs to the separate Pior Labs chatbot, which reasons over recipes
+through MCP and uses the same planning services the UI does: it searches and
+reads recipes, creates a plan, adds meals, and saves the plan to build its
+grocery list. Cookbook does not embed a second, general-purpose chatbot for
+meal planning; ADR 0008 already rules out a general chat UI in the app.
