@@ -28,6 +28,7 @@ const fixtures = z
 let falseMerges = 0;
 let missedMerges = 0;
 let fallbacks = 0;
+let reviewSuggestions = 0;
 for (const fixture of fixtures) {
   const start = performance.now();
   let inputTokens = 0;
@@ -40,9 +41,13 @@ for (const fixture of fixtures) {
   });
   const [a, b] = fixture.names;
   const automatic = (result.identities.get(a) ?? a) === (result.identities.get(b) ?? b);
-  const proposed =
-    automatic || result.suggestions.some((s) => s.names.includes(a) && s.names.includes(b));
-  if (proposed && !fixture.merge) falseMerges++;
+  const reviewSuggested = result.suggestions.some((s) => s.names.includes(a) && s.names.includes(b));
+  // Review suggestions are intentionally conservative: they must not count as
+  // automatic false merges. They still satisfy a positive fixture because the
+  // product can surface the candidate for user confirmation.
+  const proposed = automatic || reviewSuggested;
+  if (automatic && !fixture.merge) falseMerges++;
+  if (reviewSuggested) reviewSuggestions++;
   if (!proposed && fixture.merge) missedMerges++;
   if (result.mode === 'fallback') fallbacks++;
   const inputRate = process.env.AI_EVAL_INPUT_USD_PER_MILLION;
@@ -54,6 +59,7 @@ for (const fixture of fixtures) {
       prompt: 'ingredient_normalization_v1',
       proposed,
       automatic,
+      reviewSuggested,
       fallback: result.mode === 'fallback',
       latencyMs: Math.round(performance.now() - start),
       inputTokens,
@@ -66,6 +72,13 @@ for (const fixture of fixtures) {
   );
 }
 console.log(
-  JSON.stringify({ summary: true, cases: fixtures.length, falseMerges, missedMerges, fallbacks }),
+  JSON.stringify({
+    summary: true,
+    cases: fixtures.length,
+    falseMerges,
+    missedMerges,
+    reviewSuggestions,
+    fallbacks,
+  }),
 );
 if (fallbacks || falseMerges || missedMerges) process.exitCode = 1;
