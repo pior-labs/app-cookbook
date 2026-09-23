@@ -21,8 +21,7 @@ import { processUpload, type ImageVariant } from '../images/transform.js';
 
 // The primary recipe photo. Replacement writes every new file before the
 // database reference moves, and removes replaced files only after it has, so an
-// interrupted replacement always leaves at least one valid image
-// (technical design section 8).
+// interrupted replacement always leaves at least one valid image.
 
 function imageResponse(recipeId: number, row: NonNullable<Awaited<ReturnType<typeof findRecipeImage>>>): RecipeImage {
   return {

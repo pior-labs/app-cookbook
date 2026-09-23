@@ -7,8 +7,7 @@ import { IngredientList } from './IngredientList.jsx';
 import { ServingControl } from './ServingControl.jsx';
 import type { RecipeIngredient } from '@cookbook/domain';
 
-// Serving controls and scaled ingredient display (technical design
-// section 14.3).
+// Serving controls and scaled ingredient display.
 
 const INGREDIENTS: RecipeIngredient[] = [
   {

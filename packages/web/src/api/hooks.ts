@@ -2,8 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiRequestError } from './client.js';
 
 // Small async primitives shared by the recipe screens. They exist so every
-// screen reports loading, error, and retry the same way (technical design
-// section 11.3) without pulling in a caching layer the app does not yet need.
+// screen reports loading, error, and retry the same way without pulling in a
+// caching layer the app does not yet need.
 
 export interface AsyncResource<T> {
   data: T | null;

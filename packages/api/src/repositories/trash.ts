@@ -3,11 +3,10 @@ import { categories, recipes, users } from '../db/schema.js';
 import { decodeCursor, encodeCursor } from './cursor.js';
 import { activeRecipe, type DbExecutor } from './shared.js';
 
-// The explicit Trash path (technical design section 10, ADR 0005). Every
-// statement here scopes to soft-deleted recipes on purpose: the active
-// repositories never see these rows, and nothing here ever touches a live one.
-// Keeping the two scopes in separate modules is what makes the scope of a
-// deletion visible in review.
+// The explicit Trash path (ADR 0005). Every statement here scopes to soft-
+// deleted recipes on purpose: the active repositories never see these rows, and
+// nothing here ever touches a live one. Keeping the two scopes in separate
+// modules is what makes the scope of a deletion visible in review.
 
 // The counterpart of `activeRecipe()`. Soft deletion sets `deleted_at` and
 // `deleted_by_user_id` together, and a database check keeps the pair

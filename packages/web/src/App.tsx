@@ -16,6 +16,9 @@ import { EditRecipePage } from './recipes/EditRecipePage';
 import { NewRecipePage } from './recipes/NewRecipePage';
 import { RecipeDetailPage } from './recipes/RecipeDetailPage';
 import { TrashPage } from './trash/TrashPage';
+import { MealPlanPage } from './planning/MealPlanPage';
+import { MealPlansPage } from './planning/MealPlansPage';
+import { GroceryListPage } from './planning/GroceryListPage';
 
 function isGalleryRequested() {
   if (typeof window === 'undefined') return false;
@@ -33,8 +36,7 @@ function isDesignStudy() {
 }
 
 // Routes are only mounted for an authenticated session, so losing the session
-// returns to login rather than rendering a protected shell
-// (technical design section 11.3).
+// returns to login rather than rendering a protected shell.
 //
 // Every screen is a child of one layout route, so the navigation rail is
 // mounted once and does not remount between sections. The ambient mesh sits
@@ -58,6 +60,9 @@ function AuthenticatedRoutes() {
             <Route path="/recent" element={<RecentPage />} />
             <Route path="/organize" element={<OrganizePage />} />
             <Route path="/trash" element={<TrashPage />} />
+            <Route path="/meal-plans" element={<MealPlansPage />} />
+            <Route path="/meal-plans/:id" element={<MealPlanPage />} />
+            <Route path="/grocery-lists/:id" element={<GroceryListPage />} />
             <Route path="*" element={<HomePage />} />
           </Route>
         </Routes>

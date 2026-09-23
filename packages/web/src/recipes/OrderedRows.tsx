@@ -3,8 +3,7 @@ import { ArrowDown, ArrowUp, Plus, X } from 'lucide-react';
 import { Button, FieldError, IconButton, SectionHeading } from '@/components/ui';
 
 // Ordered ingredient and instruction rows. Position comes from array order and
-// is derived server-side, so reordering here only moves array entries
-// (technical design section 12).
+// is derived server-side, so reordering here only moves array entries.
 //
 // Every reorder control is a real button: pointer, touch, and keyboard users
 // all get the same affordance, which is what section 11.2 asks for rather than

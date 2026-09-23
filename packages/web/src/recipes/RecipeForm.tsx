@@ -30,7 +30,7 @@ import {
 
 // The shared create/edit form. It holds entered values as its own state and
 // never clears them on a failed submit, so a recoverable API or upload error
-// leaves the cook's work intact (technical design section 11.2).
+// leaves the cook's work intact.
 
 // Writing a recipe is long work, so the form is broken into opaque sheets a
 // cook can hold one at a time rather than one unbroken column.

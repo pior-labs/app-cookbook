@@ -13,9 +13,8 @@ import {
   type DbExecutor,
 } from '../repositories/index.js';
 
-// Favorites, ratings, and recently viewed for the acting user
-// (technical design sections 4.6 and 7.2). The user always comes from the
-// session; nothing here accepts a user ID from the client.
+// Favorites, ratings, and recently viewed for the acting user. The user always
+// comes from the session; nothing here accepts a user ID from the client.
 
 // A trashed recipe is not a thing a cook can act on, so preferring one is a
 // 404 rather than a silent write. The existing rows survive the soft delete

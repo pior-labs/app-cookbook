@@ -12,7 +12,7 @@ import { useFieldErrors, useOrganization, useUnsavedChangesWarning } from './use
 
 // Recipe creation. The recipe is saved first and the photo attached afterwards,
 // because the upload endpoint needs a recipe to attach to and a failed upload
-// must not cost the cook the whole form (technical design section 7.4).
+// must not cost the cook the whole form.
 
 export function NewRecipePage() {
   const navigate = useNavigate();

@@ -7,11 +7,11 @@ import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
 import { connectionOptions, namedDatabaseUrl } from './test-database-url.js';
 
-// The API the browser suite runs against (technical design section 14.3). It is
-// the real application - real routes, real database, real migrations - with one
-// substitution: the session comes from a cookie the test sets rather than from
-// central SSO. That is the "controlled authenticated test state" the design
-// allows, so a browser run does not depend on a live OAuth provider.
+// The API the browser suite runs against. It is the real application - real
+// routes, real database, real migrations - with one substitution: the session
+// comes from a cookie the test sets rather than from central SSO. That is the
+// "controlled authenticated test state" the design allows, so a browser run
+// does not depend on a live OAuth provider.
 //
 // This lives in `test/`, which the build excludes, so no path through the
 // shipped image can reach it.
@@ -95,6 +95,11 @@ async function main(): Promise<void> {
   process.env.DATABASE_URL = databaseUrl;
   delete process.env.DATABASE_URL_FILE;
   process.env.IMAGE_STORAGE_DIR = imageStorageDir;
+  // Browser verification never spends live provider tokens. Provider success
+  // and validation are exercised with fixtures in service/adapter tests.
+  delete process.env.OPENAI_API_KEY;
+  delete process.env.OPENAI_API_KEY_FILE;
+  delete process.env.COOKBOOK_AI_MODEL;
 
   const [{ serve }, { createApp }, { createRequireAuth }, { db }, { users }] = await Promise.all([
     import('@hono/node-server'),

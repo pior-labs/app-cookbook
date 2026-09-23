@@ -15,8 +15,7 @@ import {
 } from './helpers.js';
 
 // Categories and tags: the pickers the recipe form reads, and the create,
-// rename, and delete operations `/organize` performs
-// (technical design section 7.3).
+// rename, and delete operations `/organize` performs.
 
 const app: AppUnderTest = createTestApp();
 
@@ -251,8 +250,7 @@ describe('DELETE /api/categories/:id', () => {
     expect(body.error.message).toContain('1 recipe');
   });
 
-  // A trashed recipe is restorable, so its category must stay valid
-  // (technical design section 10).
+  // A trashed recipe is restorable, so its category must stay valid.
   it('refuses while only a trashed recipe references it, and says so', async () => {
     const recipe = await createRecipe();
     await softDeleteRecipe(recipe.id, currentUserId);

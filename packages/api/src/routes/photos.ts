@@ -5,9 +5,9 @@ import { isImageVariant, type ImageVariant } from '../images/transform.js';
 import type { AppEnv } from '../middleware/context.js';
 import { deleteRecipePhoto, readRecipePhoto, replaceRecipePhoto } from '../services/images.js';
 
-// HTTP parsing and response mapping for the primary recipe photo
-// (technical design section 7.4). Validation and transformation live in
-// `images/`, and the service owns file/database ordering.
+// HTTP parsing and response mapping for the primary recipe photo. Validation
+// and transformation live in `images/`, and the service owns file/database
+// ordering.
 
 const PHOTO_FIELD = 'photo';
 

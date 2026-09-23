@@ -8,9 +8,9 @@ import {
 } from '../services/trash.js';
 import { idParam, parseQuery } from './http.js';
 
-// Trash: what has been deleted, and the two things that can be done about it
-// (technical design section 7.3). HTTP parsing only; the service owns the
-// separate deleted-recipe scope every statement behind these routes uses.
+// Trash: what has been deleted, and the two things that can be done about it.
+// HTTP parsing only; the service owns the separate deleted-recipe scope every
+// statement behind these routes uses.
 
 // Trash has one inherent order - most recently deleted first - so it takes the
 // page controls of browse and none of its sorting or filtering.

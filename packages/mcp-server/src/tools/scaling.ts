@@ -15,10 +15,10 @@ import {
 // Scaling a recipe to a different number of servings.
 //
 // The arithmetic is `@cookbook/domain`'s, the same exact-fraction code the
-// recipe screen runs (technical design section 5.3 and ADR 0002). That is the
-// point of calling into the domain package rather than multiplying decimals
-// here: a recipe scaled in conversation and the same recipe scaled in the
-// browser produce the same "⅔ cup", not 0.6666666666666666.
+// recipe screen runs (ADR 0002). That is the point of calling into the domain
+// package rather than multiplying decimals here: a recipe scaled in
+// conversation and the same recipe scaled in the browser produce the same "⅔
+// cup", not 0.6666666666666666.
 export function registerScalingTools(
   server: McpServer,
   user: ActingUser,

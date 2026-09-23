@@ -2,10 +2,9 @@ import type { MiddlewareHandler } from 'hono';
 import { ApiError } from '../errors.js';
 import type { AppEnv } from './context.js';
 
-// Deny-by-default authorization for `/api/*` (technical design section 6). The
-// local user ID, email, and display name reach handlers only from the verified
-// session; created-by, deleted-by, and per-user records are never accepted from
-// a request body.
+// Deny-by-default authorization for `/api/*`. The local user ID, email, and
+// display name reach handlers only from the verified session; created-by,
+// deleted-by, and per-user records are never accepted from a request body.
 
 export type { AuthVariables } from './context.js';
 

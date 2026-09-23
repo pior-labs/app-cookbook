@@ -18,7 +18,7 @@ import {
 } from './helpers.js';
 
 // Favorites, ratings, and recently viewed: one person's marks on shared
-// household data (technical design sections 4.6 and 7.2).
+// household data.
 
 const app: AppUnderTest = createTestApp();
 

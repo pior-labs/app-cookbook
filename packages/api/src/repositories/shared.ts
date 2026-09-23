@@ -4,8 +4,7 @@ import { db } from '../db/index.js';
 import { recipes } from '../db/schema.js';
 
 // Foundations shared by every repository. Repositories own database access
-// only; transactions and orchestration live in services (technical design
-// section 3).
+// only; transactions and orchestration live in services.
 
 // Categories, tags, and ingredients persist a `normalized_name` companion for
 // case-insensitive uniqueness and search. Repositories always derive it with

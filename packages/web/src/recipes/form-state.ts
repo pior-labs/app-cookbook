@@ -10,8 +10,8 @@ import type { ErrorFields } from '../api/client.js';
 
 // The editable shape of a recipe while a cook is typing. Everything is a string
 // because that is what inputs hold; conversion and validation happen once, on
-// submit, through the same domain schemas the API enforces (technical design
-// section 12). The web app never becomes the only implementation of a rule.
+// submit, through the same domain schemas the API enforces. The web app never
+// becomes the only implementation of a rule.
 
 export const CUSTOM_UNIT = '__custom__';
 

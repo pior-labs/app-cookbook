@@ -1,12 +1,13 @@
 import type { ReactNode } from 'react';
+import type { RecipeSummary } from '@cookbook/domain';
 import { Button, ButtonLink } from '@/components/ui';
 import { Banner, EmptyState, ErrorState } from '../recipes/states.jsx';
 import { RecipeCardGrid, RecipeCardSkeleton } from './RecipeCard.jsx';
 import type { RecipePages } from './useRecipePages.js';
 
 // The result list every paginated recipe screen shows: count, skeleton, error,
-// empty state, and "load more" (technical design section 11.3). Browse and
-// favorites differ in what they ask for, not in how the answer looks.
+// empty state, and "load more". Browse and favorites differ in what they ask
+// for, not in how the answer looks.
 
 function resultLabel(count: number, more: boolean): string {
   if (count === 0) return 'No recipes';
@@ -15,6 +16,7 @@ function resultLabel(count: number, more: boolean): string {
 }
 
 export interface RecipeResultsProps {
+  onSelect?: (recipe: RecipeSummary) => void;
   pages: RecipePages;
   // Whether a filter is narrowing the list, which decides whether "nothing
   // here" means "clear a filter" or "add your first recipe".
@@ -34,6 +36,7 @@ export function RecipeResults({
   emptyTitle,
   emptyBody,
   emptyAction,
+  onSelect,
 }: RecipeResultsProps) {
   const { items: recipes, loading, error, reload, hasMore, loadingMore, moreError, loadMore } = pages;
 
@@ -79,7 +82,7 @@ export function RecipeResults({
         </EmptyState>
       ) : (
         <>
-          <RecipeCardGrid recipes={recipes} />
+          <RecipeCardGrid recipes={recipes} onSelect={onSelect} />
 
           {/* A failed extension keeps the pages already on screen: a cook is
               reading them. */}

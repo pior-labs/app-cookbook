@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import type { LucideIcon } from 'lucide-react';
-import { FolderTree, Heart, History, House, Menu, Plus, Search, Trash2, X } from 'lucide-react';
+import { FolderTree, Heart, History, House, Menu, Plus, Search, Trash2, X, Utensils } from 'lucide-react';
 import { useAuth } from '@/auth';
 import { useCookMode } from '@/components/CookMode';
 import { Wordmark } from '@/components/BrandMark';
@@ -11,13 +11,12 @@ import { useModalOverlay } from '@/lib/overlay';
 
 // The navigation every screen shares. Home, browse, favorites, and recent are
 // four ways into the same shelf, so they sit together; organize and trash tend
-// the shelf itself, so they sit under their own heading
-// (technical design section 11.1).
+// the shelf itself, so they sit under their own heading.
 //
-// The rail is glass over the ambient mesh `App` renders, the material the
-// sign-in screen introduced. Content surfaces stay opaque: a recipe is read
-// while cooking, and text over moving colour is not
-// (login design study, docs/design/README.md).
+// The rail is glass over the ambient mesh `App` renders, the material the sign-
+// in screen introduced. Content surfaces stay opaque: a recipe is read while
+// cooking, and text over moving colour is not (login design study,
+// docs/design/README.md).
 
 interface NavItem {
   to: string;
@@ -29,6 +28,7 @@ interface NavItem {
 const COOK_NAV: NavItem[] = [
   { to: '/', label: 'Home', icon: House, end: true },
   { to: '/recipes', label: 'Browse', icon: Search, end: true },
+  { to: '/meal-plans', label: 'Meal plans', icon: Utensils, end: false },
   { to: '/favorites', label: 'Favorites', icon: Heart, end: false },
   { to: '/recent', label: 'Recent', icon: History, end: false },
 ];

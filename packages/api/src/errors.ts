@@ -1,7 +1,7 @@
-// The single error model behind the API error envelope (technical design
-// section 7.1). Every layer throws `ApiError`; the Hono error middleware is the
-// only place that turns one into a response. Internal exceptions, SQL details,
-// storage paths, tokens, and secrets never reach the client.
+// The single error model behind the API error envelope. Every layer throws
+// `ApiError`; the Hono error middleware is the only place that turns one into a
+// response. Internal exceptions, SQL details, storage paths, tokens, and
+// secrets never reach the client.
 
 import type { ZodError } from 'zod';
 
@@ -50,10 +50,9 @@ export function recipeNotFound(): ApiError {
   return notFoundError('recipe_not_found', 'This recipe does not exist.');
 }
 
-// Trash is a separate place, not a flag on the recipe: restoring or
-// permanently deleting something that is not in it is a request against a
-// resource that does not exist, whether the recipe is live or was never there
-// (technical design section 7.3).
+// Trash is a separate place, not a flag on the recipe: restoring or permanently
+// deleting something that is not in it is a request against a resource that
+// does not exist, whether the recipe is live or was never there.
 export function recipeNotInTrash(): ApiError {
   return notFoundError('recipe_not_in_trash', 'This recipe is not in Trash.');
 }

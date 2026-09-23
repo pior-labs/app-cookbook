@@ -10,10 +10,8 @@
 // session at this layer, which is what lets a non-HTTP caller act as a
 // specific household member without inventing a second authentication path.
 //
-// Note what is missing: every mutation. MCP v1 is read-only (ADR 0006), and
-// re-exporting only readers makes that structural rather than a promise kept by
-// each tool definition - a write tool added by mistake would fail to resolve
-// its import rather than reach the household's recipes.
+// Recipe mutations remain excluded. MCP v2 adds only the planning/list writes
+// authorized by ADR 0008; recipe, rating and favorite mutation are not exposed.
 
 export {
   searchRecipes,
@@ -26,3 +24,10 @@ export { getRecipe } from './recipes.js';
 export { listCategories, listTags } from './organization.js';
 
 export { resolveUserByEmail, type HouseholdUser } from './identity.js';
+export {
+  createMealPlan, getMealPlan, listMealPlans, addRecipeToMealPlan, updateMealPlanItem,
+  removeRecipeFromMealPlan, applyMealProposal, confirmMealPlan, reopenMealPlan,
+  completeMealPlan, resumeMealPlan, getGroceryList,
+  addGroceryListItem, updateGroceryListItem, checkGroceryListItem, removeGroceryListItem,
+  resolveGroceryMerge,
+} from './planning.js';

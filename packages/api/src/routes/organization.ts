@@ -18,9 +18,8 @@ import {
   updateTagDetails,
 } from '../services/organization.js';
 
-// Categories and tags for the recipe form and for `/organize`
-// (technical design section 7.3). HTTP parsing only; the service owns the
-// uniqueness and in-use rules.
+// Categories and tags for the recipe form and for `/organize`. HTTP parsing
+// only; the service owns the uniqueness and in-use rules.
 
 export const categoriesRoute = new Hono<AppEnv>();
 

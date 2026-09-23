@@ -11,8 +11,7 @@ import { ErrorState, FormErrorBanner, RecipeSkeleton } from './states.jsx';
 import { useFieldErrors, useOrganization, useUnsavedChangesWarning } from './useRecipeEditor.js';
 
 // Editing the full recipe aggregate. A version conflict never overwrites: the
-// form explains that the recipe changed and offers reload or a fresh copy
-// (technical design section 11.3).
+// form explains that the recipe changed and offers reload or a fresh copy.
 
 export function EditRecipePage() {
   const { id } = useParams();

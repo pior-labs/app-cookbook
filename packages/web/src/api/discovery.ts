@@ -2,8 +2,7 @@ import type { HomeSections, RecipeListPage, RecipeSort } from '@cookbook/domain'
 import { apiGet, apiSend } from './client.js';
 
 // Browse, home discovery, and category/tag management. Transport only: the API
-// is authoritative for every rule these screens display
-// (technical design section 3).
+// is authoritative for every rule these screens display.
 
 // What the browse screen can ask for. It mirrors the API query parameters
 // rather than the URL the screen shows, so the two can differ where a shorter

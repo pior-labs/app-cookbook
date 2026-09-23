@@ -1,9 +1,9 @@
 import type { Fraction } from '../ingredients/fractions.js';
 
 // Stable domain read types shared across trusted packages. JSON uses camelCase
-// and ISO 8601 UTC strings for timestamps, matching the API conventions in
-// technical design section 7.1. These describe what the API returns; request
-// validation lives in the schema modules.
+// and ISO 8601 UTC strings for timestamps, matching the API's conventions.
+// These describe what the API returns; request validation lives in the schema
+// modules.
 
 export interface Category {
   id: number;
@@ -67,8 +67,7 @@ export interface RecipeRatingSummary {
 
 // What a favorite or rating change returns. The household average moves when
 // one person rates, so the answer carries both halves and an optimistic UI can
-// reconcile against the truth instead of guessing at the new average
-// (technical design section 11.3).
+// reconcile against the truth instead of guessing at the new average.
 export interface RecipePreferences {
   userState: RecipeUserState;
   rating: RecipeRatingSummary;
@@ -104,7 +103,7 @@ export interface RecipeDetail extends RecipeSummary {
 }
 
 // Total time is derived, never stored: prep + cook when at least one component
-// exists, otherwise null. See technical design section 4.3.
+// exists, otherwise null.
 export function totalMinutes(
   prepMinutes: number | null,
   cookMinutes: number | null,
@@ -117,8 +116,7 @@ export function totalMinutes(
 
 // One page of browse/search results. The cursor is opaque to the client: it
 // encodes the sort key of the last row so the next page continues from exactly
-// there, and it is null when the last page has been reached
-// (technical design section 7.2).
+// there, and it is null when the last page has been reached.
 export interface RecipeListPage {
   items: RecipeSummary[];
   nextCursor: string | null;
@@ -140,7 +138,7 @@ export interface HomeSections {
 // favorite, or rate, so the row carries only what the decision to restore it
 // needs: what the recipe was, when it went to Trash, and who put it there. Its
 // photo is retained but is not served, because image delivery follows the
-// active recipe path (technical design sections 8 and 10).
+// active recipe path.
 export interface TrashedRecipe {
   id: number;
   name: string;

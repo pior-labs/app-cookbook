@@ -1,0 +1,25 @@
+[
+  { "names": ["scallion", "green onion"], "merge": true },
+  { "names": ["green onions", "green onion"], "merge": true },
+  { "names": ["green onion", "red onion"], "merge": false },
+  { "names": ["red onion", "yellow onion"], "merge": false },
+  { "names": ["chicken breast", "chicken breasts"], "merge": true },
+  { "names": ["boneless skinless chicken breast", "chicken breast"], "merge": true },
+  { "names": ["chicken breast", "chicken thigh"], "merge": false },
+  { "names": ["garlic clove", "garlic cloves"], "merge": true },
+  { "names": ["tomato sauce", "tomato paste"], "merge": false },
+  {
+    "names": ["parmesan", "parmigiano reggiano"],
+    "merge": false,
+    "reason": "Generic parmesan does not guarantee the specified protected-origin product; keep separate pending user review."
+  },
+  { "names": ["fresh basil", "dried basil"], "merge": false },
+  { "names": ["salted butter", "unsalted butter"], "merge": false },
+  { "names": ["milk", "oat milk"], "merge": false },
+  { "names": ["all-purpose flour", "gluten-free flour"], "merge": false },
+  {
+    "names": ["heavy cream", "whipping cream"],
+    "merge": false,
+    "reason": "Fat percentage and regional naming can differ; require review."
+  }
+]

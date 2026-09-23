@@ -71,9 +71,9 @@ function optionalPositiveInt(name: string, fallback: number): number {
   return value;
 }
 
-// Recipe image storage (technical design section 8). The directory is a mounted
-// persistent volume in production and an app-local path during development, so
-// it is resolved relative to the repository root rather than the process CWD.
+// Recipe image storage. The directory is a mounted persistent volume in
+// production and an app-local path during development, so it is resolved
+// relative to the repository root rather than the process CWD.
 export function imageEnv() {
   const configured = process.env.IMAGE_STORAGE_DIR?.trim();
 

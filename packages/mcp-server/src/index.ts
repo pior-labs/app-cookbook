@@ -8,13 +8,15 @@ import { createLogger } from './logger.js';
 import { createServer } from './server.js';
 import type { ActingUser } from './tools/helpers.js';
 
-// The Cookbook MCP server (ADR 0006): read-only tools over stdio, acting as one
+// The Cookbook MCP server (ADRs 0006/0008): recipe reads and planning over stdio, acting as one
 // configured household member.
 
 // How long shutdown waits for in-flight work. Long enough for a tool call
 // already talking to the database to finish and answer, short enough that a
 // stuck one does not outlive the client that asked.
-const SHUTDOWN_DRAIN_MS = 5_000;
+// Planning can have a bounded 60-second provider call in flight. Allow its
+// fallback and final persistence to finish before shutting down the transport.
+const SHUTDOWN_DRAIN_MS = 75_000;
 
 async function main() {
   const env = mcpEnv();

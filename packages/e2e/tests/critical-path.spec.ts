@@ -1,8 +1,7 @@
 import { expect, test, type Browser, type Page } from '@playwright/test';
 
-// The critical path from technical design section 14: create and view a
-// recipe, edit it and adjust servings, find it by ingredient, favorite and rate
-// it as one cook without affecting another, and move it to Trash and back.
+// The critical path: create and view a recipe, edit it and adjust servings, find it by ingredient, favorite and rate it as
+// one cook without affecting another, and move it to Trash and back.
 //
 // Everything underneath this is covered by faster tests. These exist to prove
 // the pieces are wired together: a real browser, the real API, a real migrated

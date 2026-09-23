@@ -1,4 +1,4 @@
-import { RECIPE_SORTS, type RecipeSort } from '@cookbook/domain';
+import { RECIPE_SORTS, type RecipeSort, type RecipeSummary } from '@cookbook/domain';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowDownUp, Heart, Search, SlidersHorizontal, X } from 'lucide-react';
@@ -23,15 +23,15 @@ import { useModalOverlay } from '@/lib/overlay';
 import { RecipeResults } from './RecipeResults.jsx';
 import { useRecipePages, type RecipePages } from './useRecipePages.js';
 
-// Search, filter, sort, and browse (technical design sections 9 and 11.1).
-// The URL is the source of truth for the query, so a filtered view can be
-// shared, bookmarked, and restored by the back button.
+// Search, filter, sort, and browse. The URL is the source of truth for the
+// query, so a filtered view can be shared, bookmarked, and restored by the back
+// button.
 //
 // The screen leads with the results, not with the controls that narrow them.
 // What stays on the page is the toolbar - search, sort, and a way in to the
 // filters - and a line of chips naming whatever is currently narrowing the
-// list. The filters themselves open on request: inline on a wide screen, and
-// as a sheet over the page on a phone, where a permanently open panel was the
+// list. The filters themselves open on request: inline on a wide screen, and as
+// a sheet over the page on a phone, where a permanently open panel was the
 // whole first screen and the recipes were below it.
 
 const SORT_LABELS: Record<RecipeSort, string> = {
@@ -172,7 +172,7 @@ function FilterGroup({ label, children }: { label: string; children: React.React
   );
 }
 
-export function BrowsePage() {
+export function BrowsePage({ onSelect }: { onSelect?: (recipe: RecipeSummary) => void }) {
   const [params, setParams] = useSearchParams();
   const filters = useMemo(() => readFilters(params), [params]);
   const organization = useOrganization();
@@ -366,6 +366,7 @@ export function BrowsePage() {
       ) : null}
 
       <RecipeResults
+        onSelect={onSelect}
         pages={pages}
         filtered={isFiltered(filters)}
         loadingLabel="Searching recipes…"

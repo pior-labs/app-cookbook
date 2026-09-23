@@ -2,9 +2,8 @@ import { and, eq } from 'drizzle-orm';
 import { recipeImages, recipes } from '../db/schema.js';
 import { activeRecipe, type DbExecutor } from './shared.js';
 
-// Database access for the one-to-one recipe image row (technical design
-// section 4.7). Files are the storage module's concern; this module only moves
-// the metadata that points at them.
+// Database access for the one-to-one recipe image row. Files are the storage
+// module's concern; this module only moves the metadata that points at them.
 
 export interface RecipeImageValues {
   cardStorageKey: string;

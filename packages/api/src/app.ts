@@ -9,11 +9,12 @@ import { homeRoute, recentRoute } from './routes/discovery.js';
 import { categoriesRoute, tagsRoute } from './routes/organization.js';
 import { recipesRoute } from './routes/recipes.js';
 import { trashRoute } from './routes/trash.js';
+import { groceryListsRoute, mealPlansRoute } from './routes/planning.js';
 
 export const service = {
   name: 'Pior Labs Cookbook API',
   slug: 'cookbook',
-  phase: 'Phase 1 — Core Cookbook',
+  phase: 'Phase 2 — Meal Planning and Grocery Lists',
   version: '0.1.0',
 } as const;
 
@@ -23,8 +24,7 @@ export interface AppDependencies {
   // Authorization is deny-by-default for `/api/*`; the concrete session lookup
   // is injected so the boundary can be exercised without a live OAuth provider.
   requireAuth: MiddlewareHandler<AppEnv>;
-  // OAuth initiation and callback. Public by design (technical design
-  // section 6).
+  // OAuth initiation and callback. Public by design.
   authHandler?: (request: Request) => Response | Promise<Response>;
 }
 
@@ -37,7 +37,7 @@ export function createApp(deps: AppDependencies) {
   app.get('/api/health', (c) => c.json({ status: 'ok', service: service.slug }));
   app.get('/api', (c) => c.json(service));
   // Readiness covers both halves of the application's persistent state: the
-  // database and the mounted image directory (technical design section 15).
+  // database and the mounted image directory.
   app.get('/api/readiness', async (c) => {
     const connection = databaseConnection();
     const client = postgres(connection.url, { ...connection.options, max: 1 });
@@ -90,6 +90,8 @@ export function createApp(deps: AppDependencies) {
   app.route('/api/categories', categoriesRoute);
   app.route('/api/tags', tagsRoute);
   app.route('/api/trash', trashRoute);
+  app.route('/api/meal-plans', mealPlansRoute);
+  app.route('/api/grocery-lists', groceryListsRoute);
 
   app.notFound(notFoundHandler);
   app.onError(errorHandler);

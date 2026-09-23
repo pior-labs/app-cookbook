@@ -4,6 +4,7 @@ import {
   check,
   index,
   integer,
+  jsonb,
   pgTable,
   primaryKey,
   serial,
@@ -11,6 +12,13 @@ import {
   timestamp,
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
+import type {
+  DismissedItem,
+  GroceryItem,
+  MealPlanStatus,
+  MergeDecision,
+  MergeSuggestion,
+} from '@cookbook/domain';
 
 const createdAt = () => timestamp('created_at', { withTimezone: true }).defaultNow().notNull();
 const updatedAt = () => timestamp('updated_at', { withTimezone: true }).defaultNow().notNull();
@@ -90,8 +98,8 @@ export const verifications = pgTable(
 // tags, and single image, plus shared categories/tags and per-user favorites,
 // ratings, and recently viewed history. Normalized names back case-insensitive
 // uniqueness and search. Soft deletion keeps rows and image files, so foreign
-// keys cascade only on permanent (hard) deletion of a parent. See the technical
-// design, sections 4-5, and ADRs 0002-0005.
+// keys cascade only on permanent (hard) deletion of a parent. See ADRs
+// 0002-0005.
 // ---------------------------------------------------------------------------
 
 export const categories = pgTable(
@@ -312,3 +320,56 @@ export const recentlyViewedRecipes = pgTable(
     ),
   ],
 );
+
+// Shared household aggregates. Attribution is explicit, but is not ownership:
+// either household member can finish the other's shopping (ADR 0008).
+// A plan is draft while its meals are open, confirmed once saved into its one
+// grocery list, and done when the week is over (ADR 0010).
+export const mealPlans = pgTable('meal_plans', {
+  id: serial('id').primaryKey(), name: text('name').notNull().default(''),
+  version: integer('version').notNull().default(1),
+  status: text('status').$type<MealPlanStatus>().notNull().default('draft'),
+  confirmedAt: timestamp('confirmed_at', { withTimezone: true }),
+  completedAt: timestamp('completed_at', { withTimezone: true }),
+  createdByUserId: integer('created_by_user_id').notNull().references(() => users.id, { onDelete: 'restrict' }),
+  updatedByUserId: integer('updated_by_user_id').notNull().references(() => users.id, { onDelete: 'restrict' }),
+  createdAt: createdAt(), updatedAt: updatedAt(),
+}, table => [
+  check('meal_plan_status_known', sql`${table.status} in ('draft', 'confirmed', 'done')`),
+]);
+export const mealPlanItems = pgTable('meal_plan_items', {
+  id: serial('id').primaryKey(),
+  mealPlanId: integer('meal_plan_id').notNull().references(() => mealPlans.id, { onDelete: 'cascade' }),
+  // A recipe may be permanently removed from Trash. Preserve the meal and its
+  // name, marking it unavailable rather than breaking recoverable deletion.
+  recipeId: integer('recipe_id').references(() => recipes.id, { onDelete: 'set null' }),
+  recipeName: text('recipe_name').notNull(),
+  servings: integer('servings').notNull(), position: integer('position').notNull(),
+}, table => [
+  index('meal_plan_items_plan_idx').on(table.mealPlanId),
+  check('meal_plan_servings_range', sql`${table.servings} between 1 and 100`),
+  check('meal_plan_position_nonnegative', sql`${table.position} >= 0`),
+]);
+export const groceryLists = pgTable('grocery_lists', {
+  id: serial('id').primaryKey(),
+  mealPlanId: integer('meal_plan_id').notNull().references(() => mealPlans.id, { onDelete: 'restrict' }),
+  planVersion: integer('plan_version').notNull(), version: integer('version').notNull().default(1),
+  normalization: text('normalization').$type<'llm' | 'fallback'>().notNull(),
+  suggestions: jsonb('suggestions').$type<MergeSuggestion[]>().notNull().default([]),
+  // What the person did that the items cannot show afterwards, kept so a
+  // rebuild can carry it forward: merges they answered, items they removed.
+  mergeDecisions: jsonb('merge_decisions').$type<MergeDecision[]>().notNull().default([]),
+  dismissed: jsonb('dismissed').$type<DismissedItem[]>().notNull().default([]),
+  createdByUserId: integer('created_by_user_id').notNull().references(() => users.id, { onDelete: 'restrict' }),
+  updatedByUserId: integer('updated_by_user_id').notNull().references(() => users.id, { onDelete: 'restrict' }),
+  createdAt: createdAt(), updatedAt: updatedAt(),
+  // One list per plan (ADR 0010). A rebuild rewrites this row rather than
+  // adding a snapshot beside it.
+}, table => [uniqueIndex('grocery_lists_plan_idx').on(table.mealPlanId)]);
+export const groceryItems = pgTable('grocery_items', {
+  id: serial('id').primaryKey(),
+  groceryListId: integer('grocery_list_id').notNull().references(() => groceryLists.id, { onDelete: 'cascade' }),
+  // Immutable provenance travels with the editable snapshot, never with a live
+  // recipe FK. Exact fractions can exceed int32 after conversion/aggregation.
+  data: jsonb('data').$type<Omit<GroceryItem, 'id'>>().notNull(),
+}, table => [index('grocery_items_list_idx').on(table.groceryListId)]);

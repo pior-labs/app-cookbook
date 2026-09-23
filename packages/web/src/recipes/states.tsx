@@ -3,8 +3,7 @@ import type { ApiRequestError } from '../api/client.js';
 import { Panel } from '@/components/ui';
 import { cn } from '@/lib/utils';
 
-// The loading, error, and empty states every recipe screen shares
-// (technical design section 11.3).
+// The loading, error, and empty states every recipe screen shares.
 
 // Layout-preserving skeletons: the page keeps its shape while loading so
 // content does not jump into place.

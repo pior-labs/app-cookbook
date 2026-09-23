@@ -1,5 +1,8 @@
+import { execFile } from 'node:child_process';
 import { mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
 import type { RecipeDetail, RecipeImage } from '@cookbook/domain';
 import { eq } from 'drizzle-orm';
 import sharp from 'sharp';
@@ -19,8 +22,7 @@ import {
 } from './helpers.js';
 
 // Integration coverage for multipart image validation, replacement, delivery,
-// and cleanup against a disposable image directory (technical design
-// section 14.2).
+// and cleanup against a disposable image directory.
 
 const app: AppUnderTest = createTestApp();
 
@@ -364,6 +366,51 @@ describe('orphan reconciliation', () => {
       await db.select().from(recipeImages).where(eq(recipeImages.recipeId, recipe.id)),
     ).toHaveLength(1);
     expect((await client.get(`/api/recipes/${recipe.id}/photo/card`)).status).toBe(404);
+  });
+});
+
+// The reconciler is the verification step of the restore procedure
+// (OPERATIONS.md section 4), so what it reports through its *exit status* is a
+// contract, not an implementation detail: a restore check that only looks at
+// the status must not read an incomplete restore as a good one. That decision
+// lives in the command's entry point rather than in `reconcileImages`, so it is
+// only reachable by running the command.
+describe('reconcile command exit status', () => {
+  const run = promisify(execFile);
+  const cli = fileURLToPath(new URL('../src/images/reconcile.ts', import.meta.url));
+  const tsx = fileURLToPath(new URL('../node_modules/.bin/tsx', import.meta.url));
+
+  // Inherits DATABASE_URL and IMAGE_STORAGE_DIR from the worker, so the child
+  // sees this run's disposable database and image directory (test/setup-env.ts).
+  const reconcile = () => run(tsx, [cli], { env: process.env });
+
+  it('succeeds when every referenced file is present', async () => {
+    await uploadPhoto();
+
+    const { stdout } = await reconcile();
+
+    expect(JSON.parse(stdout.slice(stdout.indexOf('{'), stdout.lastIndexOf('}') + 1))).toMatchObject(
+      { missingKeys: [] },
+    );
+  });
+
+  it('fails when a referenced file is missing', async () => {
+    await uploadPhoto();
+    const [folder] = await listStoredFolders();
+    await rm(`${storageRoot()}/${folder}`, { recursive: true, force: true });
+
+    await expect(reconcile()).rejects.toMatchObject({ code: 1 });
+  });
+
+  it('succeeds when the only finding is orphaned files', async () => {
+    await uploadPhoto();
+    await db.delete(recipeImages).where(eq(recipeImages.recipeId, recipe.id));
+
+    // Orphans are ordinary accumulated churn, not a failed restore, so they must
+    // not fail the check that missing files fails.
+    const { stdout } = await reconcile();
+
+    expect(stdout).toContain('Re-run with --delete');
   });
 });
 

@@ -16,8 +16,7 @@ import {
 import { withCursorErrors } from './pagination.js';
 
 // Browse/search and the home screen's sections. Both return the same recipe
-// summary shape, so one card renders every list (technical design
-// section 11.1).
+// summary shape, so one card renders every list.
 
 // How many recipes each home rail shows. The rails are an invitation to open
 // something, not a browse surface: `/recipes` is where a cook goes to see

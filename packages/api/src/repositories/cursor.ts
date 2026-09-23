@@ -1,8 +1,8 @@
-// The opaque keyset cursor every paginated list issues (technical design
-// section 7.2). It carries the ordering it was issued for, the last row's sort
-// key, and the last row's ID, so a page continues from exactly where the
-// previous one stopped even when rows are added, renamed, rated, or deleted in
-// between. Offsets would silently skip or repeat rows when that happens.
+// The opaque keyset cursor every paginated list issues. It carries the ordering
+// it was issued for, the last row's sort key, and the last row's ID, so a page
+// continues from exactly where the previous one stopped even when rows are
+// added, renamed, rated, or deleted in between. Offsets would silently skip or
+// repeat rows when that happens.
 //
 // It is opaque rather than secret: a client that built one by hand would be
 // depending on an ordering the server is free to change.

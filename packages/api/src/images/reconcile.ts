@@ -2,10 +2,10 @@ import { closeDatabase, db } from '../db/index.js';
 import { listReferencedStorageKeys } from '../repositories/index.js';
 import { folderFromKey, listStoredFolders, removeImageFolder, storageRoot } from './storage.js';
 
-// Reconciles the image directory against `recipe_images` (technical design
-// section 8). File cleanup is best-effort and runs after the database commits,
-// so an interrupted replacement or permanent deletion can leave files behind.
-// This is the repair path for that, and the validation path after a restore.
+// Reconciles the image directory against `recipe_images`. File cleanup is best-
+// effort and runs after the database commits, so an interrupted replacement or
+// permanent deletion can leave files behind. This is the repair path for that,
+// and the validation path after a restore.
 //
 // It only ever removes files, never database rows: metadata pointing at a
 // missing file means storage is incomplete, which is a restore problem a
@@ -60,10 +60,18 @@ async function main(): Promise<void> {
     console.log(`\nRe-run with --delete to remove ${report.orphanedFolders.length} orphaned folder(s).`);
   }
 
+  // Missing files are the direction that means storage came back incomplete -
+  // usually a database and an image archive restored from different points in
+  // time (OPERATIONS.md section 4). Exit non-zero so a restore check that reads
+  // the status, not the output, fails instead of reporting a good restore.
+  //
+  // `exitCode` rather than `exit()`: the report above still has to flush and the
+  // pool still has to close, and `process.exit()` would cut both short.
   if (report.missingKeys.length > 0) {
     console.error(
       `\n${report.missingKeys.length} referenced image file(s) are missing from ${report.storageDir}.`,
     );
+    process.exitCode = 1;
   }
 
   await closeDatabase();

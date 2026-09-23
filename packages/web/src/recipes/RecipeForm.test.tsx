@@ -8,8 +8,7 @@ import type { ErrorFields } from '../api/client.js';
 import { RecipeForm } from './RecipeForm.jsx';
 import { emptyDraft, validateCreate, type RecipeDraft } from './form-state.js';
 
-// Recipe form validation, ordered-row editing, and accessible labelling
-// (technical design section 14.3).
+// Recipe form validation, ordered-row editing, and accessible labelling.
 
 const CATEGORIES: CategorySummary[] = [
   { id: 1, name: 'Dinner', activeRecipeCount: 0, createdAt: '', updatedAt: '' },

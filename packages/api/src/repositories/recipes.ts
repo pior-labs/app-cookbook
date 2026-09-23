@@ -11,8 +11,8 @@ import {
 import { activeRecipe, normalizeName, type DbExecutor } from './shared.js';
 
 // Database access for the recipe aggregate. Every read here is scoped to active
-// recipes; Trash has its own explicit path (technical design section 10).
-// Mapping to the API representation belongs to the service layer.
+// recipes; Trash has its own explicit path. Mapping to the API representation
+// belongs to the service layer.
 
 // The editable parent columns shared by create and update. Created-by,
 // deleted-by, and `version` are never client-supplied.

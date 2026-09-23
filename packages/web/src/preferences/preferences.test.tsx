@@ -8,10 +8,9 @@ import { RecipeDetailPage } from '../recipes/RecipeDetailPage.jsx';
 import { FavoritesPage } from './FavoritesPage.jsx';
 import { RecentPage } from './RecentPage.jsx';
 
-// Favorites, ratings, and recent history on the screens
-// (technical design sections 11.2, 11.3, and 14.3). Favorite and rating are
-// the only optimistic interactions in the app, so the revert path matters as
-// much as the happy one.
+// Favorites, ratings, and recent history on the screens. Favorite and rating
+// are the only optimistic interactions in the app, so the revert path matters
+// as much as the happy one.
 
 vi.mock('../auth', () => ({
   useAuth: () => ({

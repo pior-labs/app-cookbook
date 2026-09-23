@@ -2,7 +2,7 @@
 
 Pior Labs Cookbook is a private, self-hosted household recipe manager. It is being built as a polished, mobile-friendly place to save, find, scale, and cook the recipes the household wants to keep.
 
-The application is currently in **Phase 1 — Core Cookbook**. The responsive application shell, API baseline, PostgreSQL/Drizzle tooling, container configuration, CI, and central SSO integration are in place, along with the recipe domain model and the recipe create/read/update API. The product UI, images, discovery, and Trash are still to come.
+**Phase 1 — Core Cookbook is complete** and deployed on the household network: recipes, photos, search and discovery, categories and tags, favorites, ratings, recently viewed history, Trash, and Cooking Mode. **MCP v1** follows it - a read-only stdio server giving a household member's own assistant access to the library. Meal planning, grocery lists, smart import, and Recipe Roulette are later phases.
 
 ## Stack
 
@@ -23,10 +23,10 @@ packages/api/         Hono API, Drizzle tooling, and integration tests
 packages/web/         React application and static Caddy runtime
 packages/mcp-server/  read-only MCP access to the cookbook, over stdio
 packages/e2e/         Playwright critical-path suite
-docs/                 product requirements, technical design, status, and decisions
+docs/                 decisions, operations, ideas, and the current brief
 ```
 
-The product source of truth is [`docs/PRD.md`](docs/PRD.md). Check [`docs/STATUS.md`](docs/STATUS.md) before assuming a documented requirement exists in the application.
+The code is the description of the application. [`docs/DECISIONS.md`](docs/DECISIONS.md) records why it is shaped the way it is and what was deliberately left out; [`AGENTS.md`](AGENTS.md) explains how documentation works here.
 
 ## Local development
 
@@ -93,7 +93,7 @@ has created yours, or name it explicitly:
 SEED_USER_EMAIL=you@example.com pnpm db:seed
 ```
 
-The first migration creates the local user, account, session, and verification tables used by authentication. The second creates the recipe domain: recipes, ingredients, instructions, categories, tags, images, favorites, ratings, and recently viewed history, and seeds the starter categories.
+The first migration creates the local user, account, session, and verification tables used by authentication. The second creates the recipe domain: recipes, ingredients, instructions, categories, tags, images, favorites, ratings, and recently viewed history, and seeds the starter categories. The third adds the nullable `tags.color` column behind tag colours.
 
 Production uses `DATABASE_URL_FILE`. `platform-deploy` provisions the database, role, and server-managed connection file; this repository only mounts that file read-only into the API container.
 
@@ -103,18 +103,23 @@ The web app uses client-side routing with these authenticated routes:
 
 | Route | Purpose |
 | --- | --- |
-| `/` | Recent recipes and the entry point to add one. |
+| `/` | Home discovery: recently viewed, favorites, highly rated, recently added, and category shortcuts. |
+| `/recipes` | Browse: search, filter, sort, and cursor-paged results. |
 | `/recipes/new` | Recipe creation. |
-| `/recipes/:id` | Recipe detail and serving adjustment. |
+| `/recipes/:id` | Recipe detail, serving adjustment, and the entry to Cooking Mode. |
 | `/recipes/:id/edit` | Edit the full recipe aggregate. |
+| `/favorites` | The current user's favorites. |
+| `/recent` | The current user's recently viewed recipes. |
+| `/organize` | Category and tag management, including tag colours. |
+| `/trash` | Restore or permanently delete a trashed recipe. |
 
 Routes mount only for an authenticated session, so losing the session returns to login rather than showing stale protected data. The web container serves the SPA with a `try_files` fallback, so deep links resolve.
 
-Recipe screens are styled entirely from `@pior-labs/design-system` semantic tokens, so they reskin with the active theme. The older `LoginScreen` and the login gallery keep their own styling for now.
+Screens are styled entirely from `@pior-labs/design-system` semantic tokens, so they reskin with the active theme. The sign-in screen is the "The Index, Lit" concept; the earlier login concepts remain parked as a design study at `/designs/login/1..4`.
 
 Serving adjustment is local view state: it scales displayed quantities using the exact fraction arithmetic in `@cookbook/domain` and never modifies the saved recipe. Validation reuses the same domain schemas the API enforces, so client feedback and server errors carry identical field-scoped messages.
 
-Browse, search, filtering, home discovery, favorites, ratings, and Trash are not implemented yet. `GET /api/recipes` currently accepts only `sort=recentlyAdded` and `limit`, and rejects search or filter parameters rather than returning an unfiltered list that would look like a search result.
+"Cook this" on a recipe opens Cooking Mode: a full-screen view with the shell navigation dropped, 40px step numerals, ingredients that tick off as they go, the serving control kept to hand, and a screen wake lock held only while it is on.
 
 ## Recipe images
 
@@ -231,13 +236,12 @@ pnpm test:e2e   # browser critical path; starts its own API and web servers
 
 The browser suite runs against `packages/api/test/e2e-server.ts`, which is the real application with the central-SSO session replaced by a cookie the test sets. It lives in `test/`, which the build excludes, so nothing in the shipped image can reach it.
 
-The deployment workflow remains manual until the production runner and these external dependencies are ready:
-
-1. Register and seed the trusted Cookbook OAuth client in `service-auth`.
-2. Provision the Cookbook database, role, secret file, and routes in `platform-deploy`.
-3. Point `cookbook.szarans.ca` at the platform through split-horizon DNS.
-4. Provision the dedicated Cookbook self-hosted runner using the documented user, paths, and labels.
-5. Configure the repository production environment, `APP_ENV` secret, and `DEPLOY_DIR` variable.
+Every external dependency is provisioned - the `service-auth` client, the
+`platform-deploy` database, secret file, image directory and routes, split-horizon
+DNS, the dedicated `optiplex-cookbook` runner, and the repository's `APP_ENV` and
+`DEPLOY_DIR`. The deployment workflow stays `workflow_dispatch` by choice: a
+household cookbook is deployed when somebody decides to deploy it, not on every
+push to `main`.
 
 [`docs/OPERATIONS.md`](docs/OPERATIONS.md) carries the full runner setup, provisioning checklist, and backup and restore procedure.
 
@@ -254,8 +258,8 @@ claude mcp add cookbook -- ssh <host> \
   "docker exec -i cookbook-mcp-server node packages/mcp-server/dist/index.js"
 ```
 
-See [`packages/mcp-server/README.md`](packages/mcp-server/README.md) for client configuration, [ADR 0006](docs/DECISIONS/0006-read-only-stdio-mcp-server.md) for why it is shaped this way, and technical design section 20 for the contracts.
+See [`packages/mcp-server/README.md`](packages/mcp-server/README.md) for client configuration and the tools, and [decision 0006](docs/DECISIONS.md#0006---a-read-only-stdio-mcp-server-with-a-configured-acting-user) for why it is shaped this way.
 
 ## Scope
 
-Phase 1 is complete and deployed: recipes, images, the product UI, search and discovery, categories and tags, favorites, ratings, recently viewed history, Trash, and Cooking Mode are implemented and covered by tests. MCP v1 is implemented and read-only. Meal planning, grocery lists, imports, and Recipe Roulette are later work and are outside the current phase. See [`docs/STATUS.md`](docs/STATUS.md) for the authoritative state.
+Phase 1 is complete and deployed: recipes, images, the product UI, search and discovery, categories and tags, favorites, ratings, recently viewed history, Trash, and Cooking Mode are implemented and covered by tests. MCP v1 is implemented and read-only. Meal planning and grocery lists are the work in flight ([`docs/IMPLEMENTING.md`](docs/IMPLEMENTING.md)). Imports and Recipe Roulette are ideas rather than plans ([`docs/IDEAS.md`](docs/IDEAS.md)).

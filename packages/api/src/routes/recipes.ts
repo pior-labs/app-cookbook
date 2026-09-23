@@ -19,8 +19,8 @@ import { moveRecipeToTrash } from '../services/trash.js';
 import { idParam, parseBody, parseQuery } from './http.js';
 import { registerPhotoRoutes } from './photos.js';
 
-// HTTP parsing and response mapping only. Domain schemas own the rules, and
-// the service owns the transaction (technical design section 3).
+// HTTP parsing and response mapping only. Domain schemas own the rules, and the
+// service owns the transaction.
 
 function recipeIdParam(c: Context<AppEnv>): number {
   return idParam(c, 'recipe');

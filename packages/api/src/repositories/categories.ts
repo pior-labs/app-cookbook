@@ -23,7 +23,7 @@ export async function findCategoryById(
 // Every category with the number of live recipes filed under it. The count
 // drives both the picker and, later, the delete restriction in `/organize`, so
 // trashed recipes are deliberately excluded: they are not what a cook is
-// choosing between (technical design section 7.3).
+// choosing between.
 export async function listCategoriesWithCounts(exec: DbExecutor) {
   return exec
     .select({
@@ -90,7 +90,7 @@ export async function deleteCategory(exec: DbExecutor, id: number): Promise<bool
 
 // Both halves of "is anything filed here?". A trashed recipe still references
 // its category and is restorable, so it blocks deletion exactly like a live one
-// does, but it needs its own explanation (technical design section 7.3).
+// does, but it needs its own explanation.
 export async function countRecipesInCategory(
   exec: DbExecutor,
   categoryId: number,

@@ -4,10 +4,10 @@ import { dirname, join, resolve, sep } from 'node:path';
 import { imageEnv } from '../env.js';
 import type { ImageVariant } from './transform.js';
 
-// Filesystem side of recipe image storage (technical design section 8). Keys
-// are generated and opaque: `<recipe-id>/<uuid>/<variant>.webp`. A user
-// filename never becomes a path segment, and nothing outside the configured
-// directory is ever read or written.
+// Filesystem side of recipe image storage. Keys are generated and opaque:
+// `<recipe-id>/<uuid>/<variant>.webp`. A user filename never becomes a path
+// segment, and nothing outside the configured directory is ever read or
+// written.
 
 export function storageRoot(): string {
   return imageEnv().storageDir;

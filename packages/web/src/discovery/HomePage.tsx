@@ -10,8 +10,7 @@ import { EmptyState, ErrorState } from '../recipes/states.js';
 import { RecipeCard, RecipeCardSkeleton } from './RecipeCard.js';
 
 // Visual discovery: what this household cooks, what the current user keeps
-// coming back to, and a way into every category
-// (technical design sections 11.1 and 11.2).
+// coming back to, and a way into every category.
 
 // A rail is wider than the page on purpose, and a card sliced dead straight at
 // the container edge reads as a rendering fault rather than as "there is more

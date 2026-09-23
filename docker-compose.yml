@@ -11,7 +11,7 @@ services:
       DATABASE_URL: ${DOCKER_DATABASE_URL:-${DATABASE_URL:-}}
       IMAGE_STORAGE_DIR: /var/lib/cookbook/images
     # Recipe images are app-owned persistent state mounted only into the API
-    # container; the web container never sees them (technical design section 8).
+    # container; the web container never sees them.
     volumes:
       - cookbook_images:/var/lib/cookbook/images
     expose:
@@ -52,7 +52,7 @@ services:
         aliases:
           - ${APP_SLUG:-cookbook}-web
 
-  # The MCP server (ADR 0006). Read-only recipe tools for a household member's
+  # The MCP server (ADRs 0006/0008). Recipe reads and planning tools for a household member's
   # own assistant, speaking MCP over stdio.
   #
   # Deployed the same way as `finlens-mcp-server`: the container stays up with
@@ -67,8 +67,8 @@ services:
   # no client itself. Health is therefore not "is the process up" but "could an
   # exec'd session actually work" - see `src/healthcheck.ts`.
   #
-  # It joins `pior_data` only. It needs the database and nothing else: no edge
-  # network, no published port, and no route in `platform-deploy`.
+  # It joins `pior_data` only. It needs database access and outbound HTTPS for
+  # semantic normalization, but no published port or platform Caddy route.
   mcp:
     build:
       context: .
