@@ -14,7 +14,10 @@ export const PLANNING_WRITE_TOOLS = [
   'add_recipe_to_meal_plan',
   'remove_recipe_from_meal_plan',
   'update_meal_plan_item',
-  'generate_grocery_list',
+  'confirm_meal_plan',
+  'reopen_meal_plan',
+  'complete_meal_plan',
+  'resume_meal_plan',
   'add_grocery_list_item',
   'update_grocery_list_item',
   'remove_grocery_list_item',
@@ -63,7 +66,7 @@ export function registerPlanningTools(
         annotations: {
           readOnlyHint: readOnly,
           destructiveHint: /^(remove|update|resolve)_/.test(name),
-          openWorldHint: name === 'generate_grocery_list',
+          openWorldHint: name === 'confirm_meal_plan',
         },
       },
       async (input): Promise<CallToolResult> =>
@@ -85,7 +88,7 @@ export function registerPlanningTools(
   }
   register(
     'list_meal_plans',
-    'List the 100 most recently updated household meal plans, including recipe IDs, selected servings and grocery snapshot IDs.',
+    'List the 100 most recently updated household meal plans, including status (draft, confirmed or done), recipe IDs, selected servings and grocery list ID.',
     {},
     true,
     () => service.listMealPlans(),
@@ -99,21 +102,21 @@ export function registerPlanningTools(
   );
   register(
     'get_meal_plan',
-    'Retrieve a shared meal plan, its ordered meals, selected servings, current version and grocery snapshot IDs.',
+    'Retrieve a shared meal plan, its status, ordered meals, selected servings, current version and grocery list ID. Meals can only be changed while status is draft.',
     planShape,
     true,
     (input) => service.getMealPlan(input.mealPlanId),
   );
   register(
     'add_recipe_to_meal_plan',
-    'Add an existing recipe to a meal plan with an explicit serving count. Repeated recipes are allowed.',
+    'Add an existing recipe to a draft meal plan with an explicit serving count. Repeated recipes are allowed.',
     { ...planShape, ...version, recipeId: idSchema, servings: servingsSchema },
     false,
     ({ mealPlanId, ...input }) => service.addRecipeToMealPlan(mealPlanId, input, user.id),
   );
   register(
     'update_meal_plan_item',
-    'Change selected servings, recipe, or zero-based order position of one meal without changing the saved recipe.',
+    'Change selected servings, recipe, or zero-based order position of one meal in a draft plan without changing the saved recipe.',
     {
       ...mealItem,
       servings: servingsSchema.optional(),
@@ -126,22 +129,44 @@ export function registerPlanningTools(
   );
   register(
     'remove_recipe_from_meal_plan',
-    'Remove a meal from this plan. The saved recipe and existing grocery snapshots are preserved.',
+    'Remove a meal from a draft plan. The saved recipe and the grocery list are unaffected until the plan is saved again.',
     mealItem,
     false,
     (input) =>
       service.removeRecipeFromMealPlan(input.mealPlanId, input.itemId, input.version, user.id),
   );
+  // A plan's lifecycle (ADR 0010). Saving is the one that reaches the model.
   register(
-    'generate_grocery_list',
-    'Generate a new persisted grocery snapshot using AI ingredient interpretation and deterministic quantities. Existing lists and their edits remain available.',
+    'confirm_meal_plan',
+    'Save a draft meal plan after the user is happy with it. This closes its meals and builds its one grocery list using AI ingredient interpretation and deterministic quantities. Saving a reopened plan rebuilds that same list and keeps what people already did to it: ticks, edits, removals, hand-added items and merge answers.',
     { ...planShape, ...version },
     false,
-    (input) => service.generateGroceryList(input.mealPlanId, input.version, user.id),
+    (input) => service.confirmMealPlan(input.mealPlanId, input.version, user.id),
+  );
+  register(
+    'reopen_meal_plan',
+    'Reopen a saved meal plan so its meals can be changed. Its grocery list stays usable meanwhile and is rebuilt when the plan is saved again.',
+    { ...planShape, ...version },
+    false,
+    (input) => service.reopenMealPlan(input.mealPlanId, input.version, user.id),
+  );
+  register(
+    'complete_meal_plan',
+    'Mark a saved meal plan as done once its meals are finished with. Its grocery list becomes read-only.',
+    { ...planShape, ...version },
+    false,
+    (input) => service.completeMealPlan(input.mealPlanId, input.version, user.id),
+  );
+  register(
+    'resume_meal_plan',
+    'Move a done meal plan back to saved, so its grocery list can be used again.',
+    { ...planShape, ...version },
+    false,
+    (input) => service.resumeMealPlan(input.mealPlanId, input.version, user.id),
   );
   register(
     'get_grocery_list',
-    'Retrieve a grocery snapshot including quantities, checked state, provenance, merge suggestions and current version.',
+    'Retrieve a meal plan\'s grocery list including quantities, checked state, provenance, merge suggestions and current version.',
     listShape,
     true,
     (input) => service.getGroceryList(input.groceryListId),
@@ -163,7 +188,7 @@ export function registerPlanningTools(
   );
   register(
     'remove_grocery_list_item',
-    'Remove a grocery item from this snapshot without changing its source recipes or meal plan.',
+    'Remove a grocery item from the list without changing its source recipes or meal plan. It stays removed when the plan is saved again, unless the meals then need a different amount.',
     listItem,
     false,
     (input) =>

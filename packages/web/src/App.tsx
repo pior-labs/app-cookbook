@@ -16,7 +16,8 @@ import { EditRecipePage } from './recipes/EditRecipePage';
 import { NewRecipePage } from './recipes/NewRecipePage';
 import { RecipeDetailPage } from './recipes/RecipeDetailPage';
 import { TrashPage } from './trash/TrashPage';
-import { MealPlanPage, MealPlansPage } from './planning/MealPlanPage';
+import { MealPlanPage } from './planning/MealPlanPage';
+import { MealPlansPage } from './planning/MealPlansPage';
 import { GroceryListPage } from './planning/GroceryListPage';
 
 function isGalleryRequested() {

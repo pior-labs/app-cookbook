@@ -9,7 +9,13 @@ import {
   recipes,
 } from '../db/schema.js';
 import type { DbExecutor } from './shared.js';
-import type { GeneratedItem, MergeSuggestion } from '@cookbook/domain';
+import type {
+  DismissedItem,
+  GeneratedItem,
+  MealPlanStatus,
+  MergeDecision,
+  MergeSuggestion,
+} from '@cookbook/domain';
 
 export async function findPlan(exec: DbExecutor, id: number, lock = false) {
   const query = exec.select().from(mealPlans).where(eq(mealPlans.id, id));
@@ -48,12 +54,21 @@ export async function planItems(exec: DbExecutor, id: number) {
     .where(eq(mealPlanItems.mealPlanId, id))
     .orderBy(mealPlanItems.position, mealPlanItems.id);
 }
-export async function planLists(exec: DbExecutor, id: number) {
-  return exec
-    .select({ id: groceryLists.id })
-    .from(groceryLists)
-    .where(eq(groceryLists.mealPlanId, id))
-    .orderBy(desc(groceryLists.id));
+// A plan has at most one list, and the unique index says so.
+export async function planList(exec: DbExecutor, planId: number, lock = false) {
+  const query = exec.select().from(groceryLists).where(eq(groceryLists.mealPlanId, planId));
+  return (await (lock ? query.for('update') : query))[0];
+}
+export async function setPlanState(
+  exec: DbExecutor,
+  id: number,
+  state: {
+    status: MealPlanStatus;
+    confirmedAt?: Date | null;
+    completedAt?: Date | null;
+  },
+) {
+  await exec.update(mealPlans).set(state).where(eq(mealPlans.id, id));
 }
 export async function insertPlan(exec: DbExecutor, name: string, userId: number) {
   return (
@@ -167,6 +182,33 @@ export async function insertList(
 }
 export async function setSuggestions(exec: DbExecutor, id: number, suggestions: MergeSuggestion[]) {
   await exec.update(groceryLists).set({ suggestions }).where(eq(groceryLists.id, id));
+}
+export async function setCarry(
+  exec: DbExecutor,
+  id: number,
+  carry: { mergeDecisions?: MergeDecision[]; dismissed?: DismissedItem[] },
+) {
+  await exec.update(groceryLists).set(carry).where(eq(groceryLists.id, id));
+}
+// A rebuild rewrites the plan's one list in place, so its id - and every link
+// and open tab pointing at it - stays good. The version still moves, so anyone
+// holding the old items gets a conflict rather than editing rows that are gone.
+export async function rewriteList(
+  exec: DbExecutor,
+  id: number,
+  value: { planVersion: number; normalization: 'llm' | 'fallback'; userId: number },
+) {
+  await exec.delete(groceryItems).where(eq(groceryItems.groceryListId, id));
+  await exec
+    .update(groceryLists)
+    .set({
+      planVersion: value.planVersion,
+      normalization: value.normalization,
+      version: sql`${groceryLists.version} + 1`,
+      updatedAt: new Date(),
+      updatedByUserId: value.userId,
+    })
+    .where(eq(groceryLists.id, id));
 }
 export async function touchList(exec: DbExecutor, id: number, userId: number) {
   await exec

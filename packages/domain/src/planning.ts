@@ -82,16 +82,26 @@ export interface MealPlanItem {
   totalMinutes: number | null;
   hasImage: boolean;
 }
+// A plan is something finished, not edited forever. Its meals are open while it
+// is a draft; saving it builds the one grocery list it has and closes the meals;
+// done is the week being over. See ADR 0010.
+export const MEAL_PLAN_STATUSES = ['draft', 'confirmed', 'done'] as const;
+export type MealPlanStatus = (typeof MEAL_PLAN_STATUSES)[number];
 export interface MealPlan {
   id: number;
   name: string;
   version: number;
+  status: MealPlanStatus;
   createdByUserId: number;
   updatedByUserId: number;
   createdAt: string;
   updatedAt: string;
+  confirmedAt: string | null;
+  completedAt: string | null;
   items: MealPlanItem[];
-  groceryListIds: number[];
+  // One list per plan. Null until the plan is first saved, and kept while a
+  // saved plan is reopened, so it stays usable during the edit.
+  groceryListId: number | null;
 }
 export interface IngredientSource {
   key: string;
@@ -114,6 +124,13 @@ export interface GroceryItem {
   checked: boolean;
   edited: boolean;
   sources: IngredientSource[];
+  // Set by a rebuild when the meals now need something different from what they
+  // needed when the person last acted on this item, so what they did could not
+  // be carried forward as it was. Says which thing they did, because the list
+  // tells them different things: a new amount, a tick to recheck, or an item
+  // back that they had removed. Cleared by their next edit or tick. Optional
+  // because every list written before rebuilds existed lacks it.
+  changedSince?: 'edited' | 'ticked' | 'removed';
 }
 export interface MergeSuggestion {
   id: number;
@@ -135,7 +152,16 @@ export interface GroceryList {
   suggestions: MergeSuggestion[];
 }
 export interface MealProposal {
-  meals: { recipeId: number; recipeName: string; servings: number }[];
+  // Enough of each recipe to show it as a dish, not a line of text, so a
+  // suggestion can be judged before it is accepted.
+  meals: {
+    recipeId: number;
+    recipeName: string;
+    servings: number;
+    categoryName: string;
+    totalMinutes: number | null;
+    hasImage: boolean;
+  }[];
   explanation: string;
   mode: 'llm' | 'fallback';
   candidateLimitReached: boolean;

@@ -29,6 +29,13 @@
       "when": 1789523908359,
       "tag": "0003_tan_namorita",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790185344593,
+      "tag": "0004_misty_doctor_doom",
+      "breakpoints": true
     }
   ]
 }

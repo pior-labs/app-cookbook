@@ -20,8 +20,8 @@ const EXPECTED_TOOLS = [
   'get_top_rated_recipes',
   'scale_recipe',
   'list_meal_plans', 'create_meal_plan', 'get_meal_plan', 'add_recipe_to_meal_plan',
-  'update_meal_plan_item', 'remove_recipe_from_meal_plan', 'generate_grocery_list',
-  'get_grocery_list', 'add_grocery_list_item', 'update_grocery_list_item',
+  'update_meal_plan_item', 'remove_recipe_from_meal_plan', 'confirm_meal_plan',
+  'reopen_meal_plan', 'complete_meal_plan', 'resume_meal_plan', 'get_grocery_list', 'add_grocery_list_item', 'update_grocery_list_item',
   'remove_grocery_list_item', 'check_grocery_list_item', 'resolve_grocery_merge',
 ].sort();
 
@@ -48,7 +48,8 @@ describe('the tool surface', () => {
     const writable = tools.filter((tool) => tool.annotations?.readOnlyHint !== true);
     expect(writable.map((tool) => tool.name).sort()).toEqual([
       'create_meal_plan', 'add_recipe_to_meal_plan', 'update_meal_plan_item', 'remove_recipe_from_meal_plan',
-      'generate_grocery_list', 'add_grocery_list_item', 'update_grocery_list_item',
+      'confirm_meal_plan', 'reopen_meal_plan', 'complete_meal_plan', 'resume_meal_plan',
+      'add_grocery_list_item', 'update_grocery_list_item',
       'remove_grocery_list_item', 'check_grocery_list_item', 'resolve_grocery_merge',
     ].sort());
   });

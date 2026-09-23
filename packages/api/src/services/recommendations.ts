@@ -66,11 +66,18 @@ export async function recommendMeals(
   }
   const count = Math.min(preferences.count, candidates.length);
   const present = (ids: number[], explanation: string, mode: 'llm' | 'fallback'): MealProposal => ({
-    meals: ids.map((id) => ({
-      recipeId: id,
-      recipeName: candidates.find((c) => c.id === id)!.name,
-      servings: preferences.servings,
-    })),
+    meals: ids.map((id) => {
+      // Read from the browse query's own summaries, never sent to the model.
+      const summary = page.items.find((r) => r.id === id)!;
+      return {
+        recipeId: id,
+        recipeName: summary.name,
+        servings: preferences.servings,
+        categoryName: summary.categoryName,
+        totalMinutes: summary.totalMinutes,
+        hasImage: summary.hasImage,
+      };
+    }),
     explanation,
     mode,
     candidateLimitReached: page.nextCursor != null,

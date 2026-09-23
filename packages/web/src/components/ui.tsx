@@ -163,6 +163,7 @@ export function OverflowMenu({
   disabled,
   size = 'default',
   placement = 'bottom',
+  quiet = false,
 }: {
   label: string;
   children: ReactNode;
@@ -171,6 +172,9 @@ export function OverflowMenu({
   // `IconButton`, so it sits level with the other controls on a page header.
   size?: 'default' | 'small';
   placement?: 'top' | 'bottom';
+  // For a control repeated down a list: no ring until it is pointed at or
+  // focused, so a column of them does not outweigh what the rows say.
+  quiet?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const holder = useRef<HTMLDivElement>(null);
@@ -212,9 +216,11 @@ export function OverflowMenu({
         disabled={disabled}
         onClick={() => setOpen((value) => !value)}
         className={cn(
-          'inline-grid shrink-0 cursor-pointer place-items-center border border-ink/12',
-          'bg-frost/55 text-ink-2 backdrop-blur-md transition-colors duration-200',
-          'hover:bg-frost/85 hover:text-ink disabled:pointer-events-none disabled:opacity-45',
+          'inline-grid shrink-0 cursor-pointer place-items-center border transition-colors duration-200',
+          quiet
+            ? 'border-transparent bg-transparent text-ink-3 hover:bg-ink/5 hover:text-ink'
+            : 'border-ink/12 bg-frost/55 text-ink-2 backdrop-blur-md hover:bg-frost/85 hover:text-ink',
+          'disabled:pointer-events-none disabled:opacity-45',
           size === 'small' ? 'h-9 w-9 rounded-full' : 'h-11 w-11 rounded-2xl',
           open ? 'bg-frost/85 text-ink' : '',
           focusRing,

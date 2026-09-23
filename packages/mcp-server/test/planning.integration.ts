@@ -54,10 +54,12 @@ it('chains MCP mutations into the same data visible to the UI, with configured-u
       version: plan.version,
       servings: 3,
     });
-    let list = await call<GroceryList>('generate_grocery_list', {
+    plan = await call<MealPlan>('confirm_meal_plan', {
       mealPlanId: plan.id,
       version: plan.version,
     });
+    expect(plan.status).toBe('confirmed');
+    let list = await call<GroceryList>('get_grocery_list', { groceryListId: plan.groceryListId });
     expect(list.items[0].quantity).toEqual({ numerator: 3, denominator: 2 });
     expect(await (await http.get(`/api/grocery-lists/${list.id}`)).json()).toEqual(list);
     list = await call<GroceryList>('add_grocery_list_item', {
@@ -96,6 +98,15 @@ it('chains MCP mutations into the same data visible to the UI, with configured-u
     });
     expect(list.items).toHaveLength(1);
     expect(await call<GroceryList>('get_grocery_list', { groceryListId: list.id })).toEqual(list);
+    // A saved plan's meals are closed to MCP exactly as they are to the UI:
+    // the lock lives in the service both of them call.
+    const closed = await client.callTool({
+      name: 'remove_recipe_from_meal_plan',
+      arguments: { mealPlanId: plan.id, itemId: plan.items[0].id, version: plan.version },
+    });
+    expect(closed.isError).toBe(true);
+    plan = await call<MealPlan>('reopen_meal_plan', { mealPlanId: plan.id, version: plan.version });
+    expect(plan.status).toBe('draft');
     plan = await call<MealPlan>('remove_recipe_from_meal_plan', {
       mealPlanId: plan.id,
       itemId: plan.items[0].id,

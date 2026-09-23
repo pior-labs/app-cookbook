@@ -45,6 +45,11 @@ beforeEach(async () => {
   recipe = (await response.json()) as RecipeDetail;
 });
 afterAll(closeDatabase);
+// Saving returns the plan; the one list it built hangs off the plan.
+async function save(plan: MealPlan, provider: ModelProvider = unavailable) {
+  const saved = await planning.confirmMealPlan(plan.id, plan.version, user.id, provider);
+  return { plan: saved, list: await planning.getGroceryList(saved.groceryListId!) };
+}
 async function planWithMeal() {
   const plan = await planning.createMealPlan({}, user.id);
   return planning.addRecipeToMealPlan(
@@ -125,21 +130,17 @@ describe('persisted planning and grocery services', () => {
     ).rejects.toThrow();
   });
   it('deletes a plan with its grocery lists, leaves recipes alone and rejects a stale version', async () => {
-    const plan = await planWithMeal();
-    const list = await planning.generateGroceryList(plan.id, plan.version, user.id, unavailable);
-
-    // Generating a list is not a change to the plan and does not bump its
-    // version, so an actual edit is needed to make the old one stale.
+    const { plan: saved, list } = await save(await planWithMeal());
     const edited = await planning.renameMealPlan(
-      plan.id,
-      { version: plan.version, name: 'Edited elsewhere' },
+      saved.id,
+      { version: saved.version, name: 'Edited elsewhere' },
       user.id,
     );
-    expect(edited.version).toBeGreaterThan(plan.version);
 
     // A stale version is refused here exactly as it is for any other write, so
     // a plan someone else has just edited is not deleted out from under them.
-    await expect(planning.deleteMealPlan(plan.id, plan.version, user.id)).rejects.toThrow();
+    await expect(planning.deleteMealPlan(saved.id, saved.version, user.id)).rejects.toThrow();
+    const plan = saved;
 
     await planning.deleteMealPlan(plan.id, edited.version, user.id);
     await expect(planning.getMealPlan(plan.id)).rejects.toThrow();
@@ -152,12 +153,137 @@ describe('persisted planning and grocery services', () => {
     const still = await recipeService.getRecipe(recipe.id, user.id);
     expect(still.name).toBe(recipe.name);
   });
-  it('uses LLM identity with deterministic scaling, conversion, arithmetic and provenance', async () => {
-    const plan = await planWithMeal();
-    const list = await planning.generateGroceryList(
+  it('moves a plan through draft, saved and done, and refuses a transition from the wrong state', async () => {
+    const wrong = { status: 409, code: 'meal_plan_locked' };
+    let plan = await planWithMeal();
+    expect(plan).toMatchObject({ status: 'draft', confirmedAt: null, groceryListId: null });
+    await expect(planning.reopenMealPlan(plan.id, plan.version, user.id)).rejects.toMatchObject(wrong);
+    await expect(planning.completeMealPlan(plan.id, plan.version, user.id)).rejects.toMatchObject(wrong);
+
+    ({ plan } = await save(plan));
+    expect(plan.status).toBe('confirmed');
+    expect(plan.confirmedAt).not.toBeNull();
+    expect(plan.groceryListId).toEqual(expect.any(Number));
+    await expect(
+      planning.confirmMealPlan(plan.id, plan.version, user.id, unavailable),
+    ).rejects.toMatchObject(wrong);
+    await expect(planning.resumeMealPlan(plan.id, plan.version, user.id)).rejects.toMatchObject(wrong);
+
+    plan = await planning.completeMealPlan(plan.id, plan.version, user.id);
+    expect(plan.status).toBe('done');
+    expect(plan.completedAt).not.toBeNull();
+    plan = await planning.resumeMealPlan(plan.id, plan.version, user.id);
+    expect(plan).toMatchObject({ status: 'confirmed', completedAt: null });
+
+    const listId = plan.groceryListId;
+    plan = await planning.reopenMealPlan(plan.id, plan.version, user.id);
+    // Reopening keeps the list: it stays usable while the meals are edited.
+    expect(plan).toMatchObject({ status: 'draft', confirmedAt: null, groceryListId: listId });
+  });
+  it('closes the meals once saved and the list once done, and always allows rename and delete', async () => {
+    const locked = { status: 409, code: 'meal_plan_locked' };
+    let { plan, list } = await save(await planWithMeal());
+
+    await expect(
+      planning.addRecipeToMealPlan(
+        plan.id,
+        { version: plan.version, recipeId: recipe.id, servings: 2 },
+        user.id,
+      ),
+    ).rejects.toMatchObject(locked);
+    await expect(
+      planning.updateMealPlanItem(
+        plan.id,
+        plan.items[0].id,
+        { version: plan.version, servings: 5 },
+        user.id,
+      ),
+    ).rejects.toMatchObject(locked);
+    await expect(
+      planning.removeRecipeFromMealPlan(plan.id, plan.items[0].id, plan.version, user.id),
+    ).rejects.toMatchObject(locked);
+    await expect(
+      planning.applyMealProposal(
+        plan.id,
+        { version: plan.version, meals: [{ recipeId: recipe.id, servings: 2 }] },
+        user.id,
+      ),
+    ).rejects.toMatchObject(locked);
+
+    // The list is for shopping from, so saving does not close it.
+    list = await planning.checkGroceryListItem(list.id, list.items[0].id, list.version, true, user.id);
+    plan = await planning.renameMealPlan(plan.id, { version: plan.version, name: 'Saved' }, user.id);
+
+    plan = await planning.completeMealPlan(plan.id, plan.version, user.id);
+    await expect(
+      planning.checkGroceryListItem(list.id, list.items[0].id, list.version, false, user.id),
+    ).rejects.toMatchObject(locked);
+    await expect(
+      planning.addGroceryListItem(list.id, { version: list.version, name: 'Milk' }, user.id),
+    ).rejects.toMatchObject(locked);
+    plan = await planning.renameMealPlan(plan.id, { version: plan.version, name: 'Done' }, user.id);
+
+    // One person may reopen the plan while the other is still in the shop.
+    plan = await planning.resumeMealPlan(plan.id, plan.version, user.id);
+    plan = await planning.reopenMealPlan(plan.id, plan.version, user.id);
+    list = await planning.checkGroceryListItem(list.id, list.items[0].id, list.version, false, user.id);
+    expect(list.items[0].checked).toBe(false);
+
+    await planning.deleteMealPlan(plan.id, plan.version, user.id);
+  });
+  it('carries ticks, removals, hand-added items and merge answers across a save, and says what the meals changed', async () => {
+    const provider = output({
+      groups: [
+        { ids: [0, 1], canonicalName: 'green onion', confidence: 0.6, reason: 'possibly equivalent' },
+        { ids: [2], canonicalName: 'salt', confidence: 1, reason: '' },
+        { ids: [3], canonicalName: 'chicken breast', confidence: 1, reason: '' },
+      ],
+    });
+    let { plan, list } = await save(await planWithMeal(), provider);
+    const listId = list.id;
+    list = await planning.resolveGroceryMerge(list.id, list.suggestions[0].id, list.version, true, user.id);
+    const named = (name: string) => list.items.find((i) => i.name === name)!;
+    list = await planning.checkGroceryListItem(list.id, named('green onion').id, list.version, true, user.id);
+    list = await planning.removeGroceryListItem(list.id, named('chicken breast').id, list.version, user.id);
+    list = await planning.addGroceryListItem(list.id, { version: list.version, name: 'Paper towels' }, user.id);
+
+    // Reopened and saved with nothing changed: everything the person did holds,
+    // and the merge they answered is not asked again.
+    plan = await planning.reopenMealPlan(plan.id, plan.version, user.id);
+    ({ plan, list } = await save(plan, provider));
+    expect(list.id).toBe(listId);
+    expect(list.suggestions).toEqual([]);
+    expect(list.items.map((i) => i.name).sort()).toEqual(['Paper towels', 'green onion', 'salt']);
+    expect(named('green onion').checked).toBe(true);
+    expect(list.items.every((i) => i.changedSince === undefined)).toBe(true);
+
+    // Twice the servings: the ticked onions no longer cover it, and the chicken
+    // that was removed is needed in a new amount.
+    plan = await planning.reopenMealPlan(plan.id, plan.version, user.id);
+    plan = await planning.updateMealPlanItem(
       plan.id,
-      plan.version,
+      plan.items[0].id,
+      { version: plan.version, servings: 4 },
       user.id,
+    );
+    ({ plan, list } = await save(plan, provider));
+    expect(named('green onion')).toMatchObject({
+      checked: false,
+      changedSince: 'ticked',
+      quantity: { numerator: 6, denominator: 1 },
+    });
+    expect(named('chicken breast')).toMatchObject({ changedSince: 'removed' });
+    // Salt is unmeasured, so doubling the servings asks for nothing new.
+    expect(named('salt').changedSince).toBeUndefined();
+    expect(named('Paper towels')).toMatchObject({ sources: [] });
+
+    // Acting on a flagged item answers it.
+    list = await planning.checkGroceryListItem(list.id, named('green onion').id, list.version, true, user.id);
+    expect(named('green onion').changedSince).toBeUndefined();
+  });
+  it('uses LLM identity with deterministic scaling, conversion, arithmetic and provenance', async () => {
+    const { list } = await save(
+      await planWithMeal(),
       output({
         groups: [
           { ids: [0, 1], canonicalName: 'green onion', confidence: 0.99, reason: 'same vegetable' },
@@ -181,28 +307,25 @@ describe('persisted planning and grocery services', () => {
       denominator: 1,
     });
   });
-  it('keeps fallback snapshots independent of plan edits and regeneration', async () => {
-    const plan = await planWithMeal();
-    const oldList = await planning.generateGroceryList(plan.id, plan.version, user.id, unavailable);
-    expect(oldList.normalization).toBe('fallback');
-    expect(oldList.items).toHaveLength(4);
+  it('rebuilds the one list in place when a reopened plan is saved again', async () => {
+    const first = await save(await planWithMeal());
+    expect(first.list.normalization).toBe('fallback');
+    expect(first.list.items).toHaveLength(4);
+    const reopened = await planning.reopenMealPlan(first.plan.id, first.plan.version, user.id);
     const changed = await planning.updateMealPlanItem(
-      plan.id,
-      plan.items[0].id,
-      { version: plan.version, servings: 8 },
+      reopened.id,
+      reopened.items[0].id,
+      { version: reopened.version, servings: 8 },
       user.id,
     );
-    const fresh = await planning.generateGroceryList(
-      plan.id,
-      changed.version,
-      user.id,
-      unavailable,
-    );
-    expect(fresh.id).not.toBe(oldList.id);
-    expect(await planning.getGroceryList(oldList.id)).toEqual(oldList);
-    expect(fresh.items[0].quantity).toEqual({ numerator: 4, denominator: 1 });
+    const second = await save(changed);
+    // Same row, so every link and open tab still points at the list; a new
+    // version, so anyone holding the old items gets a conflict.
+    expect(second.list.id).toBe(first.list.id);
+    expect(second.list.version).toBeGreaterThan(first.list.version);
+    expect(second.list.items[0].quantity).toEqual({ numerator: 4, denominator: 1 });
   });
-  it('rejects a generation if the plan changes while the model is running', async () => {
+  it('rejects a save if the plan changes while the model is running', async () => {
     const plan = await planWithMeal();
     const delayed: ModelProvider = async (request) => {
       await planning.updateMealPlanItem(
@@ -214,23 +337,24 @@ describe('persisted planning and grocery services', () => {
       return unavailable(request);
     };
     await expect(
-      planning.generateGroceryList(plan.id, plan.version, user.id, delayed),
+      planning.confirmMealPlan(plan.id, plan.version, user.id, delayed),
     ).rejects.toMatchObject({ status: 409 });
-    expect((await planning.getMealPlan(plan.id)).groceryListIds).toEqual([]);
+    const after = await planning.getMealPlan(plan.id);
+    expect(after).toMatchObject({ status: 'draft', groceryListId: null });
   });
-  it('retains snapshots when recipes are trashed and refuses generation from unavailable recipes', async () => {
-    const plan = await planWithMeal();
-    const list = await planning.generateGroceryList(plan.id, plan.version, user.id, unavailable);
+  it('keeps the list when a recipe is trashed and refuses to save around an unavailable recipe', async () => {
+    const { plan, list } = await save(await planWithMeal());
     await softDeleteRecipe(recipe.id, user.id);
     expect((await planning.getMealPlan(plan.id)).items[0].unavailable).toBe(true);
+    const reopened = await planning.reopenMealPlan(plan.id, plan.version, user.id);
     await expect(
-      planning.generateGroceryList(plan.id, plan.version, user.id, unavailable),
+      planning.confirmMealPlan(plan.id, reopened.version, user.id, unavailable),
     ).rejects.toMatchObject({ status: 400 });
+    // The list is what was shopped from, and a failed save does not touch it.
     expect(await planning.getGroceryList(list.id)).toEqual(list);
   });
   it('supports manual edits, checking and removal while retaining provenance', async () => {
-    const plan = await planWithMeal();
-    let list = await planning.generateGroceryList(plan.id, plan.version, user.id, unavailable);
+    let { list } = await save(await planWithMeal());
     const original = list.items[0];
     list = await planning.updateGroceryListItem(
       list.id,
@@ -252,11 +376,8 @@ describe('persisted planning and grocery services', () => {
     expect(list.items.some((i) => i.id === original.id)).toBe(false);
   });
   it('requires explicit review for uncalibrated equivalences and merges only on acceptance', async () => {
-    const plan = await planWithMeal();
-    let list = await planning.generateGroceryList(
-      plan.id,
-      plan.version,
-      user.id,
+    let { list } = await save(
+      await planWithMeal(),
       output({
         groups: [
           {
@@ -355,11 +476,16 @@ describe('planning HTTP boundary', () => {
     // Network calls are fixture-controlled; CI must never spend tokens.
     const network = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'));
     try {
-      const response = await client.post(`/api/meal-plans/${plan.id}/grocery-lists`, {
+      const response = await client.post(`/api/meal-plans/${plan.id}/confirm`, {
         version: plan.version,
       });
-      expect(response.status).toBe(201);
-      const list = (await response.json()) as GroceryList;
+      expect(response.status).toBe(200);
+      const saved = (await response.json()) as MealPlan;
+      expect(saved.status).toBe('confirmed');
+      expect(await planning.getMealPlan(plan.id)).toEqual(saved);
+      const list = (await (
+        await client.get(`/api/grocery-lists/${saved.groceryListId}`)
+      ).json()) as GroceryList;
       expect(await planning.getGroceryList(list.id)).toEqual(list);
       const changed = await client.post(`/api/grocery-lists/${list.id}/items`, {
         version: list.version,

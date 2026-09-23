@@ -12,7 +12,13 @@ import {
   timestamp,
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
-import type { GroceryItem, MergeSuggestion } from '@cookbook/domain';
+import type {
+  DismissedItem,
+  GroceryItem,
+  MealPlanStatus,
+  MergeDecision,
+  MergeSuggestion,
+} from '@cookbook/domain';
 
 const createdAt = () => timestamp('created_at', { withTimezone: true }).defaultNow().notNull();
 const updatedAt = () => timestamp('updated_at', { withTimezone: true }).defaultNow().notNull();
@@ -317,13 +323,20 @@ export const recentlyViewedRecipes = pgTable(
 
 // Shared household aggregates. Attribution is explicit, but is not ownership:
 // either household member can finish the other's shopping (ADR 0008).
+// A plan is draft while its meals are open, confirmed once saved into its one
+// grocery list, and done when the week is over (ADR 0010).
 export const mealPlans = pgTable('meal_plans', {
   id: serial('id').primaryKey(), name: text('name').notNull().default(''),
   version: integer('version').notNull().default(1),
+  status: text('status').$type<MealPlanStatus>().notNull().default('draft'),
+  confirmedAt: timestamp('confirmed_at', { withTimezone: true }),
+  completedAt: timestamp('completed_at', { withTimezone: true }),
   createdByUserId: integer('created_by_user_id').notNull().references(() => users.id, { onDelete: 'restrict' }),
   updatedByUserId: integer('updated_by_user_id').notNull().references(() => users.id, { onDelete: 'restrict' }),
   createdAt: createdAt(), updatedAt: updatedAt(),
-});
+}, table => [
+  check('meal_plan_status_known', sql`${table.status} in ('draft', 'confirmed', 'done')`),
+]);
 export const mealPlanItems = pgTable('meal_plan_items', {
   id: serial('id').primaryKey(),
   mealPlanId: integer('meal_plan_id').notNull().references(() => mealPlans.id, { onDelete: 'cascade' }),
@@ -343,10 +356,16 @@ export const groceryLists = pgTable('grocery_lists', {
   planVersion: integer('plan_version').notNull(), version: integer('version').notNull().default(1),
   normalization: text('normalization').$type<'llm' | 'fallback'>().notNull(),
   suggestions: jsonb('suggestions').$type<MergeSuggestion[]>().notNull().default([]),
+  // What the person did that the items cannot show afterwards, kept so a
+  // rebuild can carry it forward: merges they answered, items they removed.
+  mergeDecisions: jsonb('merge_decisions').$type<MergeDecision[]>().notNull().default([]),
+  dismissed: jsonb('dismissed').$type<DismissedItem[]>().notNull().default([]),
   createdByUserId: integer('created_by_user_id').notNull().references(() => users.id, { onDelete: 'restrict' }),
   updatedByUserId: integer('updated_by_user_id').notNull().references(() => users.id, { onDelete: 'restrict' }),
   createdAt: createdAt(), updatedAt: updatedAt(),
-}, table => [index('grocery_lists_plan_idx').on(table.mealPlanId)]);
+  // One list per plan (ADR 0010). A rebuild rewrites this row rather than
+  // adding a snapshot beside it.
+}, table => [uniqueIndex('grocery_lists_plan_idx').on(table.mealPlanId)]);
 export const groceryItems = pgTable('grocery_items', {
   id: serial('id').primaryKey(),
   groceryListId: integer('grocery_list_id').notNull().references(() => groceryLists.id, { onDelete: 'cascade' }),

@@ -264,7 +264,7 @@ number.
 
 ## 0008 - Semantic AI, deterministic quantities, shared planning services
 
-**Accepted 2026-09-15.**
+**Accepted 2026-09-15. Amended 2026-09-23 by ADR 0010 for regeneration.**
 
 The narrow seed-data evidence in ADR 0007 is not grounds to replace the Phase 2
 LLM requirement with string matching. Semantic normalization and guided meal
@@ -344,3 +344,71 @@ the confirmation names how many lists will go before they go.
 
 **What is absent:** no bulk delete and no automatic expiry of stale plans. Both
 are product decisions, and neither is needed to clear out a plan by hand.
+
+---
+
+## 0010 - One grocery list per meal plan, carried forward on rebuild
+
+**Accepted 2026-09-23. Amends the regeneration paragraph of ADR 0008.**
+
+A meal plan is something finished, not edited forever. It is a `draft` while
+its meals are open, `confirmed` once saved, and `done` when the week is over.
+Saving is what builds the plan's one grocery list. Before this, a plan could be
+edited indefinitely and every "Generate grocery list" added another snapshot,
+so a plan collected "Latest list", "Earlier list 2", and nothing said which
+list matched which version of the plan.
+
+**Why ADR 0008 kept every snapshot, and why that is no longer needed.** ADR 0008
+rejected rebuilding a list because it would erase manual shopping edits, so
+regeneration made a new snapshot beside the old one. The edits were what needed
+protecting, not the snapshots. Saving a reopened plan now rebuilds the one list
+in place and carries the edits forward. What the person did to the list
+survives, and there is only ever one list.
+
+**What is carried forward, and how it is recognised.**
+
+| What they did | On rebuild |
+| --- | --- |
+| Added an item by hand | Kept exactly as it was, ticked or not. |
+| Ticked an item | Stays ticked if everything the meals now need was already ticked. If the meals now need more, it is unticked and says so. |
+| Edited a generated item | Kept if the meals need exactly what they needed. Otherwise the new amount wins, and it says so. |
+| Removed a generated item | Stays removed if the meals need exactly what they needed. Otherwise it comes back, and says so. |
+| Accepted or rejected a merge | Applied again when the same ingredients meet, so it is not asked twice. |
+
+A generated item is recognised across a rebuild by its *sources*, which meal and
+which ingredient, never by its name, because a person can rename an item and
+cannot change where it came from. A merge decision is recognised by the
+*ingredient names that met*, because "green onion" meeting "scallion" is the
+same question whichever meals brought them. "What the meals need" is the
+item's sources with their amounts. Comparing that is what lets a rebuild tell
+an edit worth keeping from an edit the new plan made wrong.
+
+The rule that shaped the tick behaviour: carrying a tick forward on an item
+whose amount grew would mean never buying the difference. So a tick carries
+only when the new need is covered by what was ticked, which also covers the
+common case of removing a meal, where shared ingredients need less.
+
+Merge decisions and removals are stored on the list as they happen, in
+`merge_decisions` and `dismissed`, because a rejected merge and a removed item
+leave nothing behind for a rebuild to read.
+
+**The lock is in the service, not the UI.** MCP calls the same planning services
+as HTTP and has no UI to hide a button in. Meals change only in `draft`. A
+list can be edited while its plan is `confirmed` or `draft`: one person may
+reopen the plan while another is standing in the shop, so the list stays
+usable, and anything ticked meanwhile is read under lock at save time and
+carried forward. Nothing edits a `done` plan or its list until it is moved back.
+
+**No transition asks for confirmation.** Each one is reversible and loses
+nothing: reopening keeps the list and carries its edits forward, and done can
+be undone. Only deletion (ADR 0009) asks.
+
+**Migrating existing plans.** A plan that had several snapshots kept its newest,
+the one "Latest list" pointed at, and became `confirmed`, since it had been
+shopped from. Its older snapshots were deleted. A plan with no list stayed a
+`draft`. `grocery_lists.meal_plan_id` is now unique, and the `restrict` foreign
+key from ADR 0009 stays.
+
+**What is absent:** no history of past versions of a list, and no way to see a
+list as it was before a rebuild. The flags on changed items say what moved;
+keeping every version would bring back the snapshot pile this replaced.

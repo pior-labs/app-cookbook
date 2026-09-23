@@ -55,13 +55,18 @@ mealPlansRoute.delete('/:id/items/:itemId', async (c) => {
 mealPlansRoute.put('/:id/meals', async (c) =>
   c.json(await service.applyMealProposal(idParam(c, 'meal plan'), await body(c), c.get('userId'))),
 );
-mealPlansRoute.post('/:id/grocery-lists', async (c) => {
-  const { version } = await parseBody(c, versionInputSchema);
-  return c.json(
-    await service.generateGroceryList(idParam(c, 'meal plan'), version, c.get('userId')),
-    201,
-  );
-});
+// The plan's lifecycle (ADR 0010). Each takes the plan version and returns the
+// plan; saving is also what builds or rebuilds its one grocery list.
+for (const [path, run] of [
+  ['confirm', service.confirmMealPlan],
+  ['reopen', service.reopenMealPlan],
+  ['complete', service.completeMealPlan],
+  ['resume', service.resumeMealPlan],
+] as const)
+  mealPlansRoute.post(`/:id/${path}`, async (c) => {
+    const { version } = await parseBody(c, versionInputSchema);
+    return c.json(await run(idParam(c, 'meal plan'), version, c.get('userId')));
+  });
 export const groceryListsRoute = new Hono<AppEnv>();
 groceryListsRoute.get('/:id', async (c) =>
   c.json(await service.getGroceryList(idParam(c, 'grocery list'))),

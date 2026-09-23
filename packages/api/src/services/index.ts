@@ -26,7 +26,8 @@ export { listCategories, listTags } from './organization.js';
 export { resolveUserByEmail, type HouseholdUser } from './identity.js';
 export {
   createMealPlan, getMealPlan, listMealPlans, addRecipeToMealPlan, updateMealPlanItem,
-  removeRecipeFromMealPlan, applyMealProposal, generateGroceryList, getGroceryList,
+  removeRecipeFromMealPlan, applyMealProposal, confirmMealPlan, reopenMealPlan,
+  completeMealPlan, resumeMealPlan, getGroceryList,
   addGroceryListItem, updateGroceryListItem, checkGroceryListItem, removeGroceryListItem,
   resolveGroceryMerge,
 } from './planning.js';

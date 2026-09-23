@@ -71,12 +71,14 @@ function Mosaic({ items }: { items: MealPlanItem[] }) {
   );
 }
 
-// What the plan is waiting for. Every value is read straight off the plan, so
-// the label is never a guess: no meals, meals but no list, or a list that has
-// been generated and is ready to shop from.
+// Where the plan is. Every value is read straight off the plan, so the label is
+// never a guess. "Editing" is a saved plan someone has reopened: its list still
+// exists and is still usable, which is worth knowing before walking into a shop.
 function stage(plan: MealPlan): string {
+  if (plan.status === 'done') return 'Done';
+  if (plan.status === 'confirmed') return 'List ready';
+  if (plan.groceryListId != null) return 'Editing';
   if (!plan.items.length) return 'Empty';
-  if (plan.groceryListIds.length) return 'List ready';
   return 'Planning';
 }
 
@@ -97,11 +99,15 @@ export function PlanCard({
   plan,
   busy,
   onRename,
+  onComplete,
+  onResume,
   onDelete,
 }: {
   plan: MealPlan;
   busy?: boolean;
   onRename?: () => void;
+  onComplete?: () => void;
+  onResume?: () => void;
   onDelete?: () => void;
 }) {
   const servings = plan.items.reduce((sum, item) => sum + item.servings, 0);
@@ -112,7 +118,11 @@ export function PlanCard({
       {/* The whole card is the target. "Continue" was a button doing a link's
           job, next to a name that was not clickable at all. */}
       <Link className={cn(CARD_FRAME, focusRing)} to={`/meal-plans/${plan.id}`}>
-        <Mosaic items={plan.items} />
+        {/* A finished week steps back in colour, not in legibility: the
+            photographs quieten and the caption stays exactly as readable. */}
+        <span className={cn('block h-full w-full', plan.status === 'done' ? 'opacity-70 grayscale-[0.6]' : '')}>
+          <Mosaic items={plan.items} />
+        </span>
         <span
           aria-hidden="true"
           className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[color-mix(in_srgb,var(--ink)_34%,transparent)] to-transparent opacity-70"
@@ -145,6 +155,12 @@ export function PlanCard({
             size="small"
           >
             <MenuItem onSelect={onRename}>Rename plan</MenuItem>
+            {plan.status === 'confirmed' && onComplete ? (
+              <MenuItem onSelect={onComplete}>Mark as done</MenuItem>
+            ) : null}
+            {plan.status === 'done' && onResume ? (
+              <MenuItem onSelect={onResume}>Back to shopping</MenuItem>
+            ) : null}
             <MenuDivider />
             <MenuItem tone="danger" onSelect={onDelete}>
               Delete plan

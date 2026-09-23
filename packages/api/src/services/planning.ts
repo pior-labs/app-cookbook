@@ -18,6 +18,12 @@ import {
   type MealPlan,
   type IngredientSource,
   type MergeSuggestion,
+  type MealPlanStatus,
+  carryForward,
+  dismissalFor,
+  mergeDecisionFor,
+  type DraftSuggestion,
+  type PriorList,
 } from '@cookbook/domain';
 import { db } from '../db/index.js';
 import { conflictError, notFoundError, validationError, zodValidationError } from '../errors.js';
@@ -48,6 +54,24 @@ async function lockPlan(tx: DbExecutor, id: number, version: number) {
   if (row.version !== version) throw stale();
   return row;
 }
+
+// The lock is enforced here rather than only hidden in the UI, because MCP calls
+// these same services and has no UI to hide anything in (ADR 0010).
+const lockedMessages: Record<MealPlanStatus, string> = {
+  draft: 'This plan is still being planned. Save it first.',
+  confirmed: 'This plan is saved. Choose Edit plan to change its meals.',
+  done: 'This plan is done. Move it back to shopping to change it.',
+};
+function requireStatus(row: { status: MealPlanStatus }, ...allowed: MealPlanStatus[]) {
+  if (!allowed.includes(row.status))
+    throw conflictError('meal_plan_locked', lockedMessages[row.status]);
+}
+// Meals change only while the plan is a draft.
+async function lockDraft(tx: DbExecutor, id: number, version: number) {
+  const row = await lockPlan(tx, id, version);
+  requireStatus(row, 'draft');
+  return row;
+}
 async function readPlan(tx: DbExecutor, id: number): Promise<MealPlan> {
   const row = await repo.findPlan(tx, parse(idSchema, id));
   if (!row) throw missing();
@@ -56,6 +80,8 @@ async function readPlan(tx: DbExecutor, id: number): Promise<MealPlan> {
     ...row,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
+    confirmedAt: row.confirmedAt?.toISOString() ?? null,
+    completedAt: row.completedAt?.toISOString() ?? null,
     items: items.map((item) => {
       // A meal whose recipe was deleted keeps the name it was planned under,
       // and loses the rest: there is no card to draw for a recipe that is not
@@ -73,7 +99,7 @@ async function readPlan(tx: DbExecutor, id: number): Promise<MealPlan> {
         hasImage: unavailable ? false : item.hasImage,
       };
     }),
-    groceryListIds: (await repo.planLists(tx, id)).map((list) => list.id),
+    groceryListId: (await repo.planList(tx, id))?.id ?? null,
   };
 }
 export async function getMealPlan(id: number): Promise<MealPlan> {
@@ -158,7 +184,7 @@ export async function addRecipeToMealPlan(
   const value = parse(addMealSchema, input);
   parse(idSchema, userId);
   return db.transaction(async (tx) => {
-    await lockPlan(tx, id, value.version);
+    await lockDraft(tx, id, value.version);
     const items = await repo.planItems(tx, id);
     if (items.length >= 50) throw validationError('A plan can contain up to 50 meals.');
     await addSelectedMeal(tx, id, value.recipeId, value.servings, items.length);
@@ -176,7 +202,7 @@ export async function updateMealPlanItem(
   parse(idSchema, itemId);
   parse(idSchema, userId);
   return db.transaction(async (tx) => {
-    await lockPlan(tx, id, value.version);
+    await lockDraft(tx, id, value.version);
     const items = await repo.planItems(tx, id);
     const item = items.find((row) => row.id === itemId);
     if (!item) throw missing();
@@ -207,7 +233,7 @@ export async function removeRecipeFromMealPlan(
   parse(idSchema, itemId);
   parse(idSchema, userId);
   return db.transaction(async (tx) => {
-    await lockPlan(tx, id, version);
+    await lockDraft(tx, id, version);
     const items = await repo.planItems(tx, id);
     if (!items.some((item) => item.id === itemId)) throw missing();
     await repo.deleteMeal(tx, itemId);
@@ -225,7 +251,7 @@ export async function applyMealProposal(
   const value = parse(applyMealsSchema, input);
   parse(idSchema, userId);
   return db.transaction(async (tx) => {
-    await lockPlan(tx, id, value.version);
+    await lockDraft(tx, id, value.version);
     await repo.clearMeals(tx, id);
     for (const [position, meal] of value.meals.entries())
       await addSelectedMeal(tx, id, meal.recipeId, meal.servings, position);
@@ -234,8 +260,11 @@ export async function applyMealProposal(
   });
 }
 async function readList(tx: DbExecutor, id: number): Promise<GroceryList> {
-  const row = await repo.findList(tx, parse(idSchema, id));
-  if (!row) throw missing();
+  const found = await repo.findList(tx, parse(idSchema, id));
+  if (!found) throw missing();
+  // What a rebuild carries forward is bookkeeping for the next save, not part
+  // of the list anyone reads.
+  const { mergeDecisions: _decisions, dismissed: _dismissed, ...row } = found;
   return {
     ...row,
     createdAt: row.createdAt.toISOString(),
@@ -249,20 +278,24 @@ export async function getGroceryList(id: number): Promise<GroceryList> {
     accessMode: 'read only',
   });
 }
-export async function generateGroceryList(
+// Saving a plan closes its meals and builds its one grocery list. Saving it again
+// after Edit plan rebuilds that same list and carries forward what people did
+// to it - ticks, edits, removals, merges - so reopening a plan to add a dinner
+// never throws away a shop that is half done (ADR 0010).
+export async function confirmMealPlan(
   id: number,
   version: number,
   userId: number,
   provider?: ModelProvider,
-): Promise<GroceryList> {
+): Promise<MealPlan> {
   parse(idSchema, userId);
   // Capture a consistent recipe/plan snapshot, release the connection during
   // network work, then recheck versions under locks before persisting. A slow
   // model must never keep household edits waiting on a database transaction.
   const captured = await db.transaction(async (tx) => {
-    await lockPlan(tx, id, version);
+    await lockDraft(tx, id, version);
     const items = await repo.planItems(tx, id);
-    if (!items.length) throw validationError('Add a recipe before generating a grocery list.');
+    if (!items.length) throw validationError('Add a recipe before saving this plan.');
     const sources: IngredientSource[] = [];
     const versions = new Map<number, number>();
     for (const item of items) {
@@ -309,47 +342,107 @@ export async function generateGroceryList(
       'These quantities are too large to combine exactly. Reduce planned servings.',
     );
   }
+  const suggested: DraftSuggestion[] = [];
+  for (const candidate of normalized.suggestions) {
+    // One semantic group may span incompatible measures. Review only offers
+    // groups whose actual quantities can be combined deterministically.
+    const compatible = new Map<string, number[]>();
+    generated.forEach((item, index) => {
+      if (item.sources.some((s) => candidate.names.includes(normalizeName(s.name)))) {
+        const key = measureKey(item);
+        compatible.set(key, [...(compatible.get(key) ?? []), index]);
+      }
+    });
+    for (const indices of compatible.values())
+      if (indices.length > 1)
+        suggested.push({ canonicalName: candidate.canonicalName, indices, reason: candidate.reason });
+  }
   return db.transaction(async (tx) => {
-    await lockPlan(tx, id, version);
+    await lockDraft(tx, id, version);
     for (const [recipeId, expected] of [...captured.versions].sort(([a], [b]) => a - b)) {
       const recipe = await repo.activeMealRecipe(tx, recipeId);
       if (!recipe || recipe.version !== expected) throw stale();
     }
-    const list = await repo.insertList(tx, id, version, normalized.mode, userId);
-    const inserted = [];
-    for (const item of generated) {
-      const row = await repo.insertGroceryItem(tx, list.id, item);
-      inserted.push({ id: row.id, ...row.data });
-    }
-    const suggestions: MergeSuggestion[] = [];
-    for (const candidate of normalized.suggestions) {
-      // One semantic group may span incompatible measures. Review only offers
-      // groups whose actual quantities can be combined deterministically.
-      const compatible = new Map<string, number[]>();
-      for (const item of inserted)
-        if (item.sources.some((s) => candidate.names.includes(normalizeName(s.name)))) {
-          const key = measureKey(item);
-          compatible.set(key, [...(compatible.get(key) ?? []), item.id]);
+    // Read under lock, and only now: anything ticked on the old list while the
+    // model was working is still carried forward.
+    const existing = await repo.planList(tx, id, true);
+    const prior: PriorList = existing
+      ? {
+          items: await repo.listItems(tx, existing.id),
+          mergeDecisions: existing.mergeDecisions,
+          dismissed: existing.dismissed,
         }
-      for (const itemIds of compatible.values())
-        if (itemIds.length > 1)
-          suggestions.push({
-            id: suggestions.length + 1,
-            canonicalName: candidate.canonicalName,
-            itemIds,
-            reason: candidate.reason,
-          });
+      : { items: [], mergeDecisions: [], dismissed: [] };
+    const carried = carryForward(generated, suggested, prior);
+
+    let listId: number;
+    if (existing) {
+      await repo.rewriteList(tx, existing.id, {
+        planVersion: version,
+        normalization: normalized.mode,
+        userId,
+      });
+      listId = existing.id;
+    } else {
+      listId = (await repo.insertList(tx, id, version, normalized.mode, userId)).id;
     }
-    await repo.setSuggestions(tx, list.id, suggestions);
-    return readList(tx, list.id);
+    const ids: number[] = [];
+    for (const item of carried.items)
+      ids.push((await repo.insertGroceryItem(tx, listId, item)).id);
+    await repo.setSuggestions(
+      tx,
+      listId,
+      carried.suggestions.map((s, index) => ({
+        id: index + 1,
+        canonicalName: s.canonicalName,
+        itemIds: s.indices.map((i) => ids[i]),
+        reason: s.reason,
+      })),
+    );
+    await repo.setCarry(tx, listId, { dismissed: carried.dismissed });
+    await repo.setPlanState(tx, id, { status: 'confirmed', confirmedAt: new Date() });
+    await repo.touchPlan(tx, id, userId);
+    return readPlan(tx, id);
   });
 }
 
+// The other three transitions. None asks for confirmation in the UI, because
+// none loses anything: a reopened plan keeps its list usable and carries its
+// edits forward on the next save, and done can be undone.
+async function transition(
+  id: number,
+  version: number,
+  userId: number,
+  from: MealPlanStatus,
+  to: { status: MealPlanStatus; confirmedAt?: Date | null; completedAt?: Date | null },
+): Promise<MealPlan> {
+  parse(idSchema, userId);
+  return db.transaction(async (tx) => {
+    const row = await lockPlan(tx, id, version);
+    requireStatus(row, from);
+    await repo.setPlanState(tx, id, to);
+    await repo.touchPlan(tx, id, userId);
+    return readPlan(tx, id);
+  });
+}
+export const reopenMealPlan = (id: number, version: number, userId: number) =>
+  transition(id, version, userId, 'confirmed', { status: 'draft', confirmedAt: null });
+export const completeMealPlan = (id: number, version: number, userId: number) =>
+  transition(id, version, userId, 'confirmed', { status: 'done', completedAt: new Date() });
+export const resumeMealPlan = (id: number, version: number, userId: number) =>
+  transition(id, version, userId, 'done', { status: 'confirmed', completedAt: null });
+
+// A list stays usable while its plan is a draft - one person may reopen the plan
+// while the other is standing in the shop - and closes once the plan is done.
 async function mutateList(
   id: number,
   version: number,
   userId: number,
-  action: (tx: DbExecutor, list: GroceryList) => Promise<void>,
+  action: (
+    tx: DbExecutor,
+    list: GroceryList,
+    row: NonNullable<Awaited<ReturnType<typeof repo.findList>>>,
+  ) => Promise<void>,
 ): Promise<GroceryList> {
   parse(idSchema, id);
   parse(versionSchema, version);
@@ -358,7 +451,10 @@ async function mutateList(
     const row = await repo.findList(tx, id, true);
     if (!row) throw missing();
     if (row.version !== version) throw stale();
-    await action(tx, await readList(tx, id));
+    const plan = await repo.findPlan(tx, row.mealPlanId);
+    if (!plan) throw missing();
+    requireStatus(plan, 'draft', 'confirmed');
+    await action(tx, await readList(tx, id), row);
     await repo.touchList(tx, id, userId);
     return readList(tx, id);
   });
@@ -385,6 +481,8 @@ export async function updateGroceryListItem(
   return mutateList(id, version, userId, async (tx, list) => {
     const item = list.items.find((i) => i.id === itemId);
     if (!item) throw missing();
+    // Writing the item fresh drops any rebuild reason on it: an edit is the
+    // person answering it.
     await repo.changeGroceryItem(tx, itemId, { ...value, sources: item.sources, edited: true });
     await repo.setSuggestions(
       tx,
@@ -405,7 +503,8 @@ export async function checkGroceryListItem(
   return mutateList(id, version, userId, async (tx, list) => {
     const item = list.items.find((i) => i.id === itemId);
     if (!item) throw missing();
-    const { id: _id, ...data } = item;
+    // A tick is the person answering a rebuild's reason, too.
+    const { id: _id, changedSince: _reason, ...data } = item;
     await repo.changeGroceryItem(tx, itemId, { ...data, checked });
   });
 }
@@ -416,8 +515,14 @@ export async function removeGroceryListItem(
   userId: number,
 ): Promise<GroceryList> {
   parse(idSchema, itemId);
-  return mutateList(id, version, userId, async (tx, list) => {
-    if (!list.items.some((i) => i.id === itemId)) throw missing();
+  return mutateList(id, version, userId, async (tx, list, row) => {
+    const item = list.items.find((i) => i.id === itemId);
+    if (!item) throw missing();
+    // Removing salt because there is salt in the cupboard should survive the
+    // next save. A hand-added item has nothing to regenerate it, so there is
+    // nothing to remember.
+    if (item.sources.length)
+      await repo.setCarry(tx, id, { dismissed: [...row.dismissed, dismissalFor(item)] });
     await repo.deleteGroceryItem(tx, itemId);
     await repo.setSuggestions(
       tx,
@@ -435,11 +540,21 @@ export async function resolveGroceryMerge(
 ): Promise<GroceryList> {
   parse(idSchema, suggestionId);
   parse(z.boolean(), merge);
-  return mutateList(id, version, userId, async (tx, list) => {
+  return mutateList(id, version, userId, async (tx, list, row) => {
     const suggestion = list.suggestions.find((s) => s.id === suggestionId);
     if (!suggestion) throw missing();
+    // Recorded either way: a rejected merge leaves no other trace, and a
+    // rebuild should not ask the same question twice.
+    const covered = list.items.filter((i) => suggestion.itemIds.includes(i.id));
+    if (covered.length === suggestion.itemIds.length)
+      await repo.setCarry(tx, id, {
+        mergeDecisions: [
+          ...row.mergeDecisions,
+          mergeDecisionFor(covered, suggestion.canonicalName, merge),
+        ],
+      });
     if (merge) {
-      const items = list.items.filter((i) => suggestion.itemIds.includes(i.id));
+      const items = covered;
       if (items.length !== suggestion.itemIds.length || new Set(items.map(measureKey)).size !== 1)
         throw stale();
       const [first, ...rest] = items;

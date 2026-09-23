@@ -14,3 +14,4 @@ export * from './types/index.js';
 export * from './schemas/index.js';
 export * from './planning.js';
 export * from './ingredients/grocery.js';
+export * from './ingredients/carry.js';
