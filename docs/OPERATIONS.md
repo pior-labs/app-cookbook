@@ -307,7 +307,7 @@ Run those against production before trusting this end to end.
 `platform-deploy`, so there is nothing to provision for it beyond the stack
 itself. It reads the same platform-managed connection file as the API.
 
-MCP can write meal plans and grocery lists through the shared application
+MCP can create explicitly approved recipes and write meal plans and grocery lists through the shared application
 services. Stop both API and MCP during a quiesced backup; their persisted data
 is included in the same database dump. Recipe editing remains unavailable over
 MCP. The container itself has no additional persistent volume to back up.
@@ -414,3 +414,18 @@ current operator-verified prices for approximate cost comparison. Keep results
 outside the source tree and compare runs for prompt/model changes; false merges,
 missed merges and fallbacks cause a nonzero exit. Unit and integration tests use
 fixtures and do not substitute for this live evaluation.
+
+Recipe imports use `gpt-6-luna` by default, independently of the grocery model.
+`COOKBOOK_IMPORT_MODEL` overrides it with an image-capable Responses model that
+supports strict structured output. The same server key and request timeout apply.
+Apply the recipe provenance migration before starting the updated API and MCP.
+Import needs outbound HTTP(S) to public recipe pages and their photos in addition
+to OpenAI; it has no inbound port or proxy change. Extraction failure leaves the
+user able to enter a recipe manually. There is no guessed-recipe fallback.
+
+Import previews and screenshots are transient and need no backup. Once saved,
+original ingredient wording and import method live in PostgreSQL; an accepted
+page photo uses the existing recipe-image volume and backup procedure. MCP
+URL/text previews omit photo bytes; automatic page-photo attachment is in the web
+review flow. Use a clear screenshot containing one recipe when a site blocks the
+fetcher. The fetcher deliberately does not bypass logins or browser challenges.

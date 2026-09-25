@@ -264,6 +264,18 @@ export function RecipeForm({
                 key={ingredient.key}
               >
                 <div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  {ingredient.originalText != null ? (
+                    <div className="sm:col-span-2 lg:col-span-4">
+                      <Field id={`ingredient-${ingredient.key}-original`} label="Original wording">
+                        <Input
+                          id={`ingredient-${ingredient.key}-original`}
+                          value={ingredient.originalText}
+                          maxLength={1000}
+                          onChange={(event) => setIngredient(index, { originalText: event.target.value })}
+                        />
+                      </Field>
+                    </div>
+                  ) : null}
                   <Field
                     id={`ingredient-${ingredient.key}-quantity`}
                     label="Amount"
@@ -272,7 +284,7 @@ export function RecipeForm({
                     <Input
                       id={`ingredient-${ingredient.key}-quantity`}
                       value={ingredient.quantity}
-                      placeholder="1 1/2"
+                      placeholder={draft.importMethod ? 'Check source' : '1 1/2'}
                       onChange={(event) => setIngredient(index, { quantity: event.target.value })}
                       aria-invalid={quantityError ? true : undefined}
                     />

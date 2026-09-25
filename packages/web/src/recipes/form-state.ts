@@ -3,6 +3,7 @@ import {
   updateRecipeSchema,
   type CreateRecipeRequest,
   type RecipeDetail,
+  type RecipeImportDraft,
   type UpdateRecipeRequest,
 } from '@cookbook/domain';
 import { formatQuantity } from '@cookbook/domain';
@@ -17,6 +18,7 @@ export const CUSTOM_UNIT = '__custom__';
 
 export interface IngredientDraft {
   key: string;
+  originalText?: string | null;
   quantity: string;
   unit: string;
   unitText: string;
@@ -32,6 +34,7 @@ export interface InstructionDraft {
 export type SourceKind = 'none' | 'url' | 'text';
 
 export interface RecipeDraft {
+  importMethod?: 'url' | 'image' | 'text' | null;
   name: string;
   description: string;
   baseServings: string;
@@ -83,6 +86,7 @@ export function emptyDraft(): RecipeDraft {
 
 export function draftFromRecipe(recipe: RecipeDetail): RecipeDraft {
   return {
+    importMethod: recipe.importMethod,
     name: recipe.name,
     description: recipe.description,
     baseServings: String(recipe.baseServings),
@@ -95,6 +99,7 @@ export function draftFromRecipe(recipe: RecipeDetail): RecipeDraft {
     sourceText: recipe.sourceText ?? '',
     ingredients: recipe.ingredients.map((ingredient) => ({
       key: nextKey('ing'),
+      originalText: ingredient.originalText,
       // Round-trips through the same display format the detail view uses, so an
       // edit does not silently rewrite `1 1/2` into a decimal.
       quantity: ingredient.quantity ? formatQuantity(ingredient.quantity, { unicode: false }) : '',
@@ -127,6 +132,7 @@ function optionalNumber(value: string): number | null | undefined {
 // where a string belongs (section 12).
 function toRequest(draft: RecipeDraft): CreateRecipeRequest {
   return {
+    importMethod: draft.importMethod,
     name: draft.name,
     description: draft.description,
     baseServings: Number(draft.baseServings.trim() === '' ? Number.NaN : draft.baseServings),
@@ -139,6 +145,7 @@ function toRequest(draft: RecipeDraft): CreateRecipeRequest {
       draft.sourceKind === 'text' && draft.sourceText.trim() !== '' ? draft.sourceText : null,
     ingredients: draft.ingredients.map((ingredient) => ({
       name: ingredient.name,
+      originalText: ingredient.originalText,
       quantity: ingredient.quantity,
       unitCode: ingredient.unit === '' || ingredient.unit === CUSTOM_UNIT ? null : ingredient.unit,
       unitText: ingredient.unit === CUSTOM_UNIT && ingredient.unitText.trim() !== ''
@@ -196,4 +203,35 @@ export function moveItem<T>(items: T[], from: number, to: number): T[] {
   const [moved] = next.splice(from, 1);
   next.splice(to, 0, moved);
   return next;
+}
+
+// Import blanks stay blank: the manual-entry default of four servings is not
+// evidence about a source recipe. Normal validation still runs at save time.
+export function draftFromImport(source: RecipeImportDraft): RecipeDraft {
+  return {
+    ...emptyDraft(),
+    importMethod: source.importMethod,
+    name: source.name,
+    description: source.description,
+    baseServings: source.baseServings == null ? '' : String(source.baseServings),
+    prepMinutes: source.prepMinutes == null ? '' : String(source.prepMinutes),
+    cookMinutes: source.cookMinutes == null ? '' : String(source.cookMinutes),
+    notes: source.notes ?? '',
+    sourceKind: source.sourceUrl ? 'url' : 'none',
+    sourceUrl: source.sourceUrl ?? '',
+    ingredients: source.ingredients.length
+      ? source.ingredients.map((row) => ({
+          key: nextKey('ing'),
+          originalText: row.originalText,
+          quantity: row.quantity ?? '',
+          unit: row.unitCode ?? (row.unitText ? CUSTOM_UNIT : ''),
+          unitText: row.unitText ?? '',
+          name: row.name,
+          preparation: row.preparation ?? '',
+        }))
+      : [emptyIngredient()],
+    instructions: source.instructions.length
+      ? source.instructions.map((row) => ({ key: nextKey('step'), body: row.body }))
+      : [emptyInstruction()],
+  };
 }

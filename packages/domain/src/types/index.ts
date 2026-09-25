@@ -30,6 +30,7 @@ export interface TagSummary extends Tag {
 }
 
 export interface RecipeIngredient {
+  originalText?: string | null;
   id: number;
   position: number;
   quantity: Fraction | null;
@@ -90,6 +91,7 @@ export interface RecipeSummary {
 }
 
 export interface RecipeDetail extends RecipeSummary {
+  importMethod?: 'url' | 'image' | 'text' | null;
   baseServings: number;
   notes: string | null;
   sourceUrl: string | null;

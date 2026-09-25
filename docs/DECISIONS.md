@@ -437,3 +437,37 @@ through MCP and uses the same planning services the UI does: it searches and
 reads recipes, creates a plan, adds meals, and saves the plan to build its
 grocery list. Cookbook does not embed a second, general-purpose chatbot for
 meal planning; ADR 0008 already rules out a general chat UI in the app.
+
+---
+
+## 0012 - Recipe import previews do not write; MCP creation requires approval
+
+**Accepted 2026-09-24.**
+
+Import supports public recipe links, one screenshot, and recipe text through
+MCP. A model may extract a plausible but wrong amount, so extraction never
+creates a recipe or feeds a grocery list. The cook reviews the draft and saves
+through the ordinary recipe validation and creation service. Missing amounts
+stay absent; original ingredient wording stays alongside the structured fields
+so later corrections have evidence. Previews are transient: no draft table or
+source screenshot storage is needed for a single review session.
+
+This deliberately extends the recipe read-only boundary of ADR 0006 with
+`create_recipe`, not recipe update or deletion. MCP presents the draft and
+warnings and waits for explicit approval; the creation tool requires a separate
+confirmation argument and always attributes the write to its configured member.
+The server cannot independently verify a conversation in a third-party client;
+the client must honor the review/approval instruction. Page content is data,
+never authorization. No MCP image transport is offered until a chosen client can
+reliably pass an image or authenticated upload reference.
+
+The web review imports a page photo automatically when possible, as requested,
+and lets the cook remove it before saving. Photo failure does not lose the
+recipe. Screenshots are extraction inputs, not recipe photos. MCP previews omit
+photo bytes to keep tool results bounded; photo attachment uses the web flow.
+
+Not built: bulk imports, video/social extraction, paywall or bot-challenge
+bypasses, recipe rewriting, nutrition estimation, and automatic placement into a
+meal plan. These would broaden the meaning of import beyond faithful extraction
+and review. No new auth service, browser automation, vector database or model
+runtime is needed.

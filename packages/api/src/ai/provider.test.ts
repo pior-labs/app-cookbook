@@ -50,6 +50,17 @@ describe('OpenAI structured-output adapter', () => {
     });
     expect(init.signal).toBeInstanceOf(AbortSignal);
   });
+  it('sends image content to the requested import model without changing the grocery model', async () => {
+    const fetch = vi.fn().mockResolvedValue(Response.json({ status: 'completed', output: [{ type: 'message', content: [{ type: 'output_text', text: '{"name":"soup"}' }] }] }));
+    vi.stubGlobal('fetch', fetch);
+    await openAIProvider({ ...request, model: 'gpt-6-luna', imageDataUrl: 'data:image/png;base64,aGVsbG8=' });
+    const body = JSON.parse(fetch.mock.calls[0][1].body);
+    expect(body.model).toBe('gpt-6-luna');
+    expect(body.input[0].content[1]).toEqual({ type: 'input_image', image_url: 'data:image/png;base64,aGVsbG8=', detail: 'high' });
+    expect(body.tools).toBeUndefined();
+    expect(body.store).toBe(false);
+    expect(process.env.COOKBOOK_AI_MODEL).toBe('test-model');
+  });
   it.each([
     { status: 'incomplete', output: [] },
     {

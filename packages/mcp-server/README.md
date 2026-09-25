@@ -3,17 +3,17 @@
 MCP access to household recipes, meal plans and grocery lists, for a household
 member's own assistant.
 
-The decisions behind it - stdio, the service layer, recipe read-only access, and the
+The decisions behind it - stdio, the service layer, the original recipe read-only boundary, and the
 configured acting user - are recorded in
 [decision 0006](../../docs/DECISIONS.md#0006---a-read-only-stdio-mcp-server-with-a-configured-acting-user).
 
 ## Capabilities
 
-Recipe tools remain read-only and do not record views. Planning and grocery
-tools operate on the same persisted data as the web application, with explicit
-version checks and configured-user attribution. The tool definitions in
-`src/tools/` are the contract; [ADR 0008](../../docs/DECISIONS.md#0008---semantic-ai-deterministic-quantities-shared-planning-services)
-records why planning writes were added without exposing recipe mutations.
+The tool definitions in `src/tools/` are the contract. Recipe reads do not
+record views. ADR 0008 explains planning and grocery writes; ADR 0012 explains
+why imported drafts require review and explicit approval before recipe creation.
+Both use the same application services and configured-user attribution as the
+web application. See [decisions](../../docs/DECISIONS.md).
 
 Ingredient amounts are exact fractions from `@cookbook/domain` - the same
 arithmetic the recipe screen runs - rendered as a cook would read them
