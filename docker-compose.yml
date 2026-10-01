@@ -1,5 +1,6 @@
 services:
   api:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: packages/api/Dockerfile
@@ -31,6 +32,7 @@ services:
       pior_data:
 
   web:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: packages/web/Dockerfile
@@ -70,6 +72,7 @@ services:
   # It joins `pior_data` only. It needs database access and outbound HTTPS for
   # semantic normalization, but no published port or platform Caddy route.
   mcp:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: packages/mcp-server/Dockerfile

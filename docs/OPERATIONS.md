@@ -147,6 +147,23 @@ builds the images, runs migrations as a one-off container, and starts the stack.
 Migrations run **before** the new API starts, so a deployment fails rather than
 serving against an incompatible schema.
 
+To apply a configuration change, including the container restart policies, push
+it to `main`, then open this repository's **Actions -> Deploy Cookbook -> Run
+workflow**, select `main`, and run it. Pushing to `main` runs CI but does **not**
+trigger CD automatically. The workflow checks out and syncs the selected source
+and runs `docker compose up -d --remove-orphans`, which recreates containers whose
+configuration changed. No manual Git commands on the server are needed. Check
+the workflow's **Show service health** output and readiness below after it ends.
+
+The long-running containers use `restart: unless-stopped` to recover when they
+exit and to start again after Docker or the host restarts, unless explicitly
+stopped. This does **not** restart a container that remains running but becomes
+unhealthy during a network outage; health checks report that state without
+triggering a restart. Restore connectivity and check health/readiness; if a
+service does not recover, use the same redeploy workflow. The migration command
+uses `docker compose run --rm`, which overrides the service's restart policy so
+the migration remains a one-off job.
+
 After a deploy:
 
 ```bash
