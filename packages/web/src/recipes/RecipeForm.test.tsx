@@ -90,6 +90,15 @@ describe('recipe form', () => {
     expect(screen.queryByRole('button', { name: /remove ingredient 2/i })).not.toBeInTheDocument();
   });
 
+  it('shows and announces unit-code errors beside the unit selector', () => {
+    render(<Harness fields={{ 'ingredients.0.unitCode': ['Unknown unit.'] }} />);
+
+    const unit = screen.getByRole('combobox', { name: 'Unit' });
+    expect(screen.getByRole('alert')).toHaveTextContent('Unknown unit.');
+    expect(unit).toHaveAttribute('aria-invalid', 'true');
+    expect(unit).toHaveAccessibleDescription('Unknown unit.');
+  });
+
   it('reorders ingredients from the keyboard and carries the values along', async () => {
     const user = userEvent.setup();
     render(<Harness />);

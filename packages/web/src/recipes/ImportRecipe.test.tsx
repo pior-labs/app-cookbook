@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from '../../test/render';
 import { NewRecipePage } from './NewRecipePage.js';
 import { draftFromImport, validateCreate } from './form-state.js';
-import type { RecipeImportDraft } from '@cookbook/domain';
+import { createRecipeSchema, type RecipeImportDraft } from '@cookbook/domain';
 const draft: RecipeImportDraft = {
   name: 'Tomato soup',
   description: '',
@@ -31,12 +31,14 @@ const draft: RecipeImportDraft = {
   duplicates: [{ id: 2, name: 'Another tomato soup', reason: 'title' }],
 };
 let fetchMock: ReturnType<typeof vi.fn>;
+let previewDraft: RecipeImportDraft;
 beforeEach(() => {
+  previewDraft = draft;
   fetchMock = vi.fn(async (path: string, init?: RequestInit) => {
     if (path === '/api/categories')
       return Response.json([{ id: 1, name: 'Dinner', activeRecipeCount: 0 }]);
     if (path === '/api/tags') return Response.json([]);
-    if (path === '/api/recipe-imports') return Response.json(draft);
+    if (path === '/api/recipe-imports') return Response.json(previewDraft);
     if (path === '/api/recipes' && init?.method === 'POST') return Response.json({ id: 9 });
     throw new Error(`Unexpected ${path}`);
   });
@@ -58,6 +60,42 @@ async function preview() {
   return user;
 }
 describe('import review', () => {
+  it.each(['keep', 'edit', 'choose known'] as const)(
+    'shows an unsupported unit as editable custom text and can save it: %s',
+    async (action) => {
+      previewDraft = {
+        ...draft,
+        baseServings: 2,
+        ingredients: [{ ...draft.ingredients[0], quantity: '1', unitCode: 'cups' }],
+        warnings: [{ field: 'ingredients.0.unitCode', message: 'Unknown unit.' }],
+      };
+      const user = await preview();
+      const unit = screen.getByRole('combobox', { name: 'Unit' });
+      expect(unit).toHaveDisplayValue('Custom…');
+      expect(screen.getByLabelText('Custom unit')).toHaveValue('cups');
+
+      if (action === 'edit') {
+        await user.clear(screen.getByLabelText('Custom unit'));
+        await user.type(screen.getByLabelText('Custom unit'), 'scoops');
+      } else if (action === 'choose known') {
+        await user.selectOptions(unit, 'cup');
+        expect(screen.queryByLabelText('Custom unit')).not.toBeInTheDocument();
+      }
+      await user.selectOptions(screen.getByLabelText(/Category/), '1');
+      await user.click(screen.getByRole('button', { name: 'Save recipe' }));
+      await screen.findByRole('heading', { name: 'Recipe saved' });
+
+      const sent = fetchMock.mock.calls.find(([path]) => path === '/api/recipes')![1];
+      const request = JSON.parse(sent!.body as string);
+      expect(createRecipeSchema.safeParse(request).success).toBe(true);
+      expect(request.ingredients[0]).toMatchObject({
+        unitCode: action === 'choose known' ? 'cup' : null,
+        unitText: action === 'choose known' ? null : action === 'edit' ? 'scoops' : 'cups',
+        originalText: draft.ingredients[0].originalText,
+      });
+    },
+  );
+
   it('retains unknown amounts, attribution and wording through normal validation', () => {
     const state = draftFromImport(draft);
     expect(state.baseServings).toBe('');

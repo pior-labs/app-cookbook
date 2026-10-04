@@ -1,5 +1,6 @@
 import {
   createRecipeSchema,
+  isKnownUnitCode,
   updateRecipeSchema,
   type CreateRecipeRequest,
   type RecipeDetail,
@@ -220,15 +221,22 @@ export function draftFromImport(source: RecipeImportDraft): RecipeDraft {
     sourceKind: source.sourceUrl ? 'url' : 'none',
     sourceUrl: source.sourceUrl ?? '',
     ingredients: source.ingredients.length
-      ? source.ingredients.map((row) => ({
-          key: nextKey('ing'),
-          originalText: row.originalText,
-          quantity: row.quantity ?? '',
-          unit: row.unitCode ?? (row.unitText ? CUSTOM_UNIT : ''),
-          unitText: row.unitText ?? '',
-          name: row.name,
-          preparation: row.preparation ?? '',
-        }))
+      ? source.ingredients.map((row) => {
+          const knownCode = row.unitCode && isKnownUnitCode(row.unitCode) ? row.unitCode : null;
+          // Model output can contain a label like "cups" instead of the code
+          // "cup". Keep it visible and editable rather than giving the select
+          // a value it cannot display or silently discarding the source unit.
+          const unitText = knownCode ? (row.unitText ?? '') : (row.unitCode || row.unitText || '');
+          return {
+            key: nextKey('ing'),
+            originalText: row.originalText,
+            quantity: row.quantity ?? '',
+            unit: knownCode ?? (unitText ? CUSTOM_UNIT : ''),
+            unitText,
+            name: row.name,
+            preparation: row.preparation ?? '',
+          };
+        })
       : [emptyIngredient()],
     instructions: source.instructions.length
       ? source.instructions.map((row) => ({ key: nextKey('step'), body: row.body }))

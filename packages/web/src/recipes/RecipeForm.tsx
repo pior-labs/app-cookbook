@@ -256,7 +256,9 @@ export function RecipeForm({
           {draft.ingredients.map((ingredient, index) => {
             const nameError = fieldError(fields, `ingredients.${index}.name`);
             const quantityError = fieldError(fields, `ingredients.${index}.quantity`);
-            const unitError = fieldError(fields, `ingredients.${index}.unitText`);
+            const unitCodeError = fieldError(fields, `ingredients.${index}.unitCode`);
+            const unitTextError = fieldError(fields, `ingredients.${index}.unitText`);
+            const unitError = unitCodeError ?? unitTextError;
 
             return (
               <li
@@ -294,6 +296,10 @@ export function RecipeForm({
                     <Select
                       id={`ingredient-${ingredient.key}-unit`}
                       value={ingredient.unit}
+                      aria-invalid={unitError ? true : undefined}
+                      aria-describedby={describedBy(
+                        `ingredient-${ingredient.key}-unit`, undefined, unitError,
+                      )}
                       onChange={(event) => setIngredient(index, { unit: event.target.value })}
                     >
                       <option value="">No unit</option>
@@ -310,11 +316,15 @@ export function RecipeForm({
                     <Field
                       id={`ingredient-${ingredient.key}-unit-text`}
                       label="Custom unit"
-                      error={unitError}
+                      error={unitTextError}
                     >
                       <Input
                         id={`ingredient-${ingredient.key}-unit-text`}
                         value={ingredient.unitText}
+                        aria-invalid={unitTextError ? true : undefined}
+                        aria-describedby={describedBy(
+                          `ingredient-${ingredient.key}-unit-text`, undefined, unitTextError,
+                        )}
                         placeholder="clove"
                         maxLength={40}
                         onChange={(event) => setIngredient(index, { unitText: event.target.value })}
