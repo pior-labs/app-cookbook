@@ -3,6 +3,8 @@ import { z } from 'zod';
 
 export interface ModelRequest {
   task: string;
+  model?: string;
+  imageDataUrl?: string;
   instructions: string;
   input: unknown;
   schema: z.ZodType;
@@ -29,7 +31,7 @@ export function aiEvent(event: Record<string, unknown>): void {
 let activeRequests = 0;
 export const openAIProvider: ModelProvider = async (request) => {
   const start = performance.now();
-  const model = process.env.COOKBOOK_AI_MODEL;
+  const model = request.model ?? process.env.COOKBOOK_AI_MODEL;
   // No unbounded queue of paid work. Each process permits two simultaneous
   // requests; overload follows the same visible fallback as an outage.
   if (activeRequests >= 2) {
@@ -56,7 +58,12 @@ export const openAIProvider: ModelProvider = async (request) => {
         store: false,
         max_output_tokens: 12000,
         instructions: request.instructions,
-        input: JSON.stringify(request.input),
+        input: request.imageDataUrl
+          ? [{ role: 'user', content: [
+              { type: 'input_text', text: JSON.stringify(request.input) },
+              { type: 'input_image', image_url: request.imageDataUrl, detail: 'high' },
+            ] }]
+          : JSON.stringify(request.input),
         text: {
           format: {
             type: 'json_schema',

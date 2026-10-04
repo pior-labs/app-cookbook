@@ -2,7 +2,6 @@
 
 Pior Labs Cookbook is a private, self-hosted household recipe manager. It is being built as a polished, mobile-friendly place to save, find, scale, and cook the recipes the household wants to keep.
 
-**Phase 1 — Core Cookbook is complete** and deployed on the household network: recipes, photos, search and discovery, categories and tags, favorites, ratings, recently viewed history, Trash, and Cooking Mode. **MCP v1** follows it - a read-only stdio server giving a household member's own assistant access to the library. Meal planning, grocery lists, smart import, and Recipe Roulette are later phases.
 
 ## Stack
 
@@ -247,9 +246,12 @@ push to `main`.
 
 ## MCP
 
-`packages/mcp-server` gives a household member's own assistant read-only access to the cookbook over stdio: recipe search, retrieval, tags, favorites, top-rated, and serving scaling.
-
-It calls the API's application services rather than issuing its own SQL, so serving arithmetic and the active-recipe rules have one implementation. The acting household member comes from `COOKBOOK_MCP_USER_EMAIL` and is never a tool argument, so an assistant cannot read the other member's favorites. Nothing it exposes can write.
+`packages/mcp-server` connects a household member's assistant over stdio. Its
+[tool definitions](packages/mcp-server/src/tools/) are the current capability
+contract; it calls the API application services rather than issuing its own SQL.
+The acting household member comes from `COOKBOOK_MCP_USER_EMAIL` and is never a
+tool argument. The reasons for its read/write boundaries are in
+[`docs/DECISIONS.md`](docs/DECISIONS.md).
 
 In production it runs as a long-running container that clients `exec` into over SSH, the same way `finlens-mcp-server` does:
 
@@ -262,4 +264,6 @@ See [`packages/mcp-server/README.md`](packages/mcp-server/README.md) for client 
 
 ## Scope
 
-Phase 1 is complete and deployed: recipes, images, the product UI, search and discovery, categories and tags, favorites, ratings, recently viewed history, Trash, and Cooking Mode are implemented and covered by tests. MCP v1 is implemented and read-only. Meal planning and grocery lists are the work in flight ([`docs/IMPLEMENTING.md`](docs/IMPLEMENTING.md)). Imports and Recipe Roulette are ideas rather than plans ([`docs/IDEAS.md`](docs/IDEAS.md)).
+The code describes implemented behavior. [`docs/IDEAS.md`](docs/IDEAS.md) holds
+future product intent; `docs/IMPLEMENTING.md`, when present, is the brief for
+work in flight. Durable rationale belongs in [`docs/DECISIONS.md`](docs/DECISIONS.md).

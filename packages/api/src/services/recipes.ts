@@ -33,6 +33,7 @@ import {
 
 function parentValues(input: CreateRecipeInput | UpdateRecipeInput): RecipeParentValues {
   return {
+    importMethod: input.importMethod,
     name: input.name,
     description: input.description,
     baseServings: input.baseServings,
@@ -94,6 +95,7 @@ function toIngredient(row: RecipeAggregateRow['ingredients'][number]): RecipeIng
     unitText: row.unitText,
     name: row.name,
     preparation: row.preparation,
+    originalText: row.originalText,
   };
 }
 
@@ -147,6 +149,7 @@ async function loadDetail(
     createdAt: toIso(row.createdAt),
     updatedAt: toIso(row.updatedAt),
     userState,
+    importMethod: row.importMethod,
     baseServings: row.baseServings,
     notes: row.notes,
     sourceUrl: row.sourceUrl,

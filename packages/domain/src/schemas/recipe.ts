@@ -26,6 +26,7 @@ export const ingredientInputSchema = z
     unitCode: unitCodeSchema.nullable().optional().transform((value) => value ?? null),
     unitText: customUnitSchema.nullable().optional().transform((value) => value ?? null),
     preparation: preparationSchema,
+    originalText: z.string().max(1000).nullable().optional().transform((value) => value ?? null),
   })
   .strict()
   .superRefine((value, ctx) => {
@@ -53,6 +54,7 @@ const recipeAggregateBase = z.object({
   cookMinutes: timeMinutesSchema,
   notes: notesSchema,
   categoryId: idSchema,
+  importMethod: z.enum(['url', 'image', 'text']).nullable().optional(),
   sourceUrl: sourceUrlSchema.nullable().optional().transform((value) => value ?? null),
   sourceText: sourceTextSchema.nullable().optional().transform((value) => value ?? null),
   ingredients: z.array(ingredientInputSchema).min(1).max(200),

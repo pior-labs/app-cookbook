@@ -13,6 +13,7 @@ import { createServer } from '../src/server.js';
 const user = { id: 1, name: 'Piotr', email: 'pior@example.test' };
 
 const EXPECTED_TOOLS = [
+  'preview_recipe_import', 'create_recipe',
   'search_recipes',
   'get_recipe',
   'get_recipes_by_tag',
@@ -41,13 +42,12 @@ describe('the tool surface', () => {
     expect(tools.map((tool) => tool.name).sort()).toEqual(EXPECTED_TOOLS);
   });
 
-  // ADR 0008 relaxes ADR 0006 only for plans and groceries. Adding recipe
-  // mutation still fails this independently maintained contract assertion.
-  it('allows only the explicitly approved planning and grocery mutations', async () => {
+  // ADR 0012 adds approved recipe creation; other recipe mutations stay absent.
+  it('allows only the explicitly approved recipe, planning and grocery mutations', async () => {
     const { tools } = await client.listTools();
     const writable = tools.filter((tool) => tool.annotations?.readOnlyHint !== true);
     expect(writable.map((tool) => tool.name).sort()).toEqual([
-      'create_meal_plan', 'add_recipe_to_meal_plan', 'update_meal_plan_item', 'remove_recipe_from_meal_plan',
+      'create_recipe', 'create_meal_plan', 'add_recipe_to_meal_plan', 'update_meal_plan_item', 'remove_recipe_from_meal_plan',
       'confirm_meal_plan', 'reopen_meal_plan', 'complete_meal_plan', 'resume_meal_plan',
       'add_grocery_list_item', 'update_grocery_list_item',
       'remove_grocery_list_item', 'check_grocery_list_item', 'resolve_grocery_merge',

@@ -7,6 +7,7 @@ import { errorHandler, notFoundHandler } from './middleware/errors.js';
 import { requestContext } from './middleware/request-context.js';
 import { homeRoute, recentRoute } from './routes/discovery.js';
 import { categoriesRoute, tagsRoute } from './routes/organization.js';
+import { importsRoute } from './routes/imports.js';
 import { recipesRoute } from './routes/recipes.js';
 import { trashRoute } from './routes/trash.js';
 import { groceryListsRoute, mealPlansRoute } from './routes/planning.js';
@@ -86,6 +87,7 @@ export function createApp(deps: AppDependencies) {
 
   app.route('/api/home', homeRoute);
   app.route('/api/recent', recentRoute);
+  app.route('/api/recipe-imports', importsRoute);
   app.route('/api/recipes', recipesRoute);
   app.route('/api/categories', categoriesRoute);
   app.route('/api/tags', tagsRoute);

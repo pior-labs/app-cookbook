@@ -135,11 +135,12 @@ async function main() {
     console.log(`- ${tool.name} (${readOnly})`);
   }
 
-  // ADR 0008 permits only planning/list writes. Check the allowlist without
+  // ADRs 0008 and 0012 permit planning/list writes and approved recipe creation.
+  // Check the allowlist without
   // running a mutation against the development household database.
   const writable = tools.filter((tool) => tool.annotations?.readOnlyHint !== true);
-  if (JSON.stringify(writable.map(t => t.name).sort()) !== JSON.stringify([...PLANNING_WRITE_TOOLS].sort())) {
-    throw new Error('The writable tool surface differs from the approved planning/list capabilities.');
+  if (JSON.stringify(writable.map(t => t.name).sort()) !== JSON.stringify([...PLANNING_WRITE_TOOLS, 'create_recipe'].sort())) {
+    throw new Error('The writable tool surface differs from the approved recipe/planning/list capabilities.');
   }
 
   heading('search_recipes (no filters)');

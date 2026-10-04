@@ -49,6 +49,7 @@ test.beforeEach(async ({ page }) => {
 
 test('creates a recipe and shows it to the cook who wrote it', async ({ page }) => {
   await page.goto('/recipes/new');
+  await page.getByRole('button', { name: 'Enter manually' }).click();
 
   await page.getByLabel('Recipe name').fill(RECIPE);
   await page.getByLabel('Description').fill('A one-pot chili the household actually finishes.');

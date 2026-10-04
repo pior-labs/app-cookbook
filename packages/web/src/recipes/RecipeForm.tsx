@@ -256,7 +256,9 @@ export function RecipeForm({
           {draft.ingredients.map((ingredient, index) => {
             const nameError = fieldError(fields, `ingredients.${index}.name`);
             const quantityError = fieldError(fields, `ingredients.${index}.quantity`);
-            const unitError = fieldError(fields, `ingredients.${index}.unitText`);
+            const unitCodeError = fieldError(fields, `ingredients.${index}.unitCode`);
+            const unitTextError = fieldError(fields, `ingredients.${index}.unitText`);
+            const unitError = unitCodeError ?? unitTextError;
 
             return (
               <li
@@ -264,6 +266,18 @@ export function RecipeForm({
                 key={ingredient.key}
               >
                 <div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  {ingredient.originalText != null ? (
+                    <div className="sm:col-span-2 lg:col-span-4">
+                      <Field id={`ingredient-${ingredient.key}-original`} label="Original wording">
+                        <Input
+                          id={`ingredient-${ingredient.key}-original`}
+                          value={ingredient.originalText}
+                          maxLength={1000}
+                          onChange={(event) => setIngredient(index, { originalText: event.target.value })}
+                        />
+                      </Field>
+                    </div>
+                  ) : null}
                   <Field
                     id={`ingredient-${ingredient.key}-quantity`}
                     label="Amount"
@@ -272,7 +286,7 @@ export function RecipeForm({
                     <Input
                       id={`ingredient-${ingredient.key}-quantity`}
                       value={ingredient.quantity}
-                      placeholder="1 1/2"
+                      placeholder={draft.importMethod ? 'Check source' : '1 1/2'}
                       onChange={(event) => setIngredient(index, { quantity: event.target.value })}
                       aria-invalid={quantityError ? true : undefined}
                     />
@@ -282,6 +296,10 @@ export function RecipeForm({
                     <Select
                       id={`ingredient-${ingredient.key}-unit`}
                       value={ingredient.unit}
+                      aria-invalid={unitError ? true : undefined}
+                      aria-describedby={describedBy(
+                        `ingredient-${ingredient.key}-unit`, undefined, unitError,
+                      )}
                       onChange={(event) => setIngredient(index, { unit: event.target.value })}
                     >
                       <option value="">No unit</option>
@@ -298,11 +316,15 @@ export function RecipeForm({
                     <Field
                       id={`ingredient-${ingredient.key}-unit-text`}
                       label="Custom unit"
-                      error={unitError}
+                      error={unitTextError}
                     >
                       <Input
                         id={`ingredient-${ingredient.key}-unit-text`}
                         value={ingredient.unitText}
+                        aria-invalid={unitTextError ? true : undefined}
+                        aria-describedby={describedBy(
+                          `ingredient-${ingredient.key}-unit-text`, undefined, unitTextError,
+                        )}
                         placeholder="clove"
                         maxLength={40}
                         onChange={(event) => setIngredient(index, { unitText: event.target.value })}

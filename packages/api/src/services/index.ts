@@ -10,8 +10,9 @@
 // session at this layer, which is what lets a non-HTTP caller act as a
 // specific household member without inventing a second authentication path.
 //
-// Recipe mutations remain excluded. MCP v2 adds only the planning/list writes
-// authorized by ADR 0008; recipe, rating and favorite mutation are not exposed.
+// Recipe creation is exposed for explicitly approved import drafts (ADR 0012).
+// Preview itself cannot write. Recipe updates, deletion and preferences remain
+// outside this surface.
 
 export {
   searchRecipes,
@@ -19,7 +20,8 @@ export {
   homeSections,
 } from './discovery.js';
 
-export { getRecipe } from './recipes.js';
+export { previewRecipeImport } from './imports.js';
+export { createRecipe, getRecipe } from './recipes.js';
 
 export { listCategories, listTags } from './organization.js';
 

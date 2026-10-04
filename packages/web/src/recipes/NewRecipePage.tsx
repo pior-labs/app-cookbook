@@ -1,12 +1,14 @@
-import type { RecipeImage } from '@cookbook/domain';
+import type { RecipeImage, RecipeImportDraft } from '@cookbook/domain';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '../api/hooks.js';
+import { apiUpload } from '../api/client.js';
+import { ImportRecipe, ImportReview } from './ImportRecipe.js';
 import { createRecipe } from '../api/recipes.js';
-import { Breadcrumb, ButtonLink, PageHeader, Panel } from '@/components/ui';
+import { Breadcrumb, Button, ButtonLink, PageHeader, Panel } from '@/components/ui';
 import { PhotoField } from './PhotoField.jsx';
 import { RecipeForm } from './RecipeForm.jsx';
-import { emptyDraft, validateCreate, type RecipeDraft } from './form-state.js';
+import { emptyDraft, draftFromImport, validateCreate, type RecipeDraft } from './form-state.js';
 import { FormErrorBanner } from './states.jsx';
 import { useFieldErrors, useOrganization, useUnsavedChangesWarning } from './useRecipeEditor.js';
 
@@ -20,6 +22,12 @@ export function NewRecipePage() {
   const { fields, setFields, clear } = useFieldErrors();
 
   const [draft, setDraft] = useState<RecipeDraft>(emptyDraft);
+  const [entry, setEntry] = useState<'import' | 'editor'>('import');
+  const [preview, setPreview] = useState<RecipeImportDraft | null>(null);
+  const [sourceImage, setSourceImage] = useState<File | null>(null);
+  const [importedPhoto, setImportedPhoto] = useState<string | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const [attachingPhoto, setAttachingPhoto] = useState(false);
   const [dirty, setDirty] = useState(false);
   // Set once the recipe exists, which is what unlocks the photo step.
   const [savedId, setSavedId] = useState<number | null>(null);
@@ -53,6 +61,35 @@ export function NewRecipePage() {
 
     setDirty(false);
     setSavedId(result.data.id);
+    if (importedPhoto) {
+      setAttachingPhoto(true);
+      try {
+        const bytes = Uint8Array.from(atob(importedPhoto.split(',')[1]), (character) =>
+          character.charCodeAt(0),
+        );
+        const file = new File([bytes], 'recipe.webp', { type: 'image/webp' });
+        setImage(
+          await apiUpload<RecipeImage>(`/api/recipes/${result.data.id}/photo`, 'photo', file),
+        );
+      } catch {
+        setPhotoError('Your recipe was saved, but its photo could not be attached. Add it below.');
+      } finally {
+        setAttachingPhoto(false);
+      }
+    }
+  }
+
+  function reset() {
+    setDraft(emptyDraft());
+    setEntry('import');
+    setPreview(null);
+    setSourceImage(null);
+    setImportedPhoto(null);
+    setPhotoError(null);
+    setImage(null);
+    setSavedId(null);
+    setDirty(false);
+    clear();
   }
 
   function handleCancel() {
@@ -69,18 +106,31 @@ export function NewRecipePage() {
               Recipe <em className="font-light text-accent">saved</em>
             </>
           }
-          lede="Add a photo now, or go straight to the recipe."
+          lede={
+            image
+              ? 'Your recipe and photo are ready.'
+              : 'Add a photo now, or go straight to the recipe.'
+          }
         />
 
         <Panel>
-          <PhotoField recipeId={savedId} image={image} onChange={setImage} />
+          {attachingPhoto ? (
+            <p role="status">Attaching recipe photo…</p>
+          ) : (
+            <>
+              {photoError ? <p role="alert">{photoError}</p> : null}
+              <PhotoField recipeId={savedId} image={image} onChange={setImage} />
+            </>
+          )}
         </Panel>
 
         <div className="flex flex-wrap gap-2.5">
           <ButtonLink to={`/recipes/${savedId}`} variant="primary">
             View recipe
           </ButtonLink>
-          <ButtonLink to="/recipes/new">Add another</ButtonLink>
+          <Button onClick={reset} disabled={attachingPhoto}>
+            Add another
+          </Button>
         </div>
       </div>
     );
@@ -96,18 +146,65 @@ export function NewRecipePage() {
         <FormErrorBanner error={save.error} />
       ) : null}
 
-      <RecipeForm
-        draft={draft}
-        onChange={handleChange}
-        categories={organization.categories}
-        tags={organization.tags}
-        fields={fields}
-        submitting={save.submitting}
-        submitLabel="Save recipe"
-        onSubmit={() => void handleSubmit()}
-        onCancel={handleCancel}
-        onCreateTag={organization.addTag}
-      />
+      {entry === 'import' ? (
+        <ImportRecipe
+          onManual={() => setEntry('editor')}
+          onPreview={(result, source) => {
+            setPreview(result);
+            setSourceImage(source);
+            setImportedPhoto(result.photoDataUrl);
+            setDraft(draftFromImport(result));
+            setDirty(true);
+            setEntry('editor');
+            clear();
+          }}
+        />
+      ) : (
+        <>
+          {preview ? (
+            <ImportReview
+              preview={preview}
+              sourceImage={sourceImage}
+              photo={importedPhoto}
+              onRemovePhoto={() => setImportedPhoto(null)}
+            />
+          ) : null}
+          <RecipeForm
+            draft={draft}
+            onChange={handleChange}
+            categories={organization.categories}
+            tags={organization.tags}
+            fields={{
+              ...(preview
+                ? Object.fromEntries([
+                    ...(!draft.baseServings
+                      ? [['baseServings', ['Enter the servings from the source.']]]
+                      : []),
+                    ...draft.ingredients.flatMap((row, index) =>
+                      !row.quantity.trim()
+                        ? [
+                            [
+                              `ingredients.${index}.quantity`,
+                              ['Check this missing amount against the source.'],
+                            ],
+                          ]
+                        : [],
+                    ),
+                    ...(!draft.instructions.some((row) => row.body.trim())
+                      ? [['instructions', ['Add the missing instructions.']]]
+                      : []),
+                  ])
+                : {}),
+              ...fields,
+            }}
+            submitting={save.submitting}
+            submitLabel="Save recipe"
+            onSubmit={() => void handleSubmit()}
+            onCancel={handleCancel}
+            onCreateTag={organization.addTag}
+          />
+        </>
+      )}
     </div>
   );
 }

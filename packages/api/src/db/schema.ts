@@ -143,6 +143,7 @@ export const recipes = pgTable(
     categoryId: integer('category_id')
       .notNull()
       .references(() => categories.id, { onDelete: 'restrict' }),
+    importMethod: text('import_method').$type<'url' | 'image' | 'text'>(),
     sourceUrl: text('source_url'),
     sourceText: text('source_text'),
     createdByUserId: integer('created_by_user_id')
@@ -190,6 +191,7 @@ export const recipeIngredients = pgTable(
     name: text('name').notNull(),
     normalizedName: text('normalized_name').notNull(),
     preparation: text('preparation'),
+    originalText: text('original_text'),
   },
   (table) => [
     check('recipe_ingredients_position_nonneg', sql`${table.position} >= 0`),

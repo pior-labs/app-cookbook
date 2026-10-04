@@ -17,6 +17,7 @@ import { activeRecipe, normalizeName, type DbExecutor } from './shared.js';
 // The editable parent columns shared by create and update. Created-by,
 // deleted-by, and `version` are never client-supplied.
 export interface RecipeParentValues {
+  importMethod?: 'url' | 'image' | 'text' | null;
   name: string;
   description: string;
   baseServings: number;
@@ -29,6 +30,7 @@ export interface RecipeParentValues {
 }
 
 export interface IngredientValues {
+  originalText?: string | null;
   name: string;
   quantity: Fraction | null;
   unitCode: string | null;
@@ -111,6 +113,7 @@ export async function replaceIngredients(
       name: ingredient.name,
       normalizedName: normalizeName(ingredient.name),
       preparation: ingredient.preparation,
+      originalText: ingredient.originalText ?? null,
     })),
   );
 }
@@ -206,4 +209,25 @@ export async function findUserRecipeState(
     .limit(1);
 
   return { favorite: favorite != null, rating: rating?.rating ?? null };
+}
+
+// A warning, never a uniqueness constraint: households can deliberately keep
+// variations. URL fragments/trailing slash differences should not hide a match.
+// Token overlap catches reordered titles without a fuzzy-search extension.
+export async function findImportDuplicates(exec: DbExecutor, name: string, sourceUrl: string | null) {
+  const rows = await exec.select({ id: recipes.id, name: recipes.name, sourceUrl: recipes.sourceUrl })
+    .from(recipes).where(activeRecipe());
+  const canonicalUrl = (value: string) => {
+    try { const url = new URL(value); url.hash = ''; return url.href.replace(/\/$/, ''); }
+    catch { return value; }
+  };
+  const tokens = (value: string) => new Set(normalizeName(value).split(/[^\p{L}\p{N}]+/u).filter(Boolean));
+  const wanted = tokens(name);
+  return rows.flatMap<{ id: number; name: string; reason: 'url' | 'title' }>((row) => {
+    if (sourceUrl && row.sourceUrl && canonicalUrl(sourceUrl) === canonicalUrl(row.sourceUrl)) return [{ id: row.id, name: row.name, reason: 'url' as const }];
+    const existing = tokens(row.name);
+    const shared = [...wanted].filter((word) => existing.has(word)).length;
+    if (wanted.size && shared / new Set([...wanted, ...existing]).size >= 0.6) return [{ id: row.id, name: row.name, reason: 'title' as const }];
+    return [];
+  }).slice(0, 10);
 }
