@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 
 // The whole life of a meal plan (ADR 0010): planned as a draft, saved into its
@@ -6,13 +7,16 @@ import { expect, test } from '@playwright/test';
 test('plans meals, saves them into one grocery list, shops from it and carries the shop across an edit', async ({
   page,
 }) => {
+  // Retries share the run's database. A failed attempt may leave its recipe
+  // behind, so each attempt needs a name that identifies only its own fixture.
+  const recipeName = `Planning test soup ${randomUUID()}`;
   await page
     .context()
     .addCookies([{ name: 'cookbook_e2e_user', value: '1', domain: '127.0.0.1', path: '/' }]);
   const categories = await (await page.request.get('/api/categories')).json();
   const created = await page.request.post('/api/recipes', {
     data: {
-      name: 'Planning test soup',
+      name: recipeName,
       description: 'A quick dinner.',
       baseServings: 4,
       prepMinutes: 10,
@@ -29,16 +33,22 @@ test('plans meals, saves them into one grocery list, shops from it and carries t
 
   // --- Draft --------------------------------------------------------------
   await page.goto('/meal-plans');
-  await page.getByRole('button', { name: 'New meal plan' }).click();
+  // The empty shelf also offers this action. Target the page header, which
+  // stays present whether earlier tests or a failed attempt left plans behind.
+  await page
+    .locator('header')
+    .filter({ has: page.getByRole('heading', { name: 'Meal plans', exact: true }) })
+    .getByRole('button', { name: 'New meal plan', exact: true })
+    .click();
   await page.getByLabel('Plan name').fill('A few dinners');
   await page.getByRole('button', { name: 'Create meal plan' }).click();
   await expect(page.getByRole('heading', { name: 'A few dinners' })).toBeVisible();
   const planId = page.url().split('/').at(-1);
   await page.getByRole('button', { name: 'Add a meal', exact: true }).click();
-  await page.getByRole('button', { name: 'Choose Planning test soup', exact: true }).click();
+  await page.getByRole('button', { name: `Choose ${recipeName}`, exact: true }).click();
   await expect(page.getByText('2 servings', { exact: false }).first()).toBeVisible();
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'Planning test soup' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: recipeName, exact: true })).toBeVisible();
 
   await page.getByRole('button', { name: 'Meal plan options' }).click();
   await page.getByRole('menuitem', { name: 'Rename plan' }).click();
@@ -74,10 +84,10 @@ test('plans meals, saves them into one grocery list, shops from it and carries t
   // The meals are closed now: no steppers, no suggestions, no save.
   await expect(page.getByRole('button', { name: /One more serving/ })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Help me choose' })).toHaveCount(0);
-  await expect(page.getByRole('link', { name: /Planning test soup/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: new RegExp(recipeName) })).toBeVisible();
 
   // Each row says which meals it is for; the per-recipe amounts are in Edit.
-  await expect(page.getByText('Planning test soup', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(recipeName, { exact: true }).first()).toBeVisible();
   await page.getByRole('button', { name: 'Options for chicken breast' }).click();
   await page.getByRole('menuitem', { name: 'Edit' }).click();
   const editor = page.getByRole('dialog', { name: 'Edit grocery item' });
@@ -136,7 +146,7 @@ test('plans meals, saves them into one grocery list, shops from it and carries t
   await expect(page.getByText('Changing the meals')).toBeVisible();
   // The list stays usable while the meals change: someone may be in the shop.
   await expect(page.getByRole('checkbox', { name: '2 Paper towels' })).toBeEnabled();
-  await page.getByRole('button', { name: 'One more serving of Planning test soup' }).click();
+  await page.getByRole('button', { name: `One more serving of ${recipeName}` }).click();
   await expect(page.getByText('3 servings', { exact: false }).first()).toBeVisible();
   await page.getByRole('button', { name: 'Save meal plan' }).click();
   await expect(page.getByText(/^Saved /)).toBeVisible();
