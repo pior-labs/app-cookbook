@@ -312,7 +312,7 @@ Run those against production before trusting this end to end.
   leave files behind by design - the application never risks a recipe to tidy
   storage. Run the reconciler periodically and, once its report looks right,
   again with `--delete`.
-- **Trash.** Phase 1 has no automatic retention policy
+- **Trash.** There is no automatic retention policy
   ([decision 0005](./DECISIONS.md#0005---recoverable-recipe-deletion)). Trashed recipes
   keep their rows and image files until somebody deletes them permanently. That
   is deliberate: adding expiry is a product decision, not an operational one.

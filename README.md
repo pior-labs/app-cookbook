@@ -1,6 +1,6 @@
 # Pior Labs Cookbook
 
-Pior Labs Cookbook is a private, self-hosted household recipe manager. It is being built as a polished, mobile-friendly place to save, find, scale, and cook the recipes the household wants to keep.
+Pior Labs Cookbook is a private, self-hosted household recipe manager. It is a polished, mobile-friendly place to save, find, scale, and cook the recipes the household wants to keep.
 
 
 ## Stack
@@ -20,7 +20,7 @@ Pior Labs Cookbook is a private, self-hosted household recipe manager. It is bei
 packages/domain/      pure business rules, validation schemas, and domain types
 packages/api/         Hono API, Drizzle tooling, and integration tests
 packages/web/         React application and static Caddy runtime
-packages/mcp-server/  read-only MCP access to the cookbook, over stdio
+packages/mcp-server/  MCP access through application services, over stdio
 packages/e2e/         Playwright critical-path suite
 docs/                 decisions, operations, ideas, and the current brief
 ```
@@ -152,7 +152,7 @@ In production the directory must be a persistent mount into the API container, p
 pnpm test
 ```
 
-`@cookbook/domain` runs pure Vitest unit tests. `@cookbook/web` runs React Testing Library tests in jsdom for serving controls and scaled ingredient display, recipe form validation and ordered-row editing, accessible labelling, and page-level error and conflict states. `@cookbook/api` runs Vitest integration tests against a real PostgreSQL database rather than mocked SQL: the suite creates a disposable, per-run `<database>_test_<suffix>` database on the server named by `DATABASE_URL`, applies every migration to it, resets state before each test, and drops it afterwards. Image tests write real files to a disposable temporary directory created and removed by the same harness, so they never touch `IMAGE_STORAGE_DIR`. Two suites can run at once without colliding. `TEST_DATABASE_URL` points the suite at a specific database instead; it must not name the database in `DATABASE_URL`, and the harness refuses to start if it does, because it drops and recreates whatever it is given. `@cookbook/mcp-server` runs rendering unit tests and a contract test that speaks MCP to the server over an in-memory transport; neither needs a database.
+`@cookbook/domain` runs pure Vitest unit tests. `@cookbook/web` runs React Testing Library tests in jsdom for serving controls and scaled ingredient display, recipe form validation and ordered-row editing, accessible labelling, and page-level error and conflict states. `@cookbook/api` runs Vitest integration tests against a real PostgreSQL database rather than mocked SQL: the suite creates a disposable, per-run `<database>_test_<suffix>` database on the server named by `DATABASE_URL`, applies every migration to it, resets state before each test, and drops it afterwards. Image tests write real files to a disposable temporary directory created and removed by the same harness, so they never touch `IMAGE_STORAGE_DIR`. Two suites can run at once without colliding. `TEST_DATABASE_URL` points the suite at a specific database instead; it must not name the database in `DATABASE_URL`, and the harness refuses to start if it does, because it drops and recreates whatever it is given. `@cookbook/mcp-server` runs rendering unit tests and a contract test that speaks MCP to the server over an in-memory transport; those checks need no database. Its planning and import integration suites exercise the shared services against a disposable PostgreSQL database.
 
 ## Authentication
 
@@ -260,7 +260,7 @@ claude mcp add cookbook -- ssh <host> \
   "docker exec -i cookbook-mcp-server node packages/mcp-server/dist/index.js"
 ```
 
-See [`packages/mcp-server/README.md`](packages/mcp-server/README.md) for client configuration and the tools, and [decision 0006](docs/DECISIONS.md#0006---a-read-only-stdio-mcp-server-with-a-configured-acting-user) for why it is shaped this way.
+See [`packages/mcp-server/README.md`](packages/mcp-server/README.md) for client configuration, and [decision 0006](docs/DECISIONS.md#0006---a-read-only-stdio-mcp-server-with-a-configured-acting-user) for why it is shaped this way.
 
 ## Scope
 
