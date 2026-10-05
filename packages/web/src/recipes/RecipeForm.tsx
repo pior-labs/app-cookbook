@@ -19,6 +19,7 @@ import { Field, describedBy, fieldError } from './fields.jsx';
 import { RowControls, RowList } from './OrderedRows.jsx';
 import {
   CUSTOM_UNIT,
+  convertTimeUnit,
   emptyIngredient,
   emptyInstruction,
   moveItem,
@@ -26,6 +27,7 @@ import {
   type InstructionDraft,
   type RecipeDraft,
   type SourceKind,
+  type TimeUnit,
 } from './form-state.js';
 
 // The shared create/edit form. It holds entered values as its own state and
@@ -214,27 +216,49 @@ export function RecipeForm({
               />
             </Field>
 
-            <Field id="recipe-prep" label="Prep minutes" error={fieldError(fields, 'prepMinutes')}>
-              <Input
-                id="recipe-prep"
-                type="number"
-                min={0}
-                inputMode="numeric"
-                value={draft.prepMinutes}
-                onChange={(event) => set('prepMinutes', event.target.value)}
-              />
-            </Field>
-
-            <Field id="recipe-cook" label="Cook minutes" error={fieldError(fields, 'cookMinutes')}>
-              <Input
-                id="recipe-cook"
-                type="number"
-                min={0}
-                inputMode="numeric"
-                value={draft.cookMinutes}
-                onChange={(event) => set('cookMinutes', event.target.value)}
-              />
-            </Field>
+            {(['prep', 'cook'] as const).map((kind) => {
+              const amountKey = kind === 'prep' ? 'prepMinutes' : 'cookMinutes';
+              const unitKey = kind === 'prep' ? 'prepTimeUnit' : 'cookTimeUnit';
+              const label = kind === 'prep' ? 'Prep' : 'Cook';
+              const id = `recipe-${kind}`;
+              const error = fieldError(fields, amountKey);
+              return (
+                <Field key={kind} id={id} label={`${label} time`} error={error}>
+                  <div className="flex gap-2">
+                    <Input
+                      id={id}
+                      className="min-w-0 flex-1"
+                      type="number"
+                      min={0}
+                      step={draft[unitKey] === 'hours' ? 'any' : 1}
+                      inputMode={draft[unitKey] === 'hours' ? 'decimal' : 'numeric'}
+                      value={draft[amountKey]}
+                      onChange={(event) => set(amountKey, event.target.value)}
+                      aria-invalid={error ? true : undefined}
+                      aria-describedby={describedBy(id, undefined, error)}
+                    />
+                    <Select
+                      className="w-auto shrink-0"
+                      aria-label={`${label} time unit`}
+                      value={draft[unitKey]}
+                      onChange={(event) => {
+                        const unit = event.target.value as TimeUnit;
+                        // Switching units changes the representation, not the
+                        // duration, so revisiting a saved recipe cannot alter it.
+                        onChange({
+                          ...draft,
+                          [amountKey]: convertTimeUnit(draft[amountKey], draft[unitKey], unit),
+                          [unitKey]: unit,
+                        });
+                      }}
+                    >
+                      <option value="minutes">Minutes</option>
+                      <option value="hours">Hours</option>
+                    </Select>
+                  </div>
+                </Field>
+              );
+            })}
           </div>
         </div>
       </FormSection>

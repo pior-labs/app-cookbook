@@ -33,14 +33,19 @@ export interface InstructionDraft {
 }
 
 export type SourceKind = 'none' | 'url' | 'text';
+export type TimeUnit = 'minutes' | 'hours';
 
 export interface RecipeDraft {
   importMethod?: 'url' | 'image' | 'text' | null;
   name: string;
   description: string;
   baseServings: string;
+  // Time amounts stay as typed in the selected unit until submission. The API
+  // and saved recipe always use whole minutes, regardless of the editor unit.
   prepMinutes: string;
+  prepTimeUnit: TimeUnit;
   cookMinutes: string;
+  cookTimeUnit: TimeUnit;
   notes: string;
   categoryId: string;
   sourceKind: SourceKind;
@@ -73,7 +78,9 @@ export function emptyDraft(): RecipeDraft {
     description: '',
     baseServings: '4',
     prepMinutes: '',
+    prepTimeUnit: 'minutes',
     cookMinutes: '',
+    cookTimeUnit: 'minutes',
     notes: '',
     categoryId: '',
     sourceKind: 'none',
@@ -91,8 +98,7 @@ export function draftFromRecipe(recipe: RecipeDetail): RecipeDraft {
     name: recipe.name,
     description: recipe.description,
     baseServings: String(recipe.baseServings),
-    prepMinutes: recipe.prepMinutes == null ? '' : String(recipe.prepMinutes),
-    cookMinutes: recipe.cookMinutes == null ? '' : String(recipe.cookMinutes),
+    ...timeDraft(recipe.prepMinutes, recipe.cookMinutes),
     notes: recipe.notes ?? '',
     categoryId: String(recipe.categoryId),
     sourceKind: recipe.sourceUrl ? 'url' : recipe.sourceText ? 'text' : 'none',
@@ -117,7 +123,39 @@ export function draftFromRecipe(recipe: RecipeDetail): RecipeDraft {
   };
 }
 
-function optionalNumber(value: string): number | null | undefined {
+function timeDraft(prep: number | null, cook: number | null) {
+  function display(minutes: number | null): { amount: string; unit: TimeUnit } {
+    const unit = minutes != null && minutes >= 60 && minutes % 60 === 0 ? 'hours' : 'minutes';
+    return { amount: minutes == null ? '' : String(unit === 'hours' ? minutes / 60 : minutes), unit };
+  }
+  const prepTime = display(prep);
+  const cookTime = display(cook);
+  return {
+    prepMinutes: prepTime.amount,
+    prepTimeUnit: prepTime.unit,
+    cookMinutes: cookTime.amount,
+    cookTimeUnit: cookTime.unit,
+  };
+}
+
+export function convertTimeUnit(value: string, from: TimeUnit, to: TimeUnit): string {
+  if (value.trim() === '' || from === to) return value;
+  const minutes = timeInMinutes(value, from);
+  return String(to === 'hours' ? minutes! / 60 : minutes);
+}
+
+function timeInMinutes(value: string, unit: TimeUnit): number | null {
+  const amount = optionalNumber(value);
+  if (amount == null) return null;
+  const minutes = unit === 'hours' ? amount * 60 : amount;
+  // Decimal hours and unit switching can introduce floating-point residue.
+  // Remove only that residue; genuine fractions of a minute must still fail
+  // the shared integer-minute validation rather than being silently rounded.
+  const rounded = Math.round(minutes);
+  return Math.abs(minutes - rounded) < 1e-9 ? rounded : minutes;
+}
+
+function optionalNumber(value: string): number | null {
   const trimmed = value.trim();
   if (trimmed === '') return null;
 
@@ -137,8 +175,8 @@ function toRequest(draft: RecipeDraft): CreateRecipeRequest {
     name: draft.name,
     description: draft.description,
     baseServings: Number(draft.baseServings.trim() === '' ? Number.NaN : draft.baseServings),
-    prepMinutes: optionalNumber(draft.prepMinutes),
-    cookMinutes: optionalNumber(draft.cookMinutes),
+    prepMinutes: timeInMinutes(draft.prepMinutes, draft.prepTimeUnit),
+    cookMinutes: timeInMinutes(draft.cookMinutes, draft.cookTimeUnit),
     notes: draft.notes.trim() === '' ? null : draft.notes,
     categoryId: draft.categoryId === '' ? Number.NaN : Number(draft.categoryId),
     sourceUrl: draft.sourceKind === 'url' && draft.sourceUrl.trim() !== '' ? draft.sourceUrl : null,
@@ -215,8 +253,7 @@ export function draftFromImport(source: RecipeImportDraft): RecipeDraft {
     name: source.name,
     description: source.description,
     baseServings: source.baseServings == null ? '' : String(source.baseServings),
-    prepMinutes: source.prepMinutes == null ? '' : String(source.prepMinutes),
-    cookMinutes: source.cookMinutes == null ? '' : String(source.cookMinutes),
+    ...timeDraft(source.prepMinutes, source.cookMinutes),
     notes: source.notes ?? '',
     sourceKind: source.sourceUrl ? 'url' : 'none',
     sourceUrl: source.sourceUrl ?? '',

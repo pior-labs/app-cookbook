@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import type { ErrorFields } from '../api/client.js';
 import { RecipeForm } from './RecipeForm.jsx';
-import { emptyDraft, validateCreate, type RecipeDraft } from './form-state.js';
+import { convertTimeUnit, emptyDraft, validateCreate, validateUpdate, type RecipeDraft } from './form-state.js';
 
 // Recipe form validation, ordered-row editing, and accessible labelling.
 
@@ -57,6 +57,42 @@ describe('recipe form', () => {
     expect(screen.getByRole('spinbutton', { name: 'Base servings' })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Ingredient' })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Step 1' })).toBeInTheDocument();
+  });
+
+  it('enters decimal hours and switches units without changing the duration', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    const draft = emptyDraft();
+    draft.prepMinutes = '180';
+    draft.cookMinutes = '61';
+    render(<Harness initial={draft} onSubmit={onSubmit} />);
+
+    const prep = screen.getByRole('spinbutton', { name: 'Prep time' });
+    const prepUnit = screen.getByRole('combobox', { name: 'Prep time unit' });
+    await user.selectOptions(prepUnit, 'hours');
+    expect(prep).toHaveValue(3);
+    await user.clear(prep);
+    await user.type(prep, '2.5');
+    await user.selectOptions(prepUnit, 'minutes');
+    expect(prep).toHaveValue(150);
+
+    const cookUnit = screen.getByRole('combobox', { name: 'Cook time unit' });
+    await user.selectOptions(cookUnit, 'hours');
+    await user.selectOptions(cookUnit, 'minutes');
+    expect(screen.getByRole('spinbutton', { name: 'Cook time' })).toHaveValue(61);
+
+    await user.click(screen.getByRole('button', { name: 'Save recipe' }));
+    expect(onSubmit.mock.calls[0][0]).toMatchObject({ prepMinutes: '150', cookMinutes: '61' });
+  });
+
+  it('keeps a blank time blank when switching units and announces time errors', async () => {
+    const user = userEvent.setup();
+    render(<Harness fields={{ prepMinutes: ['Use a whole number of minutes.'] }} />);
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Prep time unit' }), 'hours');
+    const prep = screen.getByRole('spinbutton', { name: 'Prep time' });
+    expect(prep).toHaveValue(null);
+    expect(prep).toHaveAttribute('aria-invalid', 'true');
+    expect(prep).toHaveAccessibleDescription('Use a whole number of minutes.');
   });
 
   it('shows server field errors against the right row and announces them', () => {
@@ -192,6 +228,45 @@ describe('recipe form', () => {
 });
 
 describe('draft validation', () => {
+  function validDraft() {
+    const draft = emptyDraft();
+    draft.name = 'Bread';
+    draft.categoryId = '1';
+    draft.ingredients[0].name = 'Flour';
+    draft.instructions[0].body = 'Proof and bake.';
+    return draft;
+  }
+
+  it('converts decimal hours to whole minutes for both creation and updates', () => {
+    const draft = validDraft();
+    draft.prepMinutes = '2.5';
+    draft.prepTimeUnit = 'hours';
+    draft.cookMinutes = '0.1';
+    draft.cookTimeUnit = 'hours';
+    for (const result of [validateCreate(draft), validateUpdate(draft, 3)]) {
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(result.input).toMatchObject({ prepMinutes: 150, cookMinutes: 6 });
+    }
+  });
+
+  it.each(['-1', '168.5', '0.001'])('rejects invalid or out-of-range hours: %s', (amount) => {
+    const draft = validDraft();
+    draft.prepTimeUnit = 'hours';
+    draft.prepMinutes = amount;
+    const result = validateCreate(draft);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.fields.prepMinutes).toBeDefined();
+  });
+
+  it('preserves whole minutes through an hours round trip', () => {
+    const draft = validDraft();
+    draft.prepTimeUnit = 'hours';
+    draft.prepMinutes = convertTimeUnit('61', 'minutes', 'hours');
+    const result = validateCreate(draft);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.input.prepMinutes).toBe(61);
+  });
+
   it('reports an empty form against the fields the cook can see', () => {
     const result = validateCreate(emptyDraft());
 

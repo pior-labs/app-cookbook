@@ -55,8 +55,9 @@ test('creates a recipe and shows it to the cook who wrote it', async ({ page }) 
   await page.getByLabel('Description').fill('A one-pot chili the household actually finishes.');
   await page.getByLabel('Category').selectOption({ label: 'Dinner' });
   await page.getByLabel('Base servings').fill('4');
-  await page.getByLabel('Prep minutes').fill('15');
-  await page.getByLabel('Cook minutes').fill('45');
+  await page.getByRole('spinbutton', { name: 'Prep time', exact: true }).fill('15');
+  await page.getByRole('combobox', { name: 'Cook time unit' }).selectOption('hours');
+  await page.getByRole('spinbutton', { name: 'Cook time', exact: true }).fill('0.75');
 
   // By role rather than by label: the reorder controls in each row are labelled
   // after the ingredient they move, so "Ingredient" alone is ambiguous.
@@ -100,10 +101,17 @@ test('edits the recipe and keeps the change', async ({ page }) => {
   await page.getByRole('link', { name: new RegExp(RECIPE) }).first().click();
   await page.getByRole('button', { name: 'Edit recipe' }).click();
 
+  await expect(page.getByRole('spinbutton', { name: 'Cook time', exact: true })).toHaveValue('45');
+  await page.getByRole('combobox', { name: 'Prep time unit' }).selectOption('hours');
+  await page.getByRole('spinbutton', { name: 'Prep time', exact: true }).fill('2.5');
   await page.getByLabel('Description').fill('Better the next day.');
   await page.getByRole('button', { name: 'Save changes' }).click();
 
   await expect(page.getByText('Better the next day.')).toBeVisible();
+  await expect(page.getByText('2 hr 30 min', { exact: true })).toBeVisible();
+  await expect(page.getByText('3 hr 15 min', { exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.getByText('2 hr 30 min', { exact: true })).toBeVisible();
 });
 
 test('finds the recipe by an ingredient rather than its name', async ({ page }) => {
@@ -172,4 +180,8 @@ test('moves the recipe to Trash and restores everything it had', async ({ page }
   await expect(page.getByText('4.0 average from 2 ratings')).toBeVisible();
   await expect(page.getByRole('button', { name: `Remove ${RECIPE} from your favorites` })).toBeVisible();
   await expect(page.getByText('Better the next day.')).toBeVisible();
+  await expect(page.getByText('2 hr 30 min', { exact: true })).toBeVisible();
+  await expect(page.getByText('3 hr 15 min', { exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.getByText('2 hr 30 min', { exact: true })).toBeVisible();
 });

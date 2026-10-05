@@ -6,6 +6,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EditRecipePage } from './EditRecipePage.jsx';
 import { RecipeDetailPage } from './RecipeDetailPage.jsx';
+import { draftFromRecipe, validateUpdate } from './form-state.js';
 
 // Page-level loading, error, and version-conflict behaviour.
 
@@ -237,4 +238,16 @@ describe('recipe edit page', () => {
       putsBefore,
     );
   });
+});
+
+it('loads saved whole hours for editing and preserves mixed and absent times', () => {
+  for (const prepMinutes of [null, 0, 15, 90, 180]) {
+    const draft = draftFromRecipe({ ...RECIPE, prepMinutes, cookMinutes: 120 });
+    expect(draft.prepTimeUnit).toBe(prepMinutes === 180 ? 'hours' : 'minutes');
+    expect(draft.cookMinutes).toBe('2');
+    expect(draft.cookTimeUnit).toBe('hours');
+    const result = validateUpdate(draft, RECIPE.version);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.input).toMatchObject({ prepMinutes, cookMinutes: 120 });
+  }
 });

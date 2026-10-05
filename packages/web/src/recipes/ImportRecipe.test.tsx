@@ -156,3 +156,15 @@ describe('import review', () => {
     await waitFor(() => expect(screen.getByLabelText(/Recipe name/)).toHaveValue(''));
   });
 });
+
+it('keeps long imported durations exact through review and saving', () => {
+  const review = draftFromImport({ ...draft, baseServings: 2, prepMinutes: 180, cookMinutes: 90 });
+  review.categoryId = '1';
+  expect(review.prepMinutes).toBe('3');
+  expect(review.prepTimeUnit).toBe('hours');
+  expect(review.cookMinutes).toBe('90');
+  expect(review.cookTimeUnit).toBe('minutes');
+  const result = validateCreate(review);
+  expect(result.ok).toBe(true);
+  if (result.ok) expect(result.input).toMatchObject({ prepMinutes: 180, cookMinutes: 90 });
+});
