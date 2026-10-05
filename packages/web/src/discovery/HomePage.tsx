@@ -93,9 +93,11 @@ function Rail({
           the edge of a phone screen while the heading stays aligned, and
           `scroll-px` keeps the snap points on the padding rather than on the
           bleed - without it the first card snaps flush to the screen edge and
-          sits a margin's width left of its own heading. */}
+          sits a margin's width left of its own heading. Outer card shadows
+          are suppressed here because the scroll container clips their blur
+          into a hard rectangular band beneath the row. */}
       <ul
-        className="cb-rail -mx-4 flex snap-x snap-mandatory list-none gap-4 overflow-x-auto scroll-px-4 px-4 pt-1 pb-3 [scrollbar-width:none] sm:gap-5 md:mx-0 md:scroll-px-0 md:px-0 [&::-webkit-scrollbar]:hidden"
+        className="cb-rail -mx-4 flex snap-x snap-mandatory list-none gap-4 overflow-x-auto scroll-px-4 px-4 pt-1 pb-3 [scrollbar-width:none] sm:gap-5 md:mx-0 md:scroll-px-0 md:px-0 [&::-webkit-scrollbar]:hidden [&>li>a]:shadow-none [&>li>a:hover]:shadow-none"
         ref={railRef}
       >
         {recipes.map((recipe) => (
