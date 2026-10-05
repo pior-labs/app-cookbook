@@ -78,6 +78,32 @@ test('creates a recipe and shows it to the cook who wrote it', async ({ page }) 
   await expect(ingredientRow(page)).toContainText(AT_BASE);
 });
 
+test('checks off cooking instructions on mobile without changing the recipe', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/recipes');
+  await page.getByRole('link', { name: new RegExp(RECIPE) }).first().click();
+  await page.getByRole('button', { name: 'Cook this' }).click();
+
+  const step = page.getByRole('button', { name: 'Step 1: Brown the beef, then simmer everything for 40 minutes.' });
+  await expect(step).toHaveAttribute('aria-pressed', 'false');
+  await step.click();
+  await expect(step).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: /Ground beef/ })).toHaveAttribute('aria-pressed', 'false');
+  await step.focus();
+  await page.keyboard.press('Space');
+  await expect(step).toHaveAttribute('aria-pressed', 'false');
+  await page.keyboard.press('Enter');
+  await expect(step).toHaveAttribute('aria-pressed', 'true');
+
+  await page.getByRole('button', { name: 'Done', exact: true }).click();
+  await expect(step).toHaveCount(0);
+  await page.getByRole('button', { name: 'Cook this' }).click();
+  await expect(step).toHaveAttribute('aria-pressed', 'true');
+  await page.reload();
+  await page.getByRole('button', { name: 'Cook this' }).click();
+  await expect(step).toHaveAttribute('aria-pressed', 'false');
+});
+
 test('scales servings for the cook without touching the saved recipe', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('link', { name: new RegExp(RECIPE) }).first().click();

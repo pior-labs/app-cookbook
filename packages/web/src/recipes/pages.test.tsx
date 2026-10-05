@@ -2,10 +2,11 @@ import type { RecipeDetail } from '@cookbook/domain';
 import { screen, waitFor } from '@testing-library/react';
 import { render } from '../../test/render';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EditRecipePage } from './EditRecipePage.jsx';
 import { RecipeDetailPage } from './RecipeDetailPage.jsx';
+import { CookModeProvider } from '@/components/CookMode';
 import { draftFromRecipe, validateUpdate } from './form-state.js';
 
 // Page-level loading, error, and version-conflict behaviour.
@@ -87,6 +88,66 @@ describe('recipe detail page', () => {
     expect(await screen.findByRole('heading', { name: 'Weeknight Chili' })).toBeInTheDocument();
     expect(screen.getByText('Brown the beef.')).toBeInTheDocument();
     expect(screen.getByText(/better the next day/i)).toBeInTheDocument();
+  });
+
+  it('toggles cooking steps independently and keeps ticks only for the current visit', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    fetchMock.mockImplementation(async (_input, init) =>
+      init?.method === 'POST' ? new Response(null, { status: 204 }) : jsonResponse(RECIPE),
+    );
+    const page = renderAt('/recipes/12', <CookModeProvider><RecipeDetailPage /></CookModeProvider>, '/recipes/:id');
+    await screen.findByRole('heading', { name: RECIPE.name });
+    expect(screen.queryByRole('button', { name: 'Step 1: Brown the beef.' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Cook this' }));
+    const step = screen.getByRole('button', { name: 'Step 1: Brown the beef.' });
+    const ingredient = screen.getByRole('button', { name: /Ground beef/ });
+    expect(step).toHaveAttribute('aria-pressed', 'false');
+    await user.click(step);
+    expect(step).toHaveAttribute('aria-pressed', 'true');
+    expect(ingredient).toHaveAttribute('aria-pressed', 'false');
+    await user.click(ingredient);
+    await user.click(step);
+    expect(step).toHaveAttribute('aria-pressed', 'false');
+    expect(ingredient).toHaveAttribute('aria-pressed', 'true');
+    step.focus();
+    await user.keyboard(' ');
+    expect(step).toHaveAttribute('aria-pressed', 'true');
+    await user.click(screen.getByRole('button', { name: 'Done' }));
+    expect(screen.queryByRole('button', { name: 'Step 1: Brown the beef.' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Cook this' }));
+    expect(screen.getByRole('button', { name: 'Step 1: Brown the beef.' })).toHaveAttribute('aria-pressed', 'true');
+    // The only write is the existing view-history update, never completion.
+    expect(fetchMock.mock.calls.filter(([, init]) => init?.method && init.method !== 'GET'))
+      .toEqual([[expect.stringContaining('/view'), expect.objectContaining({ method: 'POST' })]]);
+    page.unmount();
+    renderAt('/recipes/12', <CookModeProvider><RecipeDetailPage /></CookModeProvider>, '/recipes/:id');
+    await screen.findByRole('heading', { name: RECIPE.name });
+    await user.click(screen.getByRole('button', { name: 'Cook this' }));
+    expect(screen.getByRole('button', { name: 'Step 1: Brown the beef.' })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('resets completed steps when another recipe opens even if step ids overlap', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    fetchMock.mockImplementation(async (input: string, init) => {
+      if (init?.method === 'POST') return new Response(null, { status: 204 });
+      return jsonResponse(input === '/api/recipes/13' ? { ...RECIPE, id: 13, name: 'Another recipe' } : RECIPE);
+    });
+    render(
+      <MemoryRouter initialEntries={['/recipes/12']}>
+        <CookModeProvider>
+          <Link to="/recipes/13">Another recipe</Link>
+          <Routes><Route path="/recipes/:id" element={<RecipeDetailPage />} /></Routes>
+        </CookModeProvider>
+      </MemoryRouter>,
+    );
+    await screen.findByRole('heading', { name: RECIPE.name });
+    await user.click(screen.getByRole('button', { name: 'Cook this' }));
+    await user.click(screen.getByRole('button', { name: 'Step 1: Brown the beef.' }));
+    await user.click(screen.getByRole('link', { name: 'Another recipe' }));
+    await screen.findByRole('heading', { name: 'Another recipe' });
+    expect(screen.getByRole('button', { name: 'Step 1: Brown the beef.' })).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('opens the source link safely in a new tab', async () => {

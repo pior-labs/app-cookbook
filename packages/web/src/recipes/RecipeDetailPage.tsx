@@ -1,6 +1,6 @@
 import { totalMinutes, type RecipeDetail } from '@cookbook/domain';
 import { useCallback, useEffect, useState } from 'react';
-import { CookingPot, ExternalLink, Pencil, Trash2 } from 'lucide-react';
+import { Check, CookingPot, ExternalLink, Pencil, Trash2 } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ApiRequestError } from '../api/client.js';
 import { useApiResource } from '../api/hooks.js';
@@ -221,34 +221,67 @@ function DeleteAction({ recipe }: { recipe: RecipeDetail }) {
 // A recipe is a sequence, which is the one place an ordinal marker carries
 // something a reader needs. The numeral sits in the margin as a serif figure
 // rather than in a badge, so the step itself stays the loudest thing.
-function Steps({ recipe, cooking }: { recipe: RecipeDetail; cooking: boolean }) {
+function Steps({ recipe, cooking, checked, onToggle }: {
+  recipe: RecipeDetail;
+  cooking: boolean;
+  checked?: ReadonlySet<number>;
+  onToggle?: (id: number) => void;
+}) {
   return (
     <ol className="m-0 flex list-none flex-col p-0">
       {recipe.instructions.map((instruction, index) => (
         <li
           className={cn(
             'flex gap-4 border-b border-dashed border-ink/10 last:border-b-0',
-            cooking ? 'gap-5 py-6 first:pt-0' : 'py-4 first:pt-0',
+            cooking ? 'py-2 first:pt-0' : 'py-4 first:pt-0',
           )}
           key={instruction.id}
         >
-          <span
-            aria-hidden="true"
-            className={cn(
-              'shrink-0 font-serif leading-none italic tabular-nums text-ink/30',
-              cooking ? 'w-12 text-[40px]' : 'w-8 text-[24px]',
-            )}
-          >
-            {index + 1}
-          </span>
-          <p
-            className={cn(
-              'm-0 min-w-0 flex-1 text-ink',
-              cooking ? 'text-[20px] leading-[1.65] sm:text-[21px]' : 'text-[15px] leading-[1.65]',
-            )}
-          >
-            {instruction.body}
-          </p>
+          {cooking ? (
+            <button
+              type="button"
+              aria-pressed={checked?.has(instruction.id) ?? false}
+              onClick={() => onToggle?.(instruction.id)}
+              className={cn(
+                'flex w-full cursor-pointer items-start gap-4 rounded-2xl border-0 bg-transparent px-2 py-3.5 text-left font-[inherit] transition-colors hover:bg-ink/4',
+                focusRing,
+              )}
+            >
+              <span
+                aria-hidden="true"
+                className={cn(
+                  'mt-1 inline-grid h-6 w-6 shrink-0 place-items-center rounded-lg border transition-colors',
+                  checked?.has(instruction.id)
+                    ? 'border-transparent bg-[var(--cb-good-surface-strong)] text-ink'
+                    : 'border-ink/20 bg-[rgba(var(--surface-rgb),0.6)]',
+                )}
+              >
+                {checked?.has(instruction.id) ? <Check className="h-3.5 w-3.5" strokeWidth={2.8} /> : null}
+              </span>
+              <span aria-hidden="true" className="w-8 shrink-0 font-serif text-[32px] leading-none italic text-ink/30 tabular-nums sm:w-12 sm:text-[40px]">
+                {index + 1}
+              </span>
+              <span className="sr-only">Step {index + 1}: </span>
+              <span className={cn(
+                'min-w-0 flex-1 text-[20px] leading-[1.65] sm:text-[21px]',
+                checked?.has(instruction.id) ? 'text-ink-3 line-through decoration-ink-3/50' : 'text-ink',
+              )}>
+                {instruction.body}
+              </span>
+            </button>
+          ) : (
+            <>
+              <span
+                aria-hidden="true"
+                className="w-8 shrink-0 font-serif text-[24px] leading-none italic text-ink/30 tabular-nums"
+              >
+                {index + 1}
+              </span>
+              <p className="m-0 min-w-0 flex-1 text-[15px] leading-[1.65] text-ink">
+                {instruction.body}
+              </p>
+            </>
+          )}
         </li>
       ))}
     </ol>
@@ -298,6 +331,8 @@ function CookView({
   onServings,
   checked,
   onToggle,
+  checkedSteps,
+  onToggleStep,
   onDone,
 }: {
   recipe: RecipeDetail;
@@ -305,6 +340,8 @@ function CookView({
   onServings: (value: number) => void;
   checked: ReadonlySet<number>;
   onToggle: (id: number) => void;
+  checkedSteps: ReadonlySet<number>;
+  onToggleStep: (id: number) => void;
   onDone: () => void;
 }) {
   return (
@@ -356,10 +393,10 @@ function CookView({
         </Sheet>
 
         <Sheet aria-labelledby="instructions-heading">
-          <SectionHeading className="mb-4" id="instructions-heading" sub={`${recipe.instructions.length} steps`}>
+          <SectionHeading className="mb-4" id="instructions-heading" sub={`${recipe.instructions.length} ${recipe.instructions.length === 1 ? 'step' : 'steps'} · Tap one off as you go`}>
             Instructions
           </SectionHeading>
-          <Steps recipe={recipe} cooking />
+          <Steps recipe={recipe} cooking checked={checkedSteps} onToggle={onToggleStep} />
           <Notes recipe={recipe} cooking />
         </Sheet>
       </div>
@@ -390,18 +427,31 @@ export function RecipeDetailPage() {
 
   const [servings, setServings] = useState<number | null>(null);
   const [checked, setChecked] = useState<ReadonlySet<number>>(() => new Set());
+  const [checkedSteps, setCheckedSteps] = useState<ReadonlySet<number>>(() => new Set());
 
   // Serving state follows the loaded recipe, and resets when a different
   // recipe is opened rather than carrying the previous one's count over.
   useEffect(() => {
     setServings(recipe ? recipe.baseServings : null);
     setChecked(new Set());
+    setCheckedSteps(new Set());
   }, [recipe]);
 
   const toggleChecked = useCallback((ingredientId: number) => {
     setChecked((current) => {
       const next = new Set(current);
       if (!next.delete(ingredientId)) next.add(ingredientId);
+      return next;
+    });
+  }, []);
+
+  // Step and ingredient ids can overlap. Separate sets keep their ticks
+  // independent, and neither is saved: completion belongs to this cooking
+  // session, so another cook or a fresh page starts with the full recipe.
+  const toggleStep = useCallback((instructionId: number) => {
+    setCheckedSteps((current) => {
+      const next = new Set(current);
+      if (!next.delete(instructionId)) next.add(instructionId);
       return next;
     });
   }, []);
@@ -426,6 +476,8 @@ export function RecipeDetailPage() {
         onServings={setServings}
         checked={checked}
         onToggle={toggleChecked}
+        checkedSteps={checkedSteps}
+        onToggleStep={toggleStep}
         onDone={() => setCooking(false)}
       />
     );

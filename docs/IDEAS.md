@@ -22,7 +22,7 @@ Deferred for possible later work. Scope lives in
 
 Not commitments. Recorded so they are not re-proposed as though new.
 
-Cooking: timers, step completion, expanded Cooking Mode.
+Cooking: timers, expanded Cooking Mode.
 
 Recipes: multiple images, ingredient substitutions, duplication and forking,
 recipe history, last-cooked tracking, seasonal collections, AI-assisted recipe
