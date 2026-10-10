@@ -334,7 +334,7 @@ export function RecipeForm({
 
             return (
               <li
-                className="flex flex-col gap-3 rounded-[22px] border border-frost/70 bg-[rgba(var(--surface-rgb),0.55)] p-3.5 sm:flex-row"
+                className="flex flex-col gap-3 pb-3 last:pb-0 sm:flex-row"
                 key={ingredient.key}
               >
                 <div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -465,9 +465,12 @@ export function RecipeForm({
             const stepNumber = draft.instructions.slice(0, index + 1).filter(row => !row.isSection).length;
             const bodyError = fieldError(fields, `instructions.${index}.body`);
 
+            // The textarea is already a writing surface. Separating steps with
+            // space avoids a second box around it while keeping each step's
+            // label and controls together.
             return (
               <li
-                className="flex flex-col gap-3 rounded-[22px] border border-frost/70 bg-[rgba(var(--surface-rgb),0.55)] p-3.5 sm:flex-row"
+                className="flex flex-col gap-3 pb-3 last:pb-0 sm:flex-row"
                 key={instruction.key}
               >
                 <div className="min-w-0 flex-1">
