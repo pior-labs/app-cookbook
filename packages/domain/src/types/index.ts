@@ -30,6 +30,7 @@ export interface TagSummary extends Tag {
 }
 
 export interface RecipeIngredient {
+  section: string | null;
   originalText?: string | null;
   id: number;
   position: number;
@@ -41,6 +42,7 @@ export interface RecipeIngredient {
 }
 
 export interface RecipeInstruction {
+  section: string | null;
   id: number;
   position: number;
   body: string;

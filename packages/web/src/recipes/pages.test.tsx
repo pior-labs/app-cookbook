@@ -35,6 +35,7 @@ const RECIPE: RecipeDetail = {
     {
       id: 1,
       position: 0,
+      section: null,
       quantity: { numerator: 3, denominator: 2 },
       unitCode: 'lb',
       unitText: null,
@@ -42,7 +43,7 @@ const RECIPE: RecipeDetail = {
       preparation: null,
     },
   ],
-  instructions: [{ id: 1, position: 0, body: 'Brown the beef.' }],
+  instructions: [{ id: 1, position: 0, body: 'Brown the beef.', section: null }],
   tags: [{ id: 7, name: 'Weeknight', color: '#6b8db5', createdAt: '', updatedAt: '' }],
   image: null,
 };
@@ -78,6 +79,25 @@ beforeEach(() => {
 });
 
 describe('recipe detail page', () => {
+  it('shows independent headings and continuous step numbers in normal and cooking views', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    const recipe = { ...RECIPE,
+      ingredients: [{ ...RECIPE.ingredients[0], section: 'Dry' }, { ...RECIPE.ingredients[0], id: 2, position: 1, section: 'Sauce', name: 'Oil' }],
+      instructions: [{ ...RECIPE.instructions[0], section: 'Mix' }, { id: 2, position: 1, body: 'Bake.', section: 'Bake' }],
+    };
+    fetchMock.mockImplementation(async (_input, init) => init?.method === 'POST' ? new Response(null, { status: 204 }) : jsonResponse(recipe));
+    renderAt('/recipes/12', <CookModeProvider><RecipeDetailPage /></CookModeProvider>, '/recipes/:id');
+    await screen.findByRole('heading', { name: 'Weeknight Chili' });
+    for (const name of ['Dry', 'Sauce', 'Mix', 'Bake']) expect(screen.getByRole('heading', { name })).toBeVisible();
+    expect(screen.getByText('Bake.', { exact: true }).parentElement).toHaveTextContent('2');
+    await user.click(screen.getByRole('button', { name: 'Cook this' }));
+    for (const name of ['Dry', 'Sauce', 'Mix', 'Bake']) expect(screen.getByRole('heading', { name })).toBeVisible();
+    const second = screen.getByRole('button', { name: 'Step 2: Bake.' });
+    await user.click(second);
+    expect(second).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /Oil/ })).toHaveAttribute('aria-pressed', 'false');
+  });
   it('shows a skeleton before the recipe arrives, then the recipe', async () => {
     fetchMock.mockResolvedValue(jsonResponse(RECIPE));
 

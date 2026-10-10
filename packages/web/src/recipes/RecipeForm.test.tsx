@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import type { ErrorFields } from '../api/client.js';
 import { RecipeForm } from './RecipeForm.jsx';
-import { convertTimeUnit, emptyDraft, validateCreate, validateUpdate, type RecipeDraft } from './form-state.js';
+import { convertTimeUnit, emptyDraft, emptyIngredient, emptyInstruction, expandSections, validateCreate, validateUpdate, type RecipeDraft } from './form-state.js';
 
 // Recipe form validation, ordered-row editing, and accessible labelling.
 
@@ -47,6 +47,49 @@ function Harness({
 }
 
 describe('recipe form', () => {
+  it('adds independent headings, renames and moves them, crosses boundaries and removes only the heading', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    const draft = emptyDraft();
+    draft.name = 'Bread'; draft.categoryId = '1';
+    draft.ingredients[0].name = 'Flour'; draft.instructions[0].body = 'Mix.';
+    render(<Harness initial={draft} onSubmit={onSubmit} />);
+    const ingredients = within(screen.getByRole('group', { name: /Ingredients/ }));
+    const steps = within(screen.getByRole('group', { name: /Instructions/ }));
+    await user.click(ingredients.getByRole('button', { name: 'Add section' }));
+    await user.type(ingredients.getByRole('textbox', { name: 'Ingredient section 1' }), 'Sauce');
+    await user.click(ingredients.getByRole('button', { name: 'Add ingredient' }));
+    await user.type(ingredients.getAllByRole('textbox', { name: 'Ingredient' })[1], 'Oil');
+    await user.click(steps.getByRole('button', { name: 'Add section' }));
+    await user.type(steps.getByRole('textbox', { name: 'Step section 1' }), 'Bake');
+    await user.click(steps.getByRole('button', { name: 'Add step' }));
+    await user.type(steps.getByRole('textbox', { name: 'Step 2' }), 'Bake.');
+    await user.click(screen.getByRole('button', { name: 'Save recipe' }));
+    expect(validateCreate(onSubmit.mock.lastCall![0])).toMatchObject({ ok: true, input: {
+      ingredients: [{ name: 'Flour', section: null }, { name: 'Oil', section: 'Sauce' }],
+      instructions: [{ body: 'Mix.', section: null }, { body: 'Bake.', section: 'Bake' }],
+    } });
+    await user.clear(ingredients.getByRole('textbox', { name: 'Ingredient section 1' }));
+    await user.type(ingredients.getByRole('textbox', { name: 'Ingredient section 1' }), 'Dressing');
+    await user.click(ingredients.getByRole('button', { name: 'Move ingredient section 1 up' }));
+    await user.click(screen.getByRole('button', { name: 'Save recipe' }));
+    expect(validateCreate(onSubmit.mock.lastCall![0])).toMatchObject({ ok: true, input: {
+      ingredients: [{ name: 'Flour', section: 'Dressing' }, { name: 'Oil', section: 'Dressing' }],
+    } });
+    // Moving an item past a boundary changes its section, not just its order
+    // within the old section. Heading removal never removes its ingredient.
+    await user.click(ingredients.getByRole('button', { name: 'Move ingredient 1 up' }));
+    await user.click(screen.getByRole('button', { name: 'Save recipe' }));
+    expect(validateCreate(onSubmit.mock.lastCall![0])).toMatchObject({ ok: true, input: {
+      ingredients: [{ name: 'Flour', section: null }, { name: 'Oil', section: 'Dressing' }],
+    } });
+    await user.click(ingredients.getByRole('button', { name: 'Remove ingredient section 1' }));
+    await user.click(screen.getByRole('button', { name: 'Save recipe' }));
+    expect(validateCreate(onSubmit.mock.lastCall![0])).toMatchObject({ ok: true, input: {
+      ingredients: [{ name: 'Flour', section: null }, { name: 'Oil', section: null }],
+      instructions: [{ body: 'Mix.', section: null }, { body: 'Bake.', section: 'Bake' }],
+    } });
+  });
   it('labels every required field for assistive technology', () => {
     render(<Harness />);
 
@@ -236,6 +279,58 @@ describe('draft validation', () => {
     draft.instructions[0].body = 'Proof and bake.';
     return draft;
   }
+  it.each(['ingredients', 'instructions'] as const)('rejects empty, blank, long and duplicate %s headings with visible field addresses', list => {
+    const empty = list === 'ingredients' ? emptyIngredient : emptyInstruction;
+    for (const label of ['', 'x'.repeat(81), 'Sauce']) {
+      const draft = validDraft();
+      const heading = { ...empty(), isSection: true, section: label };
+      if (list === 'ingredients') draft.ingredients.push(heading as ReturnType<typeof emptyIngredient>);
+      else draft.instructions.push(heading as ReturnType<typeof emptyInstruction>);
+      for (const result of [validateCreate(draft), validateUpdate(draft, 1)]) {
+        expect(result).toMatchObject({ ok: false, fields: { [`${list}.1.section`]: expect.any(Array) } });
+      }
+    }
+    const draft = validDraft();
+    if (list === 'ingredients') draft.ingredients = expandSections([
+      { ...draft.ingredients[0], section: 'Sauce' },
+      { ...draft.ingredients[0], key: 'other', section: ' sauce ' },
+    ], emptyIngredient);
+    else draft.instructions = expandSections([
+      { ...draft.instructions[0], section: 'Sauce' },
+      { ...draft.instructions[0], key: 'other', section: ' sauce ' },
+    ], emptyInstruction);
+    expect(validateCreate(draft)).toMatchObject({ ok: false, fields: { [`${list}.2.section`]: expect.any(Array) } });
+  });
+  it('addresses item errors after headings to editor rows', () => {
+    const draft = validDraft();
+    draft.ingredients = [{ ...emptyIngredient(), isSection: true, section: 'Dry' }, { ...draft.ingredients[0], quantity: 'guess' }];
+    expect(validateCreate(draft)).toMatchObject({ ok: false, fields: { 'ingredients.1.quantity': expect.any(Array) } });
+  });
+  it('removing a heading joins its items to the named section above without changing step numbers', () => {
+    const draft = validDraft();
+    draft.ingredients = expandSections([
+      { ...draft.ingredients[0], section: 'Main' },
+      { ...draft.ingredients[0], key: 'oil', name: 'Oil', section: 'Sauce' },
+    ], emptyIngredient);
+    draft.instructions = expandSections([
+      { ...draft.instructions[0], section: 'Mix' },
+      { ...draft.instructions[0], key: 'bake', body: 'Bake.', section: 'Bake' },
+    ], emptyInstruction);
+    draft.ingredients.splice(2, 1);
+    draft.instructions.splice(2, 1);
+    expect(validateCreate(draft)).toMatchObject({ ok: true, input: {
+      ingredients: [{ name: 'Flour', section: 'Main' }, { name: 'Oil', section: 'Main' }],
+      instructions: [{ section: 'Mix' }, { body: 'Bake.', section: 'Mix' }],
+    } });
+  });
+  it('requires explicit repair of an unheaded imported tail rather than silently regrouping it', () => {
+    const draft = validDraft();
+    draft.instructions = expandSections([
+      { ...draft.instructions[0], section: 'Mix' },
+      { ...draft.instructions[0], key: 'tail', body: 'Bake.', section: null },
+    ], emptyInstruction);
+    expect(validateCreate(draft)).toMatchObject({ ok: false, fields: { 'instructions.2.section': expect.any(Array) } });
+  });
 
   it('converts decimal hours to whole minutes for both creation and updates', () => {
     const draft = validDraft();

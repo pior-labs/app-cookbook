@@ -27,9 +27,10 @@ const recipe = {
       unitText: null,
       preparation: 'to taste',
       originalText: 'salt to taste',
+      section: null,
     },
   ],
-  instructions: [{ body: 'Simmer.' }],
+  instructions: [{ body: 'Simmer.', section: null }],
   warnings: [],
 };
 function provider(value: unknown) {
@@ -131,7 +132,7 @@ describe('extraction and honest drafts', () => {
           '@type': ['Recipe'],
           name: 'Soup',
           recipeIngredient: ['1 cup water'],
-          recipeInstructions: [{ '@type': 'HowToSection', itemListElement: [{ text: 'Boil.' }] }],
+          recipeInstructions: [{ '@type': 'HowToSection', name: 'Simmer', itemListElement: [{ text: 'Boil.' }] }],
           image: { url: '/soup.jpg' },
           tracking: 'private',
         },
@@ -143,6 +144,7 @@ describe('extraction and honest drafts', () => {
     expect(extracted.metadata[0]).toMatchObject({
       name: 'Soup',
       recipeIngredient: ['1 cup water'],
+      recipeInstructions: [{ '@type': 'HowToSection', name: 'Simmer', itemListElement: [{ text: 'Boil.' }] }],
     });
     expect(JSON.stringify(extracted)).not.toContain('tracking');
     expect(extracted.imageUrl).toBe('/soup.jpg');
@@ -155,6 +157,51 @@ describe('extraction and honest drafts', () => {
         '<script type="application/ld+json">{bad</script><article>Soup &amp; bread</article>',
       ).text,
     ).toBe('Soup & bread');
+  });
+  it('preserves visible ingredient group headings as separate lines', () => {
+    const extracted = extractRecipePage('<main><h3>For the sauce:</h3><ul><li>1 tbsp oil</li></ul><h3>To finish</h3><p>Salt</p></main>');
+    expect(extracted.text).toContain('For the sauce:\n1 tbsp oil');
+    expect(extracted.text).toContain('To finish\nSalt');
+  });
+  it('keeps independent sections in the model schema and draft', async () => {
+    const model = provider({ ...recipe,
+      ingredients: [{ ...recipe.ingredients[0], section: ' For the sauce ' }],
+      instructions: [{ body: 'Simmer.', section: 'Mix' }, { body: 'Pour.', section: 'Serve' }],
+    });
+    const draft = await normalizeImport({ text: 'For the sauce:\nsalt to taste' }, undefined, model);
+    expect(draft.ingredients[0].section).toBe('For the sauce');
+    expect(draft.instructions.map(row => row.section)).toEqual(['Mix', 'Serve']);
+    const request = model.mock.calls[0][0];
+    expect(request.instructions).toContain('HowToSection');
+    expect(request.instructions).toContain('NOT ingredients');
+    expect(request.schema.safeParse({ ...recipe, ingredients: [{ ...recipe.ingredients[0], section: undefined }] }).success).toBe(false);
+  });
+  it('turns a pasted For the sauce line into a heading rather than a bogus ingredient', async () => {
+    const draft = await normalizeImport({ text: 'For the sauce:\nsalt to taste' }, undefined, provider({ ...recipe,
+      ingredients: [{ ...recipe.ingredients[0], name: 'For the sauce:', originalText: 'For the sauce:' }, recipe.ingredients[0]],
+    }));
+    expect(draft.ingredients).toHaveLength(1);
+    expect(draft.ingredients[0]).toMatchObject({ name: 'salt', section: 'For the sauce' });
+  });
+  it('keeps amount warnings on their own ingredient after discarding a heading row', async () => {
+    const draft = await normalizeImport({}, undefined, provider({ ...recipe,
+      ingredients: [
+        { ...recipe.ingredients[0], name: 'For the sauce:', originalText: 'For the sauce:', quantity: '1' },
+        { ...recipe.ingredients[0], quantity: '2' },
+        { ...recipe.ingredients[0], name: 'pepper', originalText: '1 tsp pepper', quantity: '1' },
+      ], warnings: [{ field: 'ingredients.1.quantity', message: 'Cropped amount.' }],
+    }));
+    expect(draft.ingredients.map(row => row.quantity)).toEqual([null, '1']);
+    expect(draft.warnings).toContainEqual({ field: 'ingredients.0.quantity', message: 'Cropped amount.' });
+  });
+  it('warns on noncontiguous names and unheaded tails for correction in review', async () => {
+    const draft = await normalizeImport({}, undefined, provider({ ...recipe,
+      instructions: ['Mix', 'Bake', 'mix', null].map(section => ({ body: 'Cook.', section })),
+    }));
+    expect(draft.warnings).toEqual(expect.arrayContaining([
+      expect.objectContaining({ field: 'instructions.2.section' }),
+      expect.objectContaining({ field: 'instructions.3.section' }),
+    ]));
   });
   it('keeps servings and quantities unknown and asks for review', async () => {
     const model = provider(recipe);

@@ -6,7 +6,7 @@ import { getRecipe, updateRecipe } from '../api/recipes.js';
 import { Breadcrumb, Button, ButtonLink, PageHeader } from '@/components/ui';
 import { PhotoField } from './PhotoField.jsx';
 import { RecipeForm } from './RecipeForm.jsx';
-import { draftFromRecipe, validateUpdate, type RecipeDraft } from './form-state.js';
+import { draftFromRecipe, fieldsForDraft, validateUpdate, type RecipeDraft } from './form-state.js';
 import { ErrorState, FormErrorBanner, RecipeSkeleton } from './states.jsx';
 import { useFieldErrors, useOrganization, useUnsavedChangesWarning } from './useRecipeEditor.js';
 
@@ -68,7 +68,7 @@ export function EditRecipePage() {
       if (result.error.isVersionConflict) {
         setConflict(true);
       } else {
-        setFields(result.error.fields);
+        setFields(fieldsForDraft(draft, result.error.fields));
       }
       return;
     }

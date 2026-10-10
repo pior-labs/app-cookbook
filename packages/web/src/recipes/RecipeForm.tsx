@@ -105,6 +105,52 @@ export function RecipeForm({
     onChange({ ...draft, instructions });
   }
 
+  function sectionRow(list: 'ingredients' | 'instructions', index: number) {
+    const rows = draft[list];
+    const row = rows[index];
+    const error = fieldError(fields, `${list}.${index}.section`);
+    const position = rows.slice(0, index + 1).filter(item => item.isSection).length;
+    const id = `${list}-section-${row.key}`;
+    const label = list === 'ingredients' ? 'Ingredient' : 'Step';
+    return (
+      <li key={row.key} className="mt-4 flex flex-col gap-3 border-t border-ink/15 pt-4 sm:flex-row">
+        <div className="min-w-0 flex-1">
+          <Field id={id} label={`${label} section ${position}`} error={error}>
+            <Input
+              id={id}
+              value={row.section ?? ''}
+              maxLength={80}
+              placeholder={list === 'ingredients' ? 'For the sauce' : 'Mix & bake'}
+              className="font-serif text-lg"
+              aria-invalid={error ? true : undefined}
+              aria-describedby={describedBy(id, undefined, error)}
+              onChange={(event) => {
+                const patch = { section: event.target.value };
+                if (list === 'ingredients') setIngredient(index, patch);
+                else setInstruction(index, patch);
+              }}
+            />
+          </Field>
+        </div>
+        <RowControls
+          index={index}
+          total={rows.length}
+          label={`${label.toLowerCase()} section`}
+          position={position}
+          canRemove
+          onMove={(from, to) => {
+            if (list === 'ingredients') set('ingredients', moveItem(draft.ingredients, from, to));
+            else set('instructions', moveItem(draft.instructions, from, to));
+          }}
+          onRemove={() => {
+            if (list === 'ingredients') set('ingredients', draft.ingredients.filter((_, i) => i !== index));
+            else set('instructions', draft.instructions.filter((_, i) => i !== index));
+          }}
+        />
+      </li>
+    );
+  }
+
   function toggleTag(id: number) {
     const tagIds = draft.tagIds.includes(id)
       ? draft.tagIds.filter((tagId) => tagId !== id)
@@ -276,8 +322,10 @@ export function RecipeForm({
           error={fieldError(fields, 'ingredients')}
           addLabel="Add ingredient"
           onAdd={() => set('ingredients', [...draft.ingredients, emptyIngredient()])}
+          onAddSection={() => set('ingredients', [...draft.ingredients, { ...emptyIngredient(), isSection: true, section: '' }])}
         >
           {draft.ingredients.map((ingredient, index) => {
+            if (ingredient.isSection) return sectionRow('ingredients', index);
             const nameError = fieldError(fields, `ingredients.${index}.name`);
             const quantityError = fieldError(fields, `ingredients.${index}.quantity`);
             const unitCodeError = fieldError(fields, `ingredients.${index}.unitCode`);
@@ -387,7 +435,8 @@ export function RecipeForm({
                   index={index}
                   total={draft.ingredients.length}
                   label="ingredient"
-                  canRemove={draft.ingredients.length > 1}
+                  position={draft.ingredients.slice(0, index + 1).filter(row => !row.isSection).length}
+                  canRemove={draft.ingredients.filter(row => !row.isSection).length > 1}
                   onMove={(from, to) => set('ingredients', moveItem(draft.ingredients, from, to))}
                   onRemove={(removeIndex) =>
                     set(
@@ -409,8 +458,11 @@ export function RecipeForm({
           error={fieldError(fields, 'instructions')}
           addLabel="Add step"
           onAdd={() => set('instructions', [...draft.instructions, emptyInstruction()])}
+          onAddSection={() => set('instructions', [...draft.instructions, { ...emptyInstruction(), isSection: true, section: '' }])}
         >
           {draft.instructions.map((instruction, index) => {
+            if (instruction.isSection) return sectionRow('instructions', index);
+            const stepNumber = draft.instructions.slice(0, index + 1).filter(row => !row.isSection).length;
             const bodyError = fieldError(fields, `instructions.${index}.body`);
 
             return (
@@ -421,7 +473,7 @@ export function RecipeForm({
                 <div className="min-w-0 flex-1">
                   <Field
                     id={`instruction-${instruction.key}`}
-                    label={`Step ${index + 1}`}
+                    label={`Step ${stepNumber}`}
                     required
                     error={bodyError}
                   >
@@ -441,7 +493,8 @@ export function RecipeForm({
                   index={index}
                   total={draft.instructions.length}
                   label="step"
-                  canRemove={draft.instructions.length > 1}
+                  position={stepNumber}
+                  canRemove={draft.instructions.filter(row => !row.isSection).length > 1}
                   onMove={(from, to) => set('instructions', moveItem(draft.instructions, from, to))}
                   onRemove={(removeIndex) =>
                     set(

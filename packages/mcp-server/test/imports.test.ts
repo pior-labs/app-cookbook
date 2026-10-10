@@ -18,9 +18,9 @@ const recipe = {
   baseServings: 2,
   importMethod: 'text',
   ingredients: [
-    { name: 'water', quantity: '1 1/2', unitCode: 'cup', originalText: '1 1/2 cups water' },
+    { name: 'water', quantity: '1 1/2', unitCode: 'cup', originalText: '1 1/2 cups water', section: 'Sauce' },
   ],
-  instructions: [{ body: 'Boil.' }],
+  instructions: [{ body: 'Boil.', section: 'Simmer' }],
 };
 beforeEach(async () => {
   const { server } = createServer(user, createLogger('error'));
@@ -52,7 +52,7 @@ it('returns a structured unsaved preview and categories without invoking creatio
   });
   expect(result.isError).not.toBe(true);
   expect(result.structuredContent).toMatchObject({
-    draft: { name: 'Soup' },
+    draft: { name: 'Soup', ingredients: [expect.objectContaining({ section: 'Sauce' })], instructions: [expect.objectContaining({ section: 'Simmer' })] },
     categories: [{ id: 1, name: 'Dinner' }],
   });
   expect(mocks.previewRecipeImport).toHaveBeenCalledWith(
@@ -86,11 +86,32 @@ it('parses an approved recipe once and attributes it to the configured member', 
         expect.objectContaining({
           quantity: { numerator: 3, denominator: 2 },
           originalText: '1 1/2 cups water',
+          section: 'Sauce',
         }),
       ],
+      instructions: [{ body: 'Boil.', section: 'Simmer' }],
     }),
     user.id,
   );
+});
+it('limits section names after trimming, using the shared recipe validation', async () => {
+  mocks.createRecipe.mockResolvedValue({ id: 12, name: 'Soup' });
+  const section = 'x'.repeat(80);
+  const approved = { ...recipe,
+    ingredients: [{ ...recipe.ingredients[0], section: `  ${section}  ` }],
+    instructions: [{ body: 'Boil.', section: '   ' }],
+  };
+  expect((await client.callTool({ name: 'create_recipe', arguments: { recipe: approved, confirmed: true } })).isError).not.toBe(true);
+  expect(mocks.createRecipe).toHaveBeenCalledWith(expect.objectContaining({
+    ingredients: [expect.objectContaining({ section })],
+    instructions: [{ body: 'Boil.', section: null }],
+  }), user.id);
+  const rejected = await client.callTool({ name: 'create_recipe', arguments: { confirmed: true,
+    recipe: { ...approved, instructions: [{ body: 'Boil.', section: 'x'.repeat(81) }] },
+  } });
+  expect(rejected.isError).toBe(true);
+  expect(JSON.stringify(rejected.content)).toContain('instructions.0.section');
+  expect(mocks.createRecipe).toHaveBeenCalledTimes(1);
 });
 it('requires exactly one source', async () => {
   for (const args of [{}, { url: 'https://example.com', text: 'Soup' }]) {

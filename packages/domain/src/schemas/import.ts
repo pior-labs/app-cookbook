@@ -28,11 +28,14 @@ export const recipeImportContentSchema = z
             unitText: z.string().max(40).nullable(),
             preparation: z.string().max(500).nullable(),
             originalText: z.string().max(1000),
+            section: z.string().max(80).nullable(),
           })
           .strict(),
       )
       .max(200),
-    instructions: z.array(z.object({ body: z.string().max(5000) }).strict()).max(100),
+    instructions: z.array(
+      z.object({ body: z.string().max(5000), section: z.string().max(80).nullable() }).strict(),
+    ).max(100),
     warnings: z
       .array(
         z

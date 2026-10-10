@@ -1,5 +1,5 @@
 import { totalMinutes, type RecipeDetail } from '@cookbook/domain';
-import { useCallback, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useState } from 'react';
 import { Check, CookingPot, ExternalLink, Pencil, Trash2 } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ApiRequestError } from '../api/client.js';
@@ -22,6 +22,7 @@ import {
 import { FavoriteButton, RatingControl } from '../preferences/controls.jsx';
 import { useRecipePreferences } from '../preferences/usePreferences.js';
 import { IngredientList } from './IngredientList.jsx';
+import { SectionLabel } from './SectionLabel.js';
 import { ServingControl } from './ServingControl.jsx';
 import { ErrorState, RecipeSkeleton } from './states.jsx';
 
@@ -81,7 +82,7 @@ function TimeFacts({ recipe }: { recipe: RecipeDetail }) {
 }
 
 // Only http/https ever reach here (the domain schema enforces it), and the
-// link is opened with noopener noreferrer (section 16).
+// link is opened with noopener noreferrer.
 function SourceLine({ recipe }: { recipe: RecipeDetail }) {
   if (recipe.sourceUrl) {
     return (
@@ -109,7 +110,7 @@ function SourceLine({ recipe }: { recipe: RecipeDetail }) {
 
 // Opening a recipe is what "recently viewed" records, so the page reports it
 // once per recipe rather than making a cook press anything. A failure is
-// deliberately silent: the recipe still opened (section 7.2).
+// deliberately silent: the recipe still opened.
 function useRecordView(recipeId: number, loaded: boolean): void {
   useEffect(() => {
     if (!loaded) return;
@@ -145,8 +146,7 @@ function PreferenceBar({ recipe }: { recipe: RecipeDetail }) {
         />
       </div>
 
-      {/* A reverted change has to say so, or the control silently snaps back
-          (section 11.3). */}
+      {/* A reverted change has to say so, or the control silently snaps back. */}
       {preferences.error ? (
         <p className="m-0 text-[13px] font-medium text-[var(--cb-danger-ink-strong)]" role="alert">
           {preferences.error}
@@ -230,6 +230,8 @@ function Steps({ recipe, cooking, checked, onToggle }: {
   return (
     <ol className="m-0 flex list-none flex-col p-0">
       {recipe.instructions.map((instruction, index) => (
+        <Fragment key={instruction.id}>
+        {instruction.section && instruction.section !== recipe.instructions[index - 1]?.section ? <SectionLabel name={instruction.section} /> : null}
         <li
           className={cn(
             'flex gap-4 border-b border-dashed border-ink/10 last:border-b-0',
@@ -283,6 +285,7 @@ function Steps({ recipe, cooking, checked, onToggle }: {
             </>
           )}
         </li>
+        </Fragment>
       ))}
     </ol>
   );

@@ -46,6 +46,7 @@ const RECIPE: RecipeDetail = {
     {
       id: 1,
       position: 0,
+      section: null,
       quantity: { numerator: 1, denominator: 1 },
       unitCode: 'lb',
       unitText: null,
@@ -53,7 +54,7 @@ const RECIPE: RecipeDetail = {
       preparation: null,
     },
   ],
-  instructions: [{ id: 1, position: 0, body: 'Brown the beef.' }],
+  instructions: [{ id: 1, position: 0, body: 'Brown the beef.', section: null }],
   tags: [],
   image: null,
 };

@@ -16,6 +16,7 @@ const draft: RecipeImportDraft = {
   ingredients: [
     {
       name: 'tomato',
+      section: null,
       quantity: null,
       unitCode: 'cup',
       unitText: null,
@@ -23,7 +24,7 @@ const draft: RecipeImportDraft = {
       originalText: '? cups tomato, chopped',
     },
   ],
-  instructions: [{ body: 'Simmer.' }],
+  instructions: [{ body: 'Simmer.', section: null }],
   importMethod: 'url',
   sourceUrl: 'https://example.com/soup',
   photoDataUrl: null,
@@ -60,6 +61,22 @@ async function preview() {
   return user;
 }
 describe('import review', () => {
+  it('shows imported independent headings and saves their edited names', async () => {
+    previewDraft = { ...draft, baseServings: 2,
+      ingredients: [{ ...draft.ingredients[0], section: 'Sauce', quantity: '1' }],
+      instructions: [{ body: 'Simmer.', section: 'Cook' }],
+    };
+    const user = await preview();
+    const heading = screen.getByRole('textbox', { name: 'Ingredient section 1' });
+    expect(heading).toHaveValue('Sauce');
+    expect(screen.getByRole('textbox', { name: 'Step section 1' })).toHaveValue('Cook');
+    await user.clear(heading); await user.type(heading, 'Dressing');
+    await user.selectOptions(screen.getByLabelText(/Category/), '1');
+    await user.click(screen.getByRole('button', { name: 'Save recipe' }));
+    await screen.findByRole('heading', { name: 'Recipe saved' });
+    const request = JSON.parse(fetchMock.mock.calls.find(([path]) => path === '/api/recipes')![1]!.body as string);
+    expect(request).toMatchObject({ ingredients: [expect.objectContaining({ section: 'Dressing' })], instructions: [{ body: 'Simmer.', section: 'Cook' }] });
+  });
   it.each(['keep', 'edit', 'choose known'] as const)(
     'shows an unsupported unit as editable custom text and can save it: %s',
     async (action) => {

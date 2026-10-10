@@ -15,6 +15,7 @@ function ingredient(overrides: Partial<RecipeIngredient> = {}): RecipeIngredient
   return {
     id: 1,
     position: 1,
+    section: null,
     quantity: makeFraction(1, 2),
     unitCode: 'cup',
     unitText: null,

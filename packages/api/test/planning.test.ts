@@ -59,6 +59,26 @@ async function planWithMeal() {
   );
 }
 describe('persisted planning and grocery services', () => {
+  it('scales and merges ingredients across sections without storing headings in the grocery snapshot', async () => {
+    const response = await asUser(app, user.id).post('/api/recipes', {
+      name: 'Pasta and sauce', description: '', baseServings: 4,
+      categoryId: await categoryIdByName('Dinner'),
+      ingredients: [
+        { name: 'olive oil', quantity: '1', unitCode: 'tbsp' },
+        { name: 'olive oil', quantity: '2', unitCode: 'tbsp', section: 'Sauce' },
+      ], instructions: [{ body: 'Mix.', section: 'Mix' }],
+    });
+    expect(response.status).toBe(201);
+    recipe = await response.json() as RecipeDetail;
+    const { list } = await save(await planWithMeal());
+    expect(list.items).toHaveLength(1);
+    // Spoon aggregation uses teaspoons as its common measure: half of three
+    // tablespoons is exactly four and a half teaspoons, regardless of headings.
+    expect(list.items[0]).toMatchObject({ unitCode: 'tsp', quantity: { numerator: 9, denominator: 2 } });
+    expect(JSON.stringify(list)).not.toContain('section');
+    expect(JSON.stringify(list)).not.toContain('Sauce');
+    expect(await recipeService.getRecipe(recipe.id, user.id)).toEqual(recipe);
+  });
   it('shares plans between household users, permits duplicate recipes, and tracks attribution', async () => {
     const first = await planWithMeal();
     const other = await createUser();

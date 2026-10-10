@@ -8,7 +8,7 @@ import { createRecipe } from '../api/recipes.js';
 import { Breadcrumb, Button, ButtonLink, PageHeader, Panel } from '@/components/ui';
 import { PhotoField } from './PhotoField.jsx';
 import { RecipeForm } from './RecipeForm.jsx';
-import { emptyDraft, draftFromImport, validateCreate, type RecipeDraft } from './form-state.js';
+import { emptyDraft, draftFromImport, fieldsForDraft, validateCreate, type RecipeDraft } from './form-state.js';
 import { FormErrorBanner } from './states.jsx';
 import { useFieldErrors, useOrganization, useUnsavedChangesWarning } from './useRecipeEditor.js';
 
@@ -55,7 +55,7 @@ export function NewRecipePage() {
     if (!result.ok) {
       // The API is authoritative: its field errors replace whatever the client
       // checked, and the entered values stay exactly as they were.
-      setFields(result.error.fields);
+      setFields(fieldsForDraft(draft, result.error.fields));
       return;
     }
 

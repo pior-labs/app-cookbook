@@ -1,0 +1,32 @@
+import { expect, test } from '@playwright/test';
+
+test('adds independent recipe sections on mobile and cooks through continuous steps', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.context().addCookies([{ name: 'cookbook_e2e_user', value: '1', domain: '127.0.0.1', path: '/' }]);
+  await page.goto('/recipes/new');
+  await page.getByRole('button', { name: 'Enter manually' }).click();
+  await page.getByLabel('Recipe name').fill('Sectioned focaccia');
+  await page.getByLabel('Category').selectOption({ label: 'Dinner' });
+  await page.getByRole('textbox', { name: 'Ingredient', exact: true }).fill('Flour');
+  await page.getByRole('textbox', { name: 'Step 1', exact: true }).fill('Mix the dough.');
+  const ingredients = page.getByRole('group', { name: /Ingredients/ });
+  await ingredients.getByRole('button', { name: 'Add section', exact: true }).click();
+  await page.getByRole('textbox', { name: 'Ingredient section 1', exact: true }).fill('For the sauce');
+  await ingredients.getByRole('button', { name: 'Add ingredient' }).click();
+  await page.getByRole('textbox', { name: 'Ingredient', exact: true }).nth(1).fill('Olive oil');
+  const steps = page.getByRole('group', { name: /Instructions/ });
+  await steps.getByRole('button', { name: 'Add section', exact: true }).click();
+  await page.getByRole('textbox', { name: 'Step section 1', exact: true }).fill('Shape & bake');
+  await steps.getByRole('button', { name: 'Add step' }).click();
+  await page.getByRole('textbox', { name: 'Step 2', exact: true }).fill('Bake until golden.');
+  await page.getByRole('button', { name: 'Save recipe' }).click();
+  await page.getByRole('link', { name: 'View recipe' }).click();
+  await expect(page.getByRole('heading', { name: 'For the sauce', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Shape & bake', exact: true })).toBeVisible();
+  await page.reload();
+  await page.getByRole('button', { name: 'Cook this' }).click();
+  await expect(page.getByRole('heading', { name: 'For the sauce', exact: true })).toBeVisible();
+  const step = page.getByRole('button', { name: 'Step 2: Bake until golden.' });
+  await step.click();
+  await expect(step).toHaveAttribute('aria-pressed', 'true');
+});

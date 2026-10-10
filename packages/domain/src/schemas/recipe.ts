@@ -16,11 +16,54 @@ import {
   unitCodeSchema,
 } from './primitives.js';
 
+export const sectionInputSchema = z
+  .string()
+  .trim()
+  .max(80, 'Section names must be 80 characters or fewer.')
+  .nullable()
+  .optional()
+  .transform((value) => value || null);
+
+// A heading belongs to a consecutive run, not to an independently addressable
+// object. Validate the whole list before its transactional replacement so no
+// client can leave a disconnected run or an unheaded tail behind.
+export function validateSectionRuns(
+  rows: { section: string | null }[],
+  ctx: { addIssue: (issue: { code: 'custom'; path: (string | number)[]; message: string }) => void },
+  list: string,
+): void {
+  const seen = new Set<string>();
+  let previous: string | null = null;
+  rows.forEach((row, index) => {
+    const label = row.section;
+    const name = label?.toLowerCase() ?? null;
+    if (label === previous) return;
+    if (name == null && seen.size) {
+      ctx.addIssue({
+        code: 'custom',
+        path: [list, index, 'section'],
+        message: 'Items without a section must come before the first heading.',
+      });
+    } else if (name != null) {
+      if (seen.has(name)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: [list, index, 'section'],
+          message: 'Each section name must be unique within this list; keep its items together.',
+        });
+      }
+      seen.add(name);
+    }
+    previous = label;
+  });
+}
+
 // One structured ingredient row. Position is derived from array order at the
 // API boundary and is never trusted from the client, so it is not part of the
 // input shape.
 export const ingredientInputSchema = z
   .object({
+    section: sectionInputSchema,
     name: ingredientNameSchema,
     quantity: quantitySchema,
     unitCode: unitCodeSchema.nullable().optional().transform((value) => value ?? null),
@@ -41,6 +84,7 @@ export const ingredientInputSchema = z
 
 export const instructionInputSchema = z
   .object({
+    section: sectionInputSchema,
     body: instructionBodySchema,
   })
   .strict();
@@ -64,6 +108,8 @@ const recipeAggregateBase = z.object({
 
 function refineRecipeAggregate<T extends typeof recipeAggregateBase>(schema: T) {
   return schema.superRefine((value, ctx) => {
+    validateSectionRuns(value.ingredients, ctx, 'ingredients');
+    validateSectionRuns(value.instructions, ctx, 'instructions');
     if (value.sourceUrl != null && value.sourceText != null) {
       ctx.addIssue({
         code: 'custom',
@@ -80,7 +126,7 @@ function refineRecipeAggregate<T extends typeof recipeAggregateBase>(schema: T) 
 export const createRecipeSchema = refineRecipeAggregate(recipeAggregateBase.strict());
 
 // Updates carry the last observed version for optimistic concurrency. A
-// mismatch is a conflict rather than a silent overwrite. See section 4.3.
+// mismatch is a conflict rather than a silent overwrite.
 export const updateRecipeSchema = refineRecipeAggregate(
   recipeAggregateBase.extend({ version: z.number().int().min(1) }).strict(),
 );

@@ -6,8 +6,7 @@ import { Button, FieldError, IconButton, SectionHeading } from '@/components/ui'
 // is derived server-side, so reordering here only moves array entries.
 //
 // Every reorder control is a real button: pointer, touch, and keyboard users
-// all get the same affordance, which is what section 11.2 asks for rather than
-// a drag-only interaction.
+// all get the same affordance rather than a drag-only interaction.
 
 interface RowControlsProps {
   index: number;
@@ -16,6 +15,7 @@ interface RowControlsProps {
   onMove: (from: number, to: number) => void;
   onRemove: (index: number) => void;
   canRemove: boolean;
+  position?: number;
 }
 
 export function RowControls({
@@ -25,8 +25,9 @@ export function RowControls({
   onMove,
   onRemove,
   canRemove,
+  position: displayPosition,
 }: RowControlsProps) {
-  const position = `${label} ${index + 1}`;
+  const position = `${label} ${displayPosition ?? index + 1}`;
 
   return (
     // Always a horizontal cluster. Stacked, three 44px buttons stand taller
@@ -68,9 +69,10 @@ interface RowListProps {
   addLabel: string;
   onAdd: () => void;
   children: ReactNode;
+  onAddSection?: () => void;
 }
 
-export function RowList({ legend, hint, error, addLabel, onAdd, children }: RowListProps) {
+export function RowList({ legend, hint, error, addLabel, onAdd, children, onAddSection }: RowListProps) {
   return (
     <fieldset className="m-0 min-w-0 border-0 p-0">
       <legend className="mb-3 p-0">
@@ -84,6 +86,7 @@ export function RowList({ legend, hint, error, addLabel, onAdd, children }: RowL
         <Plus aria-hidden="true" className="h-4 w-4" strokeWidth={2.3} />
         {addLabel}
       </Button>
+      {onAddSection ? <Button className="mt-3.5 ml-2" onClick={onAddSection}>Add section</Button> : null}
     </fieldset>
   );
 }

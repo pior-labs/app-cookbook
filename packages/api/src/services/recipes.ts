@@ -96,15 +96,16 @@ function toIngredient(row: RecipeAggregateRow['ingredients'][number]): RecipeIng
     name: row.name,
     preparation: row.preparation,
     originalText: row.originalText,
+    section: row.section,
   };
 }
 
 function toInstruction(row: RecipeAggregateRow['instructions'][number]): RecipeInstruction {
-  return { id: row.id, position: row.position, body: row.body };
+  return { id: row.id, position: row.position, body: row.body, section: row.section };
 }
 
 // Images are delivered only through authenticated API routes, so the client
-// receives route URLs rather than storage keys (section 8).
+// receives route URLs rather than storage keys.
 function toImage(row: RecipeAggregateRow): RecipeImage | null {
   if (!row.image) {
     return null;
