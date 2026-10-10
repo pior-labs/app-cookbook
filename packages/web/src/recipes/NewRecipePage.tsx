@@ -1,4 +1,5 @@
 import type { RecipeImage, RecipeImportDraft } from '@cookbook/domain';
+import { ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '../api/hooks.js';
@@ -168,7 +169,14 @@ export function NewRecipePage() {
               photo={importedPhoto}
               onRemovePhoto={() => setImportedPhoto(null)}
             />
-          ) : null}
+          ) : (
+            // Returning to the entry methods hides the editor without resetting
+            // its draft, so an accidental detour never discards a cook's work.
+            <Button className="self-start" size="small" variant="quiet" disabled={save.submitting} onClick={() => setEntry('import')}>
+              <ArrowLeft aria-hidden="true" className="h-4 w-4" />
+              Back to recipe options
+            </Button>
+          )}
           <RecipeForm
             draft={draft}
             onChange={handleChange}

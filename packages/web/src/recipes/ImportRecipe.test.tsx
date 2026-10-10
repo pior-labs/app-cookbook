@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -61,6 +61,42 @@ async function preview() {
   return user;
 }
 describe('import review', () => {
+  it('groups manual entry with the import methods above the form', async () => {
+    const user = userEvent.setup();
+    mount();
+
+    const methods = screen.getByRole('group', { name: 'Recipe entry method' });
+    expect(within(methods).getAllByRole('button').map((button) => button.textContent)).toEqual([
+      'Import from link', 'Import from image', 'Enter manually',
+    ]);
+    const manual = within(methods).getByRole('button', { name: 'Enter manually' });
+    expect(manual.closest('form')).toBeNull();
+    expect(screen.getByLabelText('Recipe link').parentElement).toBe(
+      screen.getByRole('button', { name: 'Preview recipe' }).parentElement,
+    );
+    await user.click(manual);
+    expect(await screen.findByRole('textbox', { name: 'Recipe name' })).toHaveValue('');
+    expect(fetchMock.mock.calls.some(([path]) => path === '/api/recipe-imports' || path === '/api/recipes')).toBe(false);
+  });
+
+  it('returns from manual entry to the options without losing the draft or saving it', async () => {
+    const user = userEvent.setup();
+    mount();
+    await user.click(screen.getByRole('button', { name: 'Enter manually' }));
+    await user.type(screen.getByRole('textbox', { name: 'Recipe name' }), 'Tomato soup');
+    await user.type(screen.getByRole('textbox', { name: 'Ingredient' }), 'tomato');
+    await user.type(screen.getByRole('textbox', { name: 'Step 1' }), 'Simmer.');
+
+    await user.click(screen.getByRole('button', { name: 'Back to recipe options' }));
+    expect(screen.getByRole('group', { name: 'Recipe entry method' })).toBeVisible();
+    expect(screen.queryByRole('textbox', { name: 'Recipe name' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Enter manually' }));
+    expect(screen.getByRole('textbox', { name: 'Recipe name' })).toHaveValue('Tomato soup');
+    expect(screen.getByRole('textbox', { name: 'Ingredient' })).toHaveValue('tomato');
+    expect(screen.getByRole('textbox', { name: 'Step 1' })).toHaveValue('Simmer.');
+    expect(fetchMock.mock.calls.some(([path]) => path === '/api/recipe-imports' || path === '/api/recipes')).toBe(false);
+  });
+
   it('shows imported independent headings and saves their edited names', async () => {
     previewDraft = { ...draft, baseServings: 2,
       ingredients: [{ ...draft.ingredients[0], section: 'Sauce', quantity: '1' }],

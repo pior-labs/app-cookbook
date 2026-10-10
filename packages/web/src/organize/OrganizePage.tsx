@@ -96,12 +96,11 @@ function RowAction({
   );
 }
 
-// The number is the glance; the phrase is what a screen reader is owed.
+// Name what is counted so the badge makes sense without needing an explanation.
 function CountPill({ count }: { count: number }) {
   return (
     <span className="inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-ink/6 px-1.5 font-mono text-[11px] text-ink-3">
-      <span aria-hidden="true">{count}</span>
-      <span className="sr-only">{count === 1 ? '1 recipe' : `${count} recipes`}</span>
+      {count === 1 ? '1 recipe' : `${count} recipes`}
     </span>
   );
 }
@@ -307,46 +306,52 @@ function ManagedRow({ item, kind, deleteWarning, onRename, onDelete, onRecolor }
   ) : null;
 
   return (
-    // An open row takes the whole line: the colours, the rename, and the delete
-    // confirmation all need more width than half a grid gives them, and half a
-    // row of swatches wrapping under a Save button is not a palette.
+    // A rename stays in its grid slot so editing a name does not rearrange the
+    // list. Only the palette and delete warning need a full line; their content
+    // is longer than a name and a pair of actions.
     <li
-      className={cn(ROW, item.color ? 'cb-row-tint' : '', mode !== 'idle' ? 'sm:col-span-2' : '')}
+      className={cn(ROW, item.color ? 'cb-row-tint' : '', mode === 'coloring' || mode === 'confirming' ? 'sm:col-span-2' : '')}
       style={tagChipStyle(item.color)}
     >
       {mode === 'renaming' ? (
         <form
-          className="flex flex-wrap items-center gap-2"
+          className="@container"
           onSubmit={(event) => {
             event.preventDefault();
             void submitRename();
           }}
         >
-          <label className="sr-only" htmlFor={inputId}>
-            Rename {item.name}
-          </label>
-          <Input
-            className="min-h-10 min-w-0 flex-1 py-1.5"
-            id={inputId}
-            value={draft}
-            autoFocus
-            onChange={(event) => setDraft(event.target.value)}
-          />
-          <Button variant="primary" size="small" type="submit" disabled={busy}>
-            Save
-          </Button>
-          <Button
-            variant="quiet"
-            size="small"
-            disabled={busy}
-            onClick={() => {
-              setDraft(item.name);
-              setMessage(null);
-              setMode('idle');
-            }}
-          >
-            Cancel
-          </Button>
+          {/* Measure the card, not the viewport. A narrow half-column or phone
+              puts actions below the name rather than squeezing the input. */}
+          <div className="flex flex-col gap-2 @min-[21rem]:flex-row @min-[21rem]:items-center">
+            <label className="sr-only" htmlFor={inputId}>
+              Rename {item.name}
+            </label>
+            <Input
+              className="min-h-10 min-w-0 flex-1 py-1.5"
+              id={inputId}
+              value={draft}
+              autoFocus
+              onChange={(event) => setDraft(event.target.value)}
+            />
+            <div className="flex shrink-0 justify-end gap-2">
+              <Button variant="primary" size="small" type="submit" disabled={busy}>
+                Save
+              </Button>
+              <Button
+                variant="quiet"
+                size="small"
+                disabled={busy}
+                onClick={() => {
+                  setDraft(item.name);
+                  setMessage(null);
+                  setMode('idle');
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
         </form>
       ) : (
         // A row is measured against itself, not the window: the same row is

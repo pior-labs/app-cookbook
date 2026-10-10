@@ -34,6 +34,22 @@ async function expectAlignedRowActions(page: Page): Promise<void> {
   }
 }
 
+async function expectSourceActionLayout(page: Page): Promise<void> {
+  const sourceControl = page.locator('#import-url, #import-image');
+  await expect(sourceControl).toBeVisible();
+  const source = await sourceControl.boundingBox();
+  const preview = await page.getByRole('button', { name: 'Preview recipe', exact: true }).boundingBox();
+  expect(source).not.toBeNull();
+  expect(preview).not.toBeNull();
+  if (page.viewportSize()!.width >= 640) {
+    expect(preview!.x).toBeGreaterThanOrEqual(source!.x + source!.width);
+    expect(preview!.y + preview!.height / 2).toBeCloseTo(source!.y + source!.height / 2, 1);
+  } else {
+    expect(preview!.y).toBeGreaterThanOrEqual(source!.y + source!.height);
+    expect(preview!.width).toBeCloseTo(source!.width, 1);
+  }
+}
+
 for (const theme of ['bloom', 'slate']) {
   test(`fields keep theme-derived boundaries and distinct states in ${theme}`, async ({ page }) => {
     await page.addInitScript((value) => localStorage.setItem('pior-theme', value), theme);
@@ -47,6 +63,11 @@ for (const theme of ['bloom', 'slate']) {
       return route.fulfill({ json });
     });
     await page.goto('/recipes/new');
+    await expectSourceActionLayout(page);
+    const desktopViewport = page.viewportSize()!;
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expectSourceActionLayout(page);
+    await page.setViewportSize(desktopViewport);
     const meshOpacity = await page.evaluate(() =>
       getComputedStyle(document.documentElement).getPropertyValue('--blob-opacity').trim(),
     );
@@ -62,8 +83,12 @@ for (const theme of ['bloom', 'slate']) {
       await page.mouse.move(0, 0);
     }
     await page.getByRole('button', { name: 'Import from image', exact: true }).click();
+    await expectSourceActionLayout(page);
     await expect(page.getByRole('button', { name: 'Import from image', exact: true })).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByRole('button', { name: 'Import from link', exact: true })).toHaveCSS('background-color', secondaryFill);
+    await page.getByRole('button', { name: 'Enter manually' }).click();
+    await page.getByRole('button', { name: 'Back to recipe options' }).click();
+    await expect(page.getByRole('group', { name: 'Recipe entry method' })).toBeVisible();
     await page.getByRole('button', { name: 'Enter manually' }).click();
 
     const input = page.getByRole('textbox', { name: 'Recipe name', exact: true });

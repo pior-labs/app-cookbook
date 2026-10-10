@@ -135,9 +135,21 @@ describe('organize', () => {
     mockApi();
     renderPage();
 
-    expect(within(await rowFor('Dinner')).getByText('2 recipes')).toBeInTheDocument();
-    expect(within(await rowFor('Snack')).getByText('0 recipes')).toBeInTheDocument();
-    expect(within(await rowFor('Weeknight')).getByText('3 recipes')).toBeInTheDocument();
+    expect(within(await rowFor('Dinner')).getByText('2 recipes')).toBeVisible();
+    expect(within(await rowFor('Dinner')).getByText('2 recipes')).not.toHaveClass('sr-only');
+    expect(within(await rowFor('Snack')).getByText('0 recipes')).toBeVisible();
+    expect(within(await rowFor('Weeknight')).getByText('3 recipes')).toBeVisible();
+  });
+
+  it('uses the singular label when a category holds one recipe', async () => {
+    mockApi((request) => request.method === 'GET' && request.path === '/api/categories'
+      ? jsonResponse([{ ...CATEGORIES[0], activeRecipeCount: 1 }])
+      : undefined);
+    renderPage();
+
+    const badge = within(await rowFor('Dinner')).getByText('1 recipe');
+    expect(badge).toBeVisible();
+    expect(badge).not.toHaveClass('sr-only');
   });
 
   it('renames a category', async () => {
