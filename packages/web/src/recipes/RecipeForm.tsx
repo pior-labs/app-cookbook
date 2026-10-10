@@ -35,7 +35,8 @@ import {
 // leaves the cook's work intact.
 
 // Writing a recipe is long work, so the form is broken into opaque sheets a
-// cook can hold one at a time rather than one unbroken column.
+// cook can hold one at a time rather than one unbroken column. A shaded paper
+// surface lets light fields stand apart without outlining every box in ink.
 function FormSection({
   title,
   sub,
@@ -46,7 +47,7 @@ function FormSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-[26px] border border-frost/80 bg-[rgba(var(--surface-rgb),0.94)] p-5 shadow-[0_10px_34px_-16px_color-mix(in_srgb,var(--ink)_28%,transparent)] sm:rounded-4xl sm:p-7">
+    <section className="rounded-[26px] border border-frost/80 bg-[var(--cb-sheet-bg)] p-5 shadow-[0_10px_34px_-16px_color-mix(in_srgb,var(--ink)_28%,transparent)] sm:rounded-4xl sm:p-7">
       {title ? (
         <SectionHeading className="mb-5" sub={sub}>
           {title}
@@ -242,7 +243,6 @@ export function RecipeForm({
               id="recipe-servings"
               label="Base servings"
               required
-              hint="What the quantities below make."
               error={fieldError(fields, 'baseServings')}
             >
               <Input
@@ -256,7 +256,7 @@ export function RecipeForm({
                 onChange={(event) => set('baseServings', event.target.value)}
                 aria-describedby={describedBy(
                   'recipe-servings',
-                  'hint',
+                  undefined,
                   fieldError(fields, 'baseServings'),
                 )}
               />

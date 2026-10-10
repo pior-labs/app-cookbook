@@ -98,6 +98,8 @@ describe('recipe form', () => {
     expect(screen.getByRole('textbox', { name: 'Recipe name' })).toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: 'Category' })).toBeInTheDocument();
     expect(screen.getByRole('spinbutton', { name: 'Base servings' })).toBeInTheDocument();
+    expect(screen.getByRole('spinbutton', { name: 'Base servings' })).not.toHaveAttribute('aria-describedby');
+    expect(screen.queryByText('What the quantities below make.')).not.toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Ingredient' })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Step 1' })).toBeInTheDocument();
   });
@@ -143,6 +145,7 @@ describe('recipe form', () => {
       <Harness
         fields={{
           name: ['Recipe name is required.'],
+          baseServings: ['Use at least one serving.'],
           'ingredients.0.name': ['This ingredient needs a name.'],
         }}
       />,
@@ -150,6 +153,7 @@ describe('recipe form', () => {
 
     const alerts = screen.getAllByRole('alert');
     expect(alerts.map((alert) => alert.textContent)).toContain('This ingredient needs a name.');
+    expect(screen.getByRole('spinbutton', { name: 'Base servings' })).toHaveAccessibleDescription('Use at least one serving.');
     expect(screen.getByRole('textbox', { name: 'Recipe name' })).toHaveAttribute(
       'aria-invalid',
       'true',
