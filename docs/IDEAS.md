@@ -18,6 +18,29 @@ Deferred for possible later work. Scope lives in
 
 ---
 
+## Linked component recipes
+
+Deferred: reuse a sauce, seasoning or other component by linking its recipe
+from another recipe, for example "2 tbsp of my Italian seasoning recipe".
+No linking capability is included in recipe sections.
+
+Open questions before this becomes work:
+
+- Should groceries expand the component's ingredients, or treat it as something
+  kept on hand? How does the cook choose between those meanings?
+- What recipe yield and yield unit are needed to turn a measured amount like
+  "2 tbsp" into a fraction of the component recipe, rather than servings?
+- In cooking mode, should component instructions appear inline or be a
+  tap-through to a separate recipe?
+- What happens when a linked recipe is trashed: retain a snapshot, mark it
+  unavailable, or require a replacement? What should restoration do?
+- How should cycles be prevented, including indirect links through several
+  components?
+- Should component recipes appear in dinner suggestions, or be excluded unless
+  explicitly requested?
+
+---
+
 ## Backlog
 
 Not commitments. Recorded so they are not re-proposed as though new.
