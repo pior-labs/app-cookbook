@@ -82,11 +82,21 @@ export function RowList({ legend, hint, error, addLabel, onAdd, children, onAddS
           error is separate so it can carry its own alert role. */}
       {error ? <FieldError>{error}</FieldError> : null}
       <ol className="m-0 flex list-none flex-col gap-3 p-0">{children}</ol>
-      <Button className="mt-3.5" onClick={onAdd}>
-        <Plus aria-hidden="true" className="h-4 w-4" strokeWidth={2.3} />
-        {addLabel}
-      </Button>
-      {onAddSection ? <Button className="mt-3.5 ml-2" onClick={onAddSection}>Add section</Button> : null}
+      {/* Align the controls as boxes, not inline text baselines: an icon in only
+          one button otherwise nudges the pair out of line. Full-width buttons
+          on phones keep a wrapped pair from becoming two uneven little pills. */}
+      <div className="mt-3.5 flex flex-wrap items-center gap-2">
+        <Button className="w-full sm:w-auto" onClick={onAdd}>
+          <Plus aria-hidden="true" className="h-4 w-4" strokeWidth={2.3} />
+          {addLabel}
+        </Button>
+        {onAddSection ? (
+          <Button className="w-full sm:w-auto" onClick={onAddSection}>
+            <Plus aria-hidden="true" className="h-4 w-4" strokeWidth={2.3} />
+            Add section
+          </Button>
+        ) : null}
+      </div>
     </fieldset>
   );
 }

@@ -14,6 +14,26 @@ async function resolvedColor(page: Page, color: string): Promise<string> {
   }, color);
 }
 
+async function expectAlignedRowActions(page: Page): Promise<void> {
+  for (const [legend, addLabel] of [['Ingredients', 'Add ingredient'], ['Instructions', 'Add step']]) {
+    const group = page.getByRole('group', { name: new RegExp(`^${legend}`) });
+    const add = await group.getByRole('button', { name: addLabel, exact: true }).boundingBox();
+    const section = await group.getByRole('button', { name: 'Add section', exact: true }).boundingBox();
+    expect(add).not.toBeNull();
+    expect(section).not.toBeNull();
+    expect(section!.height).toBeCloseTo(add!.height, 1);
+    if (section!.x > add!.x) {
+      expect(section!.y).toBeCloseTo(add!.y, 1);
+      expect(section!.x).toBeGreaterThanOrEqual(add!.x + add!.width);
+    } else {
+      // A narrow viewport may wrap the pair; it must never overlap them.
+      expect(section!.y).toBeGreaterThanOrEqual(add!.y + add!.height);
+      expect(section!.x).toBeCloseTo(add!.x, 1);
+      expect(section!.width).toBeCloseTo(add!.width, 1);
+    }
+  }
+}
+
 for (const theme of ['bloom', 'slate']) {
   test(`fields keep theme-derived boundaries and distinct states in ${theme}`, async ({ page }) => {
     await page.addInitScript((value) => localStorage.setItem('pior-theme', value), theme);
@@ -57,6 +77,7 @@ for (const theme of ['bloom', 'slate']) {
     const error = await resolvedColor(page, 'var(--destructive)');
 
     await expect(page.locator('section').first()).toHaveCSS('background-color', sheet);
+    await expectAlignedRowActions(page);
     await page.mouse.move(0, 0);
     for (const control of [input, area, select]) {
       await expect(control).toBeVisible();
@@ -82,6 +103,7 @@ for (const theme of ['bloom', 'slate']) {
     await expect(input).toHaveCSS('border-top-color', error);
 
     await page.setViewportSize({ width: 390, height: 844 });
+    await expectAlignedRowActions(page);
     await expect(area).toBeVisible();
     await expect(area).toHaveCSS('border-top-color', idle);
     await expect(area).toHaveCSS('background-color', fill);
