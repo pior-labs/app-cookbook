@@ -33,9 +33,10 @@ const content = {
       unitText: null,
       preparation: 'chopped',
       originalText: '1 1/2 cups tomatoes, chopped',
+      section: null,
     },
   ],
-  instructions: [{ body: 'Simmer the tomatoes.' }],
+  instructions: [{ body: 'Simmer the tomatoes.', section: null }],
   warnings: [],
 };
 const app = createTestApp();

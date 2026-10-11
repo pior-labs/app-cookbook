@@ -22,6 +22,8 @@ import {
   convertTimeUnit,
   emptyIngredient,
   emptyInstruction,
+  isBlankIngredient,
+  isBlankInstruction,
   moveItem,
   type IngredientDraft,
   type InstructionDraft,
@@ -35,7 +37,8 @@ import {
 // leaves the cook's work intact.
 
 // Writing a recipe is long work, so the form is broken into opaque sheets a
-// cook can hold one at a time rather than one unbroken column.
+// cook can hold one at a time rather than one unbroken column. A shaded paper
+// surface lets light fields stand apart without outlining every box in ink.
 function FormSection({
   title,
   sub,
@@ -46,7 +49,7 @@ function FormSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-[26px] border border-frost/80 bg-[rgba(var(--surface-rgb),0.94)] p-5 shadow-[0_10px_34px_-16px_color-mix(in_srgb,var(--ink)_28%,transparent)] sm:rounded-4xl sm:p-7">
+    <section className="rounded-[26px] border border-frost/80 bg-[var(--cb-sheet-bg)] p-5 shadow-[0_10px_34px_-16px_color-mix(in_srgb,var(--ink)_28%,transparent)] sm:rounded-4xl sm:p-7">
       {title ? (
         <SectionHeading className="mb-5" sub={sub}>
           {title}
@@ -196,7 +199,6 @@ export function RecipeForm({
               id="recipe-servings"
               label="Base servings"
               required
-              hint="What the quantities below make."
               error={fieldError(fields, 'baseServings')}
             >
               <Input
@@ -210,7 +212,7 @@ export function RecipeForm({
                 onChange={(event) => set('baseServings', event.target.value)}
                 aria-describedby={describedBy(
                   'recipe-servings',
-                  'hint',
+                  undefined,
                   fieldError(fields, 'baseServings'),
                 )}
               />
@@ -275,9 +277,14 @@ export function RecipeForm({
           hint="Leave the amount blank for things like salt to taste."
           error={fieldError(fields, 'ingredients')}
           addLabel="Add ingredient"
-          onAdd={() => set('ingredients', [...draft.ingredients, emptyIngredient()])}
+          sectionLabel="Ingredient"
+          rows={draft.ingredients}
+          onChange={rows => set('ingredients', rows)}
+          createItem={emptyIngredient}
+          isBlankItem={isBlankIngredient}
+          fields={fields}
         >
-          {draft.ingredients.map((ingredient, index) => {
+          {(ingredient, index, autoFocus) => {
             const nameError = fieldError(fields, `ingredients.${index}.name`);
             const quantityError = fieldError(fields, `ingredients.${index}.quantity`);
             const unitCodeError = fieldError(fields, `ingredients.${index}.unitCode`);
@@ -286,12 +293,12 @@ export function RecipeForm({
 
             return (
               <li
-                className="flex flex-col gap-3 rounded-[22px] border border-frost/70 bg-[rgba(var(--surface-rgb),0.55)] p-3.5 sm:flex-row"
+                className="flex flex-col gap-3 pb-3 last:pb-0 @min-[52rem]:flex-row"
                 key={ingredient.key}
               >
-                <div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="grid min-w-0 flex-1 grid-cols-2 gap-3 @min-[52rem]:grid-cols-4">
                   {ingredient.originalText != null ? (
-                    <div className="sm:col-span-2 lg:col-span-4">
+                    <div className="col-span-2 @min-[52rem]:col-span-4">
                       <Field id={`ingredient-${ingredient.key}-original`} label="Original wording">
                         <Input
                           id={`ingredient-${ingredient.key}-original`}
@@ -319,6 +326,7 @@ export function RecipeForm({
                   <Field id={`ingredient-${ingredient.key}-unit`} label="Unit" error={unitError}>
                     <Select
                       id={`ingredient-${ingredient.key}-unit`}
+                      className="px-3 pr-8 text-sm sm:px-4 sm:pr-10 sm:text-[15px]"
                       value={ingredient.unit}
                       aria-invalid={unitError ? true : undefined}
                       aria-describedby={describedBy(
@@ -337,57 +345,66 @@ export function RecipeForm({
                   </Field>
 
                   {ingredient.unit === CUSTOM_UNIT ? (
-                    <Field
-                      id={`ingredient-${ingredient.key}-unit-text`}
-                      label="Custom unit"
-                      error={unitTextError}
-                    >
-                      <Input
+                    <div className="col-span-2 sm:col-span-1">
+                      <Field
                         id={`ingredient-${ingredient.key}-unit-text`}
-                        value={ingredient.unitText}
-                        aria-invalid={unitTextError ? true : undefined}
-                        aria-describedby={describedBy(
-                          `ingredient-${ingredient.key}-unit-text`, undefined, unitTextError,
-                        )}
-                        placeholder="clove"
-                        maxLength={40}
-                        onChange={(event) => setIngredient(index, { unitText: event.target.value })}
-                      />
-                    </Field>
+                        label="Custom unit"
+                        error={unitTextError}
+                      >
+                        <Input
+                          id={`ingredient-${ingredient.key}-unit-text`}
+                          value={ingredient.unitText}
+                          aria-invalid={unitTextError ? true : undefined}
+                          aria-describedby={describedBy(
+                            `ingredient-${ingredient.key}-unit-text`, undefined, unitTextError,
+                          )}
+                          placeholder="clove"
+                          maxLength={40}
+                          onChange={(event) => setIngredient(index, { unitText: event.target.value })}
+                        />
+                      </Field>
+                    </div>
                   ) : null}
 
-                  <Field
-                    id={`ingredient-${ingredient.key}-name`}
-                    label="Ingredient"
-                    required
-                    error={nameError}
-                  >
-                    <Input
+                  <div className="col-span-2 sm:col-span-1">
+                    <Field
                       id={`ingredient-${ingredient.key}-name`}
-                      value={ingredient.name}
-                      aria-required="true"
-                      maxLength={160}
-                      onChange={(event) => setIngredient(index, { name: event.target.value })}
-                      aria-invalid={nameError ? true : undefined}
-                    />
-                  </Field>
+                      label="Ingredient"
+                      required
+                      error={nameError}
+                    >
+                      <Input
+                        id={`ingredient-${ingredient.key}-name`}
+                        autoFocus={autoFocus}
+                        value={ingredient.name}
+                        aria-required="true"
+                        maxLength={160}
+                        onChange={(event) => setIngredient(index, { name: event.target.value })}
+                        aria-invalid={nameError ? true : undefined}
+                      />
+                    </Field>
+                  </div>
 
-                  <Field id={`ingredient-${ingredient.key}-prep`} label="Preparation">
-                    <Input
-                      id={`ingredient-${ingredient.key}-prep`}
-                      value={ingredient.preparation}
-                      placeholder="diced"
-                      maxLength={160}
-                      onChange={(event) => setIngredient(index, { preparation: event.target.value })}
-                    />
-                  </Field>
+                  <div className="col-span-2 sm:col-span-1">
+                    <Field id={`ingredient-${ingredient.key}-prep`} label="Preparation">
+                      <Input
+                        id={`ingredient-${ingredient.key}-prep`}
+                        value={ingredient.preparation}
+                        placeholder="diced"
+                        maxLength={160}
+                        onChange={(event) => setIngredient(index, { preparation: event.target.value })}
+                      />
+                    </Field>
+                  </div>
                 </div>
 
                 <RowControls
+                  controlKey={ingredient.key}
                   index={index}
                   total={draft.ingredients.length}
                   label="ingredient"
-                  canRemove={draft.ingredients.length > 1}
+                  position={draft.ingredients.slice(0, index + 1).filter(row => !row.isSection).length}
+                  canRemove={draft.ingredients.filter(row => !row.isSection).length > 1}
                   onMove={(from, to) => set('ingredients', moveItem(draft.ingredients, from, to))}
                   onRemove={(removeIndex) =>
                     set(
@@ -398,7 +415,7 @@ export function RecipeForm({
                 />
               </li>
             );
-          })}
+          }}
         </RowList>
       </FormSection>
 
@@ -408,25 +425,35 @@ export function RecipeForm({
           hint="One action per step, in the order they happen."
           error={fieldError(fields, 'instructions')}
           addLabel="Add step"
-          onAdd={() => set('instructions', [...draft.instructions, emptyInstruction()])}
+          sectionLabel="Step"
+          rows={draft.instructions}
+          onChange={rows => set('instructions', rows)}
+          createItem={emptyInstruction}
+          isBlankItem={isBlankInstruction}
+          fields={fields}
         >
-          {draft.instructions.map((instruction, index) => {
+          {(instruction, index, autoFocus) => {
+            const stepNumber = draft.instructions.slice(0, index + 1).filter(row => !row.isSection).length;
             const bodyError = fieldError(fields, `instructions.${index}.body`);
 
+            // The textarea is already a writing surface. Separating steps with
+            // space avoids a second box around it while keeping each step's
+            // label and controls together.
             return (
               <li
-                className="flex flex-col gap-3 rounded-[22px] border border-frost/70 bg-[rgba(var(--surface-rgb),0.55)] p-3.5 sm:flex-row"
+                className="flex flex-col gap-3 pb-3 last:pb-0 @min-[52rem]:flex-row"
                 key={instruction.key}
               >
                 <div className="min-w-0 flex-1">
                   <Field
                     id={`instruction-${instruction.key}`}
-                    label={`Step ${index + 1}`}
+                    label={`Step ${stepNumber}`}
                     required
                     error={bodyError}
                   >
                     <Textarea
                       id={`instruction-${instruction.key}`}
+                      autoFocus={autoFocus}
                       rows={2}
                       aria-required="true"
                       maxLength={5000}
@@ -438,10 +465,12 @@ export function RecipeForm({
                 </div>
 
                 <RowControls
+                  controlKey={instruction.key}
                   index={index}
                   total={draft.instructions.length}
                   label="step"
-                  canRemove={draft.instructions.length > 1}
+                  position={stepNumber}
+                  canRemove={draft.instructions.filter(row => !row.isSection).length > 1}
                   onMove={(from, to) => set('instructions', moveItem(draft.instructions, from, to))}
                   onRemove={(removeIndex) =>
                     set(
@@ -452,7 +481,7 @@ export function RecipeForm({
                 />
               </li>
             );
-          })}
+          }}
         </RowList>
       </FormSection>
 

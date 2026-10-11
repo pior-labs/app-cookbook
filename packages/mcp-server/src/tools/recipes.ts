@@ -166,7 +166,7 @@ export function registerRecipeTools(
           tags: z.array(z.object({ id: z.number().int(), name: z.string() })),
           ingredients: z.array(scaledIngredientSchema),
           instructions: z.array(
-            z.object({ position: z.number().int(), body: z.string() }),
+            z.object({ position: z.number().int(), body: z.string(), section: z.string().nullable() }),
           ),
         }),
       },
@@ -205,6 +205,7 @@ export function registerRecipeTools(
             instructions: recipe.instructions.map((step) => ({
               position: step.position,
               body: step.body,
+              section: step.section,
             })),
           },
         });

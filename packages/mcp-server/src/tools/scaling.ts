@@ -54,8 +54,11 @@ export function registerScalingTools(
         const recipe = await getRecipe(recipeId, user.id);
         const factor = scaleFactor(recipe.baseServings, servings);
 
-        const lines = recipe.ingredients.map(
-          (ingredient) => `- ${formatIngredient(ingredient, recipe.baseServings, servings)}`,
+        const lines = recipe.ingredients.flatMap(
+          (ingredient, index) => [
+            ...(ingredient.section && ingredient.section !== recipe.ingredients[index - 1]?.section ? [`### ${ingredient.section}`] : []),
+            `- ${formatIngredient(ingredient, recipe.baseServings, servings)}`,
+          ],
         );
 
         const text = [

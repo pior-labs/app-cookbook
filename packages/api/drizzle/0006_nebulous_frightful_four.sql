@@ -1,0 +1,4 @@
+ALTER TABLE "recipe_ingredients" ADD COLUMN "section" text;--> statement-breakpoint
+ALTER TABLE "recipe_instructions" ADD COLUMN "section" text;--> statement-breakpoint
+ALTER TABLE "recipe_ingredients" ADD CONSTRAINT "recipe_ingredients_section_trimmed" CHECK ("recipe_ingredients"."section" is null or ("recipe_ingredients"."section" <> '' and "recipe_ingredients"."section" !~ '^[[:space:]]|[[:space:]]$'));--> statement-breakpoint
+ALTER TABLE "recipe_instructions" ADD CONSTRAINT "recipe_instructions_section_trimmed" CHECK ("recipe_instructions"."section" is null or ("recipe_instructions"."section" <> '' and "recipe_instructions"."section" !~ '^[[:space:]]|[[:space:]]$'));

@@ -58,8 +58,9 @@ export function ImportRecipe({
       <SectionHeading sub="Bring a recipe you found into your household cookbook.">
         Start with a recipe
       </SectionHeading>
-      <div className="my-5 flex flex-wrap gap-2" aria-label="Import method">
+      <div className="my-5 flex flex-wrap gap-2" role="group" aria-label="Recipe entry method">
         <Button
+          className="w-full sm:w-auto"
           disabled={busy}
           aria-pressed={method === 'url'}
           variant={method === 'url' ? 'primary' : 'quiet'}
@@ -71,6 +72,7 @@ export function ImportRecipe({
           Import from link
         </Button>
         <Button
+          className="w-full sm:w-auto"
           disabled={busy}
           aria-pressed={method === 'image'}
           variant={method === 'image' ? 'primary' : 'quiet'}
@@ -81,6 +83,9 @@ export function ImportRecipe({
         >
           Import from image
         </Button>
+        <Button className="w-full sm:w-auto" variant="quiet" onClick={onManual}>
+          Enter manually
+        </Button>
       </div>
       <form
         className="flex flex-col gap-4"
@@ -89,39 +94,44 @@ export function ImportRecipe({
           void preview();
         }}
       >
-        {method === 'url' ? (
-          <Field
-            id="import-url"
-            label="Recipe link"
-            hint="Use a public recipe page. You’ll review everything before saving."
-          >
-            <Input
-              id="import-url"
-              type="url"
-              required
-              maxLength={2048}
-              placeholder="https://"
-              value={url}
-              disabled={busy}
-              onChange={(event) => setUrl(event.target.value)}
-            />
-          </Field>
-        ) : (
-          <Field
-            id="import-image"
-            label="Recipe screenshot"
-            hint="One recipe in a JPEG, PNG or WebP image, up to 10 MB. The screenshot is used for extraction and is not saved."
-          >
-            <Input
-              id="import-image"
-              type="file"
-              required
-              accept="image/jpeg,image/png,image/webp"
-              disabled={busy}
-              onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-            />
-          </Field>
-        )}
+        <Field
+          id={method === 'url' ? 'import-url' : 'import-image'}
+          label={method === 'url' ? 'Recipe link' : 'Recipe screenshot'}
+          hint={method === 'url'
+            ? 'Use a public recipe page. You’ll review everything before saving.'
+            : 'One recipe in a JPEG, PNG or WebP image, up to 10 MB. The screenshot is used for extraction and is not saved.'}
+        >
+          {/* Keep the action beside its source, not beside the label or hint.
+              On phones both controls get a full line so the source stays usable. */}
+          <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center">
+            {method === 'url' ? (
+              <Input
+                className="min-w-0 flex-1"
+                id="import-url"
+                type="url"
+                required
+                maxLength={2048}
+                placeholder="https://"
+                value={url}
+                disabled={busy}
+                onChange={(event) => setUrl(event.target.value)}
+              />
+            ) : (
+              <Input
+                className="min-w-0 flex-1"
+                id="import-image"
+                type="file"
+                required
+                accept="image/jpeg,image/png,image/webp"
+                disabled={busy}
+                onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+              />
+            )}
+            <Button className="w-full shrink-0 sm:w-auto" type="submit" variant="primary" disabled={busy}>
+              {busy ? 'Preparing preview…' : 'Preview recipe'}
+            </Button>
+          </div>
+        </Field>
         {error ? (
           <p role="alert" className="text-sm text-accent">
             {error}
@@ -132,14 +142,6 @@ export function ImportRecipe({
             Reading the recipe… this can take a little while.
           </p>
         ) : null}
-        <div className="flex flex-wrap gap-2">
-          <Button type="submit" variant="primary" disabled={busy}>
-            {busy ? 'Preparing preview…' : 'Preview recipe'}
-          </Button>
-          <Button variant="quiet" onClick={onManual}>
-            Enter manually
-          </Button>
-        </div>
       </form>
     </Panel>
   );

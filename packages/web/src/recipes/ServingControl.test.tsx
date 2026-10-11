@@ -13,6 +13,7 @@ const INGREDIENTS: RecipeIngredient[] = [
   {
     id: 1,
     position: 0,
+    section: null,
     quantity: { numerator: 1, denominator: 3 },
     unitCode: 'cup',
     unitText: null,
@@ -22,6 +23,7 @@ const INGREDIENTS: RecipeIngredient[] = [
   {
     id: 2,
     position: 1,
+    section: null,
     quantity: { numerator: 3, denominator: 2 },
     unitCode: 'lb',
     unitText: null,
@@ -31,6 +33,7 @@ const INGREDIENTS: RecipeIngredient[] = [
   {
     id: 3,
     position: 2,
+    section: null,
     quantity: null,
     unitCode: null,
     unitText: null,

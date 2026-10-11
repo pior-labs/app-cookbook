@@ -30,6 +30,7 @@ export interface RecipeParentValues {
 }
 
 export interface IngredientValues {
+  section?: string | null;
   originalText?: string | null;
   name: string;
   quantity: Fraction | null;
@@ -39,6 +40,7 @@ export interface IngredientValues {
 }
 
 export interface InstructionValues {
+  section?: string | null;
   body: string;
 }
 
@@ -57,7 +59,7 @@ export async function insertRecipe(
 
 // Optimistic concurrency: the update only matches when the caller's observed
 // version is still current, so a concurrent household edit is a conflict rather
-// than a silent overwrite (section 4.3). Returns null when nothing matched.
+// than a silent overwrite. Returns null when nothing matched.
 export async function updateRecipeParent(
   exec: DbExecutor,
   recipeId: number,
@@ -89,8 +91,8 @@ export async function findActiveRecipeVersion(
 }
 
 // Ordered child collections are replaced wholesale inside the aggregate
-// transaction. Position comes from array order, never from the client
-// (section 12).
+// transaction. Position comes from array order, never from the client. Section
+// runs are validated across the entire replacement, not row-by-row in SQL.
 export async function replaceIngredients(
   exec: DbExecutor,
   recipeId: number,
@@ -114,6 +116,7 @@ export async function replaceIngredients(
       normalizedName: normalizeName(ingredient.name),
       preparation: ingredient.preparation,
       originalText: ingredient.originalText ?? null,
+      section: ingredient.section ?? null,
     })),
   );
 }
@@ -134,6 +137,7 @@ export async function replaceInstructions(
       recipeId,
       position,
       body: instruction.body,
+      section: instruction.section ?? null,
     })),
   );
 }

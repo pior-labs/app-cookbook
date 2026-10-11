@@ -1,5 +1,5 @@
 import { totalMinutes, type RecipeDetail } from '@cookbook/domain';
-import { useCallback, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useState } from 'react';
 import { Check, CookingPot, ExternalLink, Pencil, Trash2 } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ApiRequestError } from '../api/client.js';
@@ -15,6 +15,8 @@ import {
   ButtonLink,
   Eyebrow,
   focusRing,
+  MenuItem,
+  OverflowMenu,
   SectionHeading,
   tagChipClass,
   tagChipStyle,
@@ -22,6 +24,7 @@ import {
 import { FavoriteButton, RatingControl } from '../preferences/controls.jsx';
 import { useRecipePreferences } from '../preferences/usePreferences.js';
 import { IngredientList } from './IngredientList.jsx';
+import { SectionLabel } from './SectionLabel.js';
 import { ServingControl } from './ServingControl.jsx';
 import { ErrorState, RecipeSkeleton } from './states.jsx';
 
@@ -81,11 +84,11 @@ function TimeFacts({ recipe }: { recipe: RecipeDetail }) {
 }
 
 // Only http/https ever reach here (the domain schema enforces it), and the
-// link is opened with noopener noreferrer (section 16).
+// link is opened with noopener noreferrer.
 function SourceLine({ recipe }: { recipe: RecipeDetail }) {
   if (recipe.sourceUrl) {
     return (
-      <p className="m-0 text-[14px] text-ink-2">
+      <p className="m-0 text-[13px] text-ink-3">
         From{' '}
         <a
           className={`inline-flex items-center gap-1 text-accent underline decoration-dotted underline-offset-4 ${focusRing}`}
@@ -101,7 +104,7 @@ function SourceLine({ recipe }: { recipe: RecipeDetail }) {
   }
 
   if (recipe.sourceText) {
-    return <p className="m-0 text-[14px] text-ink-2">From {recipe.sourceText}</p>;
+    return <p className="m-0 text-[13px] text-ink-3">From {recipe.sourceText}</p>;
   }
 
   return null;
@@ -109,7 +112,7 @@ function SourceLine({ recipe }: { recipe: RecipeDetail }) {
 
 // Opening a recipe is what "recently viewed" records, so the page reports it
 // once per recipe rather than making a cook press anything. A failure is
-// deliberately silent: the recipe still opened (section 7.2).
+// deliberately silent: the recipe still opened.
 function useRecordView(recipeId: number, loaded: boolean): void {
   useEffect(() => {
     if (!loaded) return;
@@ -118,22 +121,57 @@ function useRecordView(recipeId: number, loaded: boolean): void {
   }, [recipeId, loaded]);
 }
 
-// Favorite and rating sit together because they answer the same question: what
-// does this house think of this recipe, and what do I think of it?
-function PreferenceBar({ recipe }: { recipe: RecipeDetail }) {
+// The photo's heart and the summary's stars share one preference owner. Separate
+// hooks would let a rating response leave the heart showing an older favorite
+// state, or hide a failed photo interaction's error away from the summary.
+function RecipeOverview({ recipe, onCook }: { recipe: RecipeDetail; onCook: () => void }) {
+  const navigate = useNavigate();
   const preferences = useRecipePreferences(recipe.id, {
     userState: recipe.userState,
     rating: recipe.rating,
   });
 
+  const favorite = (
+    <FavoriteButton
+      name={recipe.name}
+      favorite={preferences.userState.favorite}
+      onToggle={preferences.toggleFavorite}
+      size="small"
+      className="h-11 w-11 shrink-0"
+    />
+  );
+
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-        <FavoriteButton
-          name={recipe.name}
-          favorite={preferences.userState.favorite}
-          onToggle={preferences.toggleFavorite}
-        />
+    <header className="grid items-start gap-7 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-9">
+      {recipe.image ? (
+        <div className="relative min-w-0">
+          <img
+            className="aspect-[4/3] w-full rounded-[26px] border border-frost/80 object-cover shadow-[0_18px_48px_-18px_color-mix(in_srgb,var(--ink)_38%,transparent)] sm:rounded-4xl"
+            src={recipe.image.detailUrl}
+            width={recipe.image.detailWidth}
+            height={recipe.image.detailHeight}
+            alt={`${recipe.name}, as photographed for this recipe`}
+          />
+          <div className="absolute top-3 right-3 sm:top-4 sm:right-4">{favorite}</div>
+        </div>
+      ) : null}
+
+      <div className={cn('flex min-w-0 flex-col gap-3', !recipe.image && 'lg:col-span-2')}>
+        <div className="flex min-w-0 items-start gap-3">
+          <div className="min-w-0 flex-1">
+            <Eyebrow>{recipe.categoryName}</Eyebrow>
+            <h1 className="mt-2 mb-0 font-serif text-[34px] leading-[1.05] font-normal tracking-[-0.03em] text-ink sm:text-[42px]">
+              {recipe.name}
+            </h1>
+            {recipe.description ? (
+              <p className="mt-2 mb-0 max-w-140 text-[16px] leading-[1.6] text-ink-2">
+                {recipe.description}
+              </p>
+            ) : null}
+          </div>
+          {/* A recipe without a photo still needs the same favorite control. */}
+          {!recipe.image ? favorite : null}
+        </div>
 
         <RatingControl
           name={recipe.name}
@@ -143,16 +181,39 @@ function PreferenceBar({ recipe }: { recipe: RecipeDetail }) {
           onRate={preferences.setRating}
           onClear={preferences.clearRating}
         />
-      </div>
 
-      {/* A reverted change has to say so, or the control silently snaps back
-          (section 11.3). */}
-      {preferences.error ? (
-        <p className="m-0 text-[13px] font-medium text-[var(--cb-danger-ink-strong)]" role="alert">
-          {preferences.error}
-        </p>
-      ) : null}
-    </div>
+        {/* A reverted change has to say so, or the control silently snaps back. */}
+        {preferences.error ? (
+          <p className="m-0 text-[13px] font-medium text-[var(--cb-danger-ink-strong)]" role="alert">
+            {preferences.error}
+          </p>
+        ) : null}
+
+        {recipe.tags.length > 0 ? (
+          <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
+            {recipe.tags.map((tag) => (
+              <li className={tagChipClass(tag.color, false, 'cursor-default')} style={tagChipStyle(tag.color)} key={tag.id}>
+                {tag.name}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+
+        <TimeFacts recipe={recipe} />
+
+        <div className="flex flex-wrap items-start gap-2.5 border-t border-dashed border-ink/10 pt-3">
+          <Button variant="primary" onClick={onCook}>
+            <CookingPot aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
+            Cook this
+          </Button>
+          <Button onClick={() => navigate(`/recipes/${recipe.id}/edit`)}>
+            <Pencil aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
+            Edit recipe
+          </Button>
+          <DeleteAction recipe={recipe} />
+        </div>
+      </div>
+    </header>
   );
 }
 
@@ -182,10 +243,14 @@ function DeleteAction({ recipe }: { recipe: RecipeDetail }) {
 
   if (!confirming) {
     return (
-      <Button variant="quiet" onClick={() => setConfirming(true)}>
-        <Trash2 aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
-        Move to Trash
-      </Button>
+      <OverflowMenu label="More recipe actions">
+        <MenuItem tone="danger" onSelect={() => setConfirming(true)}>
+          <span className="flex items-center gap-2">
+            <Trash2 aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
+            Move to Trash
+          </span>
+        </MenuItem>
+      </OverflowMenu>
     );
   }
 
@@ -195,7 +260,7 @@ function DeleteAction({ recipe }: { recipe: RecipeDetail }) {
         Move “{recipe.name}” to Trash? You can restore it from there.
       </p>
       <div className="mt-3 flex flex-wrap gap-2.5">
-        <Button variant="primary" size="small" disabled={busy} onClick={() => void remove()}>
+        <Button variant="primary" size="small" autoFocus disabled={busy} onClick={() => void remove()}>
           Move to Trash
         </Button>
         <Button
@@ -230,6 +295,8 @@ function Steps({ recipe, cooking, checked, onToggle }: {
   return (
     <ol className="m-0 flex list-none flex-col p-0">
       {recipe.instructions.map((instruction, index) => (
+        <Fragment key={instruction.id}>
+        {instruction.section && instruction.section !== recipe.instructions[index - 1]?.section ? <SectionLabel name={instruction.section} /> : null}
         <li
           className={cn(
             'flex gap-4 border-b border-dashed border-ink/10 last:border-b-0',
@@ -283,6 +350,7 @@ function Steps({ recipe, cooking, checked, onToggle }: {
             </>
           )}
         </li>
+        </Fragment>
       ))}
     </ol>
   );
@@ -345,30 +413,29 @@ function CookView({
   onDone: () => void;
 }) {
   return (
-    <div className="cb-rise flex min-w-0 flex-col">
-      {/* The bar is inset, so the strip behind it has to run the full width or
-          the list scrolls into view beside it. Cook mode all but stops the
-          mesh, which is why plain cream reads as nothing here. */}
-      <div className="sticky top-0 z-20 -mx-4 mb-7 px-4 pt-3 pb-3 md:-mx-8 md:px-8">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 top-0 -bottom-6 bg-gradient-to-b from-cream from-62% to-transparent"
-        />
-        <div className="relative flex items-center justify-between gap-4 rounded-full border border-frost/80 bg-[rgba(var(--surface-rgb),0.92)] py-2.5 pr-2.5 pl-5 shadow-[var(--cb-menu-shadow)] backdrop-blur-xl backdrop-saturate-150">
+    <div className="flex min-w-0 flex-col pt-[var(--cook-header-height)] [--cook-header-height:calc(69px+env(safe-area-inset-top))]">
+      {/* Cook mode replaces the app navigation with an edge-to-edge header.
+          Its inner row follows the shell's content width, but its reading
+          surface reaches the viewport edges. Reserve its height (including
+          the phone's safe area) for both the content and sticky ingredients.
+          Only the panels animate: a transformed ancestor would make this fixed
+          header scroll with the recipe instead of staying at the viewport. */}
+      <header className="fixed inset-x-0 top-0 z-30 border-b border-ink/10 bg-[rgba(var(--surface-rgb),0.96)] pt-[env(safe-area-inset-top)] backdrop-blur-xl">
+        <div className="mx-auto flex h-17 max-w-330 items-center justify-between gap-4 px-4 md:px-8">
           <div className="min-w-0">
             <Eyebrow>Cooking</Eyebrow>
             <h1 className="m-0 truncate font-serif text-[20px] leading-tight font-normal tracking-[-0.02em] text-ink sm:text-[24px]">
               {recipe.name}
             </h1>
           </div>
-          <Button variant="primary" onClick={onDone}>
+          <Button variant="primary" className="shrink-0" onClick={onDone}>
             Done
           </Button>
         </div>
-      </div>
+      </header>
 
-      <div className="grid gap-7 lg:grid-cols-[minmax(300px,0.85fr)_minmax(0,1.15fr)] lg:gap-9">
-        <Sheet aria-labelledby="ingredients-heading" className="lg:sticky lg:top-24 lg:self-start">
+      <div className="cb-rise grid gap-7 lg:grid-cols-[minmax(300px,0.85fr)_minmax(0,1.15fr)] lg:gap-9">
+        <Sheet aria-labelledby="ingredients-heading" className="lg:sticky lg:top-[calc(var(--cook-header-height)+1.75rem)] lg:self-start">
           <SectionHeading className="mb-4" id="ingredients-heading" sub="Tap one off as you go">
             Ingredients
           </SectionHeading>
@@ -406,7 +473,6 @@ function CookView({
 
 export function RecipeDetailPage() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const recipeId = Number(id);
   const { cooking, setCooking } = useCookMode();
 
@@ -487,98 +553,51 @@ export function RecipeDetailPage() {
     <div className="cb-rise flex min-w-0 flex-col gap-8">
       <Breadcrumb to="/">Cookbook</Breadcrumb>
 
-      <header className="grid items-start gap-7 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-9">
-        {recipe.image ? (
-          <img
-            className="aspect-[4/3] w-full rounded-[26px] border border-frost/80 object-cover shadow-[0_18px_48px_-18px_color-mix(in_srgb,var(--ink)_38%,transparent)] sm:rounded-4xl"
-            src={recipe.image.detailUrl}
-            width={recipe.image.detailWidth}
-            height={recipe.image.detailHeight}
-            alt={`${recipe.name}, as photographed for this recipe`}
-          />
-        ) : null}
+      {/* One owner for the heart and stars, reset when another recipe opens. */}
+      <RecipeOverview key={recipe.id} recipe={recipe} onCook={() => setCooking(true)} />
 
-        <div className={cn('flex min-w-0 flex-col gap-5', !recipe.image && 'lg:col-span-2')}>
-          <div className="min-w-0">
-            <Eyebrow>{recipe.categoryName}</Eyebrow>
-            <h1 className="mt-2 mb-0 font-serif text-[34px] leading-[1.05] font-normal tracking-[-0.03em] text-ink sm:text-[42px]">
-              {recipe.name}
-            </h1>
-            {recipe.description ? (
-              <p className="mt-3 mb-0 max-w-140 text-[16px] leading-[1.6] text-ink-2">
-                {recipe.description}
-              </p>
-            ) : null}
-          </div>
+      {/* The source is a footnote to these panels, not another major section.
+          Give it a smaller local gap rather than the page's section spacing. */}
+      <div className="flex min-w-0 flex-col gap-3">
+        <div className="grid gap-6 lg:grid-cols-[minmax(280px,0.8fr)_minmax(0,1.2fr)] lg:gap-8">
+          <Sheet aria-labelledby="ingredients-heading">
+            <SectionHeading className="mb-4" id="ingredients-heading" sub="Scaled to your servings">
+              Ingredients
+            </SectionHeading>
 
-          {recipe.tags.length > 0 ? (
-            <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
-              {recipe.tags.map((tag) => (
-                <li
-                  className={tagChipClass(tag.color, false, 'cursor-default')}
-                  style={tagChipStyle(tag.color)}
-                  key={tag.id}
-                >
-                  {tag.name}
-                </li>
-              ))}
-            </ul>
-          ) : null}
-
-          <TimeFacts recipe={recipe} />
-          <SourceLine recipe={recipe} />
-
-          {/* Keyed by recipe so opening another one starts from its own state
-              instead of inheriting the previous recipe's. */}
-          <PreferenceBar key={recipe.id} recipe={recipe} />
-
-          <div className="flex flex-wrap items-start gap-2.5 border-t border-dashed border-ink/10 pt-5">
-            <Button variant="primary" onClick={() => setCooking(true)}>
-              <CookingPot aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
-              Cook this
-            </Button>
-            <Button onClick={() => navigate(`/recipes/${recipe.id}/edit`)}>
-              <Pencil aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
-              Edit recipe
-            </Button>
-
-            <DeleteAction recipe={recipe} />
-          </div>
-        </div>
-      </header>
-
-      <div className="grid gap-6 lg:grid-cols-[minmax(280px,0.8fr)_minmax(0,1.2fr)] lg:gap-8">
-        <Sheet aria-labelledby="ingredients-heading">
-          <SectionHeading className="mb-4" id="ingredients-heading" sub="Scaled to your servings">
-            Ingredients
-          </SectionHeading>
-
-          <ServingControl
-            baseServings={recipe.baseServings}
-            servings={activeServings}
-            onChange={setServings}
-          />
-
-          <div className="mt-4">
-            <IngredientList
-              ingredients={recipe.ingredients}
+            <ServingControl
               baseServings={recipe.baseServings}
               servings={activeServings}
+              onChange={setServings}
             />
-          </div>
-        </Sheet>
 
-        <Sheet aria-labelledby="instructions-heading">
-          <SectionHeading
-            className="mb-4"
-            id="instructions-heading"
-            sub={recipe.instructions.length === 1 ? '1 step' : `${recipe.instructions.length} steps`}
-          >
-            Instructions
-          </SectionHeading>
-          <Steps recipe={recipe} cooking={false} />
-          <Notes recipe={recipe} cooking={false} />
-        </Sheet>
+            <div className="mt-4">
+              <IngredientList
+                ingredients={recipe.ingredients}
+                baseServings={recipe.baseServings}
+                servings={activeServings}
+              />
+            </div>
+          </Sheet>
+
+          <Sheet aria-labelledby="instructions-heading">
+            <SectionHeading
+              className="mb-4"
+              id="instructions-heading"
+              sub={recipe.instructions.length === 1 ? '1 step' : `${recipe.instructions.length} steps`}
+            >
+              Instructions
+            </SectionHeading>
+            <Steps recipe={recipe} cooking={false} />
+            <Notes recipe={recipe} cooking={false} />
+          </Sheet>
+        </div>
+
+        {recipe.sourceUrl || recipe.sourceText ? (
+          <footer>
+            <SourceLine recipe={recipe} />
+          </footer>
+        ) : null}
       </div>
     </div>
   );

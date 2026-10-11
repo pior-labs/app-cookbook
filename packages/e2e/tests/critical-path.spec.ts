@@ -186,7 +186,8 @@ test('moves the recipe to Trash and restores everything it had', async ({ page }
   await page.goto('/recipes');
   await page.getByRole('link', { name: new RegExp(RECIPE) }).first().click();
 
-  await page.getByRole('button', { name: 'Move to Trash' }).click();
+  await page.getByRole('button', { name: 'More recipe actions' }).click();
+  await page.getByRole('menuitem', { name: 'Move to Trash' }).click();
   await page.getByRole('button', { name: 'Move to Trash' }).click();
 
   await expect(page).toHaveURL(/\/trash$/);

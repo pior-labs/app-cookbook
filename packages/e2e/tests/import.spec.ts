@@ -17,9 +17,10 @@ const draft = {
       unitText: null,
       preparation: 'chopped',
       originalText: '? cups tomatoes, chopped',
+      section: null,
     },
   ],
-  instructions: [{ body: 'Simmer for 15 minutes.' }],
+  instructions: [{ body: 'Simmer for 15 minutes.', section: null }],
   warnings: [
     {
       field: 'ingredients.0.quantity',

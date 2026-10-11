@@ -471,3 +471,21 @@ bypasses, recipe rewriting, nutrition estimation, and automatic placement into a
 meal plan. These would broaden the meaning of import beyond faithful extraction
 and review. No new auth service, browser automation, vector database or model
 runtime is needed.
+
+---
+
+## 0013 - Recipe sections have no independent identity
+
+**Accepted 2026-10-10.**
+
+A separate `recipe_sections` table was considered and rejected. Nothing needs
+a heading to have its own identity: it describes a consecutive run of items,
+not something referenced elsewhere. A table would reintroduce empty sections,
+ordering across tables, and a two-step write for something the recipe's existing
+aggregate replacement can express directly.
+
+Sauces and seasonings are entered as local sections of the recipe that uses
+them for now. Linking reusable component recipes is deliberately not part of
+this work. It is a separate product decision, with unresolved grocery, yield,
+cooking-navigation and deletion semantics recorded in `docs/IDEAS.md`, not a
+reason to give headings an identity today.

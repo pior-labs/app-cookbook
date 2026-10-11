@@ -35,6 +35,7 @@ const RECIPE: RecipeDetail = {
     {
       id: 1,
       position: 0,
+      section: null,
       quantity: { numerator: 3, denominator: 2 },
       unitCode: 'lb',
       unitText: null,
@@ -42,7 +43,7 @@ const RECIPE: RecipeDetail = {
       preparation: null,
     },
   ],
-  instructions: [{ id: 1, position: 0, body: 'Brown the beef.' }],
+  instructions: [{ id: 1, position: 0, body: 'Brown the beef.', section: null }],
   tags: [{ id: 7, name: 'Weeknight', color: '#6b8db5', createdAt: '', updatedAt: '' }],
   image: null,
 };
@@ -78,6 +79,79 @@ beforeEach(() => {
 });
 
 describe('recipe detail page', () => {
+  it('puts the heart on the photo and the source below the cooking content', async () => {
+    const recipe = { ...RECIPE, hasImage: true, image: {
+      cardUrl: '/api/recipes/12/photo/card', detailUrl: '/api/recipes/12/photo/detail',
+      cardWidth: 400, cardHeight: 300, detailWidth: 800, detailHeight: 600,
+    } };
+    fetchMock.mockResolvedValue(jsonResponse(recipe));
+    renderAt('/recipes/12', <RecipeDetailPage />, '/recipes/:id');
+
+    const photo = await screen.findByRole('img', { name: /as photographed/ });
+    const heart = screen.getByRole('button', { name: `Add ${recipe.name} to your favorites` });
+    expect(photo.parentElement).toContainElement(heart);
+    expect(screen.getAllByRole('button', { name: `Add ${recipe.name} to your favorites` })).toHaveLength(1);
+    const source = screen.getByRole('link', { name: 'example.test' });
+    expect(source.closest('footer')).not.toBeNull();
+    expect(source.closest('header')).toBeNull();
+    expect(screen.getByRole('radiogroup', { name: `Your rating for ${recipe.name}` }).closest('header')).not.toBeNull();
+  });
+
+  it('keeps moving to Trash behind the menu and explicit confirmation', async () => {
+    const user = userEvent.setup();
+    fetchMock.mockImplementation(async (_path, init) => init?.method === 'POST'
+      ? new Response(null, { status: 204 }) : jsonResponse(RECIPE));
+    renderAt('/recipes/12', <RecipeDetailPage />, '/recipes/:id');
+
+    const more = await screen.findByRole('button', { name: 'More recipe actions' });
+    expect(screen.queryByRole('button', { name: 'Move to Trash' })).not.toBeInTheDocument();
+    await user.click(more);
+    expect(screen.getByRole('menuitem', { name: 'Move to Trash' })).toBeVisible();
+    await user.keyboard('{Escape}');
+    expect(more).toHaveFocus();
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    await user.click(more);
+    await user.click(screen.getByRole('menuitem', { name: 'Move to Trash' }));
+    expect(screen.getByText(/You can restore it from there/)).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Move to Trash' })).toHaveFocus();
+    await user.click(screen.getByRole('button', { name: 'Keep it' }));
+    expect(screen.getByRole('button', { name: 'More recipe actions' })).toBeVisible();
+    expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'DELETE')).toBe(false);
+  });
+
+  it('keeps the Trash confirmation and explains a failed deletion', async () => {
+    const user = userEvent.setup();
+    fetchMock.mockImplementation(async (_path, init) => init?.method === 'DELETE'
+      ? errorResponse(500, 'delete_failed', 'Could not move this recipe to Trash.')
+      : init?.method === 'POST' ? new Response(null, { status: 204 }) : jsonResponse(RECIPE));
+    renderAt('/recipes/12', <RecipeDetailPage />, '/recipes/:id');
+    await user.click(await screen.findByRole('button', { name: 'More recipe actions' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Move to Trash' }));
+    await user.click(screen.getByRole('button', { name: 'Move to Trash' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not move this recipe to Trash.');
+    expect(screen.getByRole('button', { name: 'Keep it' })).toBeEnabled();
+    expect(screen.getByRole('heading', { name: RECIPE.name })).toBeVisible();
+  });
+
+  it('shows independent headings and continuous step numbers in normal and cooking views', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    const recipe = { ...RECIPE,
+      ingredients: [{ ...RECIPE.ingredients[0], section: 'Dry' }, { ...RECIPE.ingredients[0], id: 2, position: 1, section: 'Sauce', name: 'Oil' }],
+      instructions: [{ ...RECIPE.instructions[0], section: 'Mix' }, { id: 2, position: 1, body: 'Bake.', section: 'Bake' }],
+    };
+    fetchMock.mockImplementation(async (_input, init) => init?.method === 'POST' ? new Response(null, { status: 204 }) : jsonResponse(recipe));
+    renderAt('/recipes/12', <CookModeProvider><RecipeDetailPage /></CookModeProvider>, '/recipes/:id');
+    await screen.findByRole('heading', { name: 'Weeknight Chili' });
+    for (const name of ['Dry', 'Sauce', 'Mix', 'Bake']) expect(screen.getByRole('heading', { name })).toBeVisible();
+    expect(screen.getByText('Bake.', { exact: true }).parentElement).toHaveTextContent('2');
+    await user.click(screen.getByRole('button', { name: 'Cook this' }));
+    for (const name of ['Dry', 'Sauce', 'Mix', 'Bake']) expect(screen.getByRole('heading', { name })).toBeVisible();
+    const second = screen.getByRole('button', { name: 'Step 2: Bake.' });
+    await user.click(second);
+    expect(second).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /Oil/ })).toHaveAttribute('aria-pressed', 'false');
+  });
   it('shows a skeleton before the recipe arrives, then the recipe', async () => {
     fetchMock.mockResolvedValue(jsonResponse(RECIPE));
 
@@ -88,6 +162,25 @@ describe('recipe detail page', () => {
     expect(await screen.findByRole('heading', { name: 'Weeknight Chili' })).toBeInTheDocument();
     expect(screen.getByText('Brown the beef.')).toBeInTheDocument();
     expect(screen.getByText(/better the next day/i)).toBeInTheDocument();
+  });
+
+  it('puts the cooking title and exit action in a header without hiding the recipe panels', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    fetchMock.mockImplementation(async (_input, init) =>
+      init?.method === 'POST' ? new Response(null, { status: 204 }) : jsonResponse(RECIPE),
+    );
+    renderAt('/recipes/12', <CookModeProvider><RecipeDetailPage /></CookModeProvider>, '/recipes/:id');
+    await user.click(await screen.findByRole('button', { name: 'Cook this' }));
+    const title = screen.getByRole('heading', { name: RECIPE.name, level: 1 });
+    const done = screen.getByRole('button', { name: 'Done' });
+    expect(title.closest('header')).toContainElement(done);
+    expect(screen.getByRole('region', { name: 'Ingredients' })).toBeVisible();
+    expect(screen.getByRole('region', { name: 'Instructions' })).toBeVisible();
+    done.focus();
+    await user.keyboard('{Enter}');
+    expect(screen.getByRole('button', { name: 'Cook this' })).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Done' })).not.toBeInTheDocument();
   });
 
   it('toggles cooking steps independently and keeps ticks only for the current visit', async () => {

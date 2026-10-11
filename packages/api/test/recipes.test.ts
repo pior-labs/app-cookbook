@@ -104,6 +104,45 @@ describe('authorization boundary', () => {
 });
 
 describe('POST /api/recipes', () => {
+  it('keeps independent headings through create, replacement, read and trash restoration', async () => {
+    const sections = {
+      ingredients: [{ name: 'Flour' }, { name: 'Oil', section: ' Sauce ' }, { name: 'Salt', section: 'Sauce' }],
+      instructions: [{ body: 'Mix.', section: 'Mix' }, { body: 'Bake.', section: 'Bake' }],
+    };
+    const recipe = await createRecipe(sections);
+    expect(recipe.ingredients.map(row => row.section)).toEqual([null, 'Sauce', 'Sauce']);
+    expect(recipe.instructions.map(row => row.section)).toEqual(['Mix', 'Bake']);
+    const response = await client.put(`/api/recipes/${recipe.id}`, updateBodyFrom(recipe, {
+      ingredients: [{ name: 'Oil', section: 'Dressing' }],
+      instructions: [{ body: 'Whisk.' }, { body: 'Pour.', section: 'Serve' }],
+    }));
+    expect(response.status).toBe(200);
+    const updated = await response.json() as RecipeDetail;
+    expect(updated.ingredients[0].section).toBe('Dressing');
+    expect(updated.instructions.map(row => row.section)).toEqual([null, 'Serve']);
+    expect(await (await client.get(`/api/recipes/${recipe.id}`)).json()).toEqual(updated);
+    expect((await client.delete(`/api/recipes/${recipe.id}`)).status).toBe(204);
+    expect((await client.post(`/api/trash/${recipe.id}/restore`, {})).status).toBe(204);
+    const restored = await (await client.get(`/api/recipes/${recipe.id}`)).json() as RecipeDetail;
+    expect(restored.ingredients).toEqual(updated.ingredients);
+    expect(restored.instructions).toEqual(updated.instructions);
+  });
+  it.each(['ingredients', 'instructions'])('rejects invalid %s headings on both write paths with field errors', async list => {
+    const created = await createRecipe();
+    for (const [labels, index] of [
+      [['Sauce', null], 1], [['Sauce', 'Main', ' sauce '], 2], [['x'.repeat(81)], 0],
+    ] as [Array<string | null>, number][]) {
+      const rows = labels.map(section => list === 'ingredients' ? { name: 'Oil', section } : { body: 'Mix.', section });
+      for (const response of [
+        await client.post('/api/recipes', recipeBody({ [list]: rows })),
+        await client.put(`/api/recipes/${created.id}`, updateBodyFrom(created, { [list]: rows })),
+      ]) {
+        expect(response.status).toBe(400);
+        expect((await response.json()).error.fields[`${list}.${index}.section`]).toBeDefined();
+      }
+    }
+    expect(await (await client.get(`/api/recipes/${created.id}`)).json()).toEqual(created);
+  });
   it('creates the full aggregate and returns it at version 1', async () => {
     const recipe = await createRecipe();
 

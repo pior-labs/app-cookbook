@@ -18,6 +18,8 @@ import type { ErrorFields } from '../api/client.js';
 export const CUSTOM_UNIT = '__custom__';
 
 export interface IngredientDraft {
+  isSection?: boolean;
+  section?: string | null;
   key: string;
   originalText?: string | null;
   quantity: string;
@@ -28,6 +30,8 @@ export interface IngredientDraft {
 }
 
 export interface InstructionDraft {
+  isSection?: boolean;
+  section?: string | null;
   key: string;
   body: string;
 }
@@ -72,6 +76,128 @@ export function emptyInstruction(): InstructionDraft {
   return { key: nextKey('step'), body: '' };
 }
 
+export function isBlankIngredient(row: IngredientDraft): boolean {
+  return !row.isSection && row.originalText == null &&
+    [row.name, row.quantity, row.unit, row.unitText, row.preparation].every(value => value === '');
+}
+
+export function isBlankInstruction(row: InstructionDraft): boolean {
+  return !row.isSection && row.body === '';
+}
+
+type SectionDraft = { key: string; isSection?: boolean; section?: string | null };
+
+export interface DraftGroup<T> {
+  key: string;
+  heading: T | null;
+  headingIndex: number | null;
+  start: number;
+  end: number;
+  items: { row: T; index: number }[];
+}
+
+// The editor shows containment, while keeping the flat draft as the source of
+// truth for validation paths and item arrows. Group indices always point into
+// that original array, so inserting in an earlier section cannot append into
+// whichever section happens to be last on the page.
+export function draftGroups<T extends SectionDraft>(rows: T[]): DraftGroup<T>[] {
+  const groups: DraftGroup<T>[] = [{
+    key: 'main', heading: null, headingIndex: null, start: 0, end: rows.length, items: [],
+  }];
+  for (const [index, row] of rows.entries()) {
+    if (row.isSection) {
+      groups[groups.length - 1].end = index;
+      groups.push({ key: row.key, heading: row, headingIndex: index, start: index, end: rows.length, items: [] });
+    } else {
+      groups[groups.length - 1].items.push({ row, index });
+    }
+  }
+  return groups;
+}
+
+// A section container moves as one unit. Moving only its boundary would change
+// membership without moving the visible group the cook meant to reorder. The
+// unheaded prefix never moves below headings because it would not be saveable.
+export function moveSection<T extends SectionDraft>(rows: T[], headingIndex: number, direction: -1 | 1): T[] {
+  const groups = draftGroups(rows).filter(group => group.heading != null);
+  const index = groups.findIndex(group => group.headingIndex === headingIndex);
+  const target = index + direction;
+  if (index < 0 || target < 0 || target >= groups.length) return rows;
+  const first = groups[Math.min(index, target)];
+  const second = groups[Math.max(index, target)];
+  return [
+    ...rows.slice(0, first.start),
+    ...rows.slice(second.start, second.end),
+    ...rows.slice(first.start, first.end),
+    ...rows.slice(second.end),
+  ];
+}
+
+// Headings are explicit editor rows so they can be renamed, removed or crossed
+// with the same keyboard/touch reorder controls as items. Only items go over
+// the wire: removing a boundary naturally joins its items to the section above.
+export function expandSections<T extends SectionDraft>(rows: T[], empty: () => T): T[] {
+  let previous: string | null = null;
+  return rows.flatMap(row => {
+    const section = row.section ?? null;
+    // An invalid imported unheaded tail becomes a blank boundary for explicit
+    // repair, rather than silently joining it to the previous source heading.
+    const heading = section !== previous
+      ? [{ ...empty(), isSection: true, section: section ?? '' }] : [];
+    previous = section;
+    return [...heading, row];
+  });
+}
+
+function sectionItems<T extends SectionDraft>(rows: T[]): (T & { section: string | null })[] {
+  let section: string | null = null;
+  return rows.flatMap(row => {
+    if (row.isSection) {
+      section = row.section?.trim() || null;
+      return [];
+    }
+    return [{ ...row, section }];
+  });
+}
+
+function headingErrors(draft: RecipeDraft): ErrorFields {
+  const fields: ErrorFields = {};
+  for (const list of ['ingredients', 'instructions'] as const) {
+    const names = new Set<string>();
+    draft[list].forEach((row, index, rows) => {
+      if (!row.isSection) return;
+      const name = row.section?.trim().toLowerCase() ?? '';
+      if (!row.section?.trim()) fields[`${list}.${index}.section`] = ['Enter a section name or remove this heading.'];
+      else if (row.section.trim().length > 80) fields[`${list}.${index}.section`] = ['Section names must be 80 characters or fewer.'];
+      else if (names.has(name)) fields[`${list}.${index}.section`] = ['Each section name must be unique within this list.'];
+      if (name) names.add(name);
+      if (!rows[index + 1] || rows[index + 1].isSection)
+        fields[`${list}.${index}.section`] = ['Add an item under this heading or remove it.'];
+    });
+  }
+  return fields;
+}
+
+// Validation addresses saved item indices. Translate them back to editor rows
+// and direct section errors to the boundary input, never an invisible field.
+export function fieldsForDraft(draft: RecipeDraft, fields: ErrorFields): ErrorFields {
+  const mapped: ErrorFields = {};
+  for (const [path, messages] of Object.entries(fields)) {
+    const match = /^(ingredients|instructions)\.(\d+)\.(.+)$/.exec(path);
+    if (!match) { mapped[path] = messages; continue; }
+    const list = match[1] as 'ingredients' | 'instructions';
+    const rows = draft[list];
+    const indices = rows.flatMap((row, index) => row.isSection ? [] : [index]);
+    let index = indices[Number(match[2])];
+    if (index == null) { mapped[path] = messages; continue; }
+    if (match[3] === 'section') {
+      while (index > 0 && !rows[index].isSection) index -= 1;
+    }
+    mapped[`${list}.${index}.${match[3]}`] = messages;
+  }
+  return mapped;
+}
+
 export function emptyDraft(): RecipeDraft {
   return {
     name: '',
@@ -104,8 +230,9 @@ export function draftFromRecipe(recipe: RecipeDetail): RecipeDraft {
     sourceKind: recipe.sourceUrl ? 'url' : recipe.sourceText ? 'text' : 'none',
     sourceUrl: recipe.sourceUrl ?? '',
     sourceText: recipe.sourceText ?? '',
-    ingredients: recipe.ingredients.map((ingredient) => ({
+    ingredients: expandSections<IngredientDraft>(recipe.ingredients.map((ingredient) => ({
       key: nextKey('ing'),
+      section: ingredient.section,
       originalText: ingredient.originalText,
       // Round-trips through the same display format the detail view uses, so an
       // edit does not silently rewrite `1 1/2` into a decimal.
@@ -114,11 +241,12 @@ export function draftFromRecipe(recipe: RecipeDetail): RecipeDraft {
       unitText: ingredient.unitText ?? '',
       name: ingredient.name,
       preparation: ingredient.preparation ?? '',
-    })),
-    instructions: recipe.instructions.map((instruction) => ({
+    })), emptyIngredient),
+    instructions: expandSections<InstructionDraft>(recipe.instructions.map((instruction) => ({
       key: nextKey('step'),
+      section: instruction.section,
       body: instruction.body,
-    })),
+    })), emptyInstruction),
     tagIds: recipe.tags.map((tag) => tag.id),
   };
 }
@@ -168,7 +296,7 @@ function optionalNumber(value: string): number | null {
 // The request body, not the parsed result. The schemas transform on the way in
 // - a typed quantity becomes an exact fraction - so what a cook typed is what
 // the API must receive; sending the parsed value back would post an object
-// where a string belongs (section 12).
+// where a string belongs.
 function toRequest(draft: RecipeDraft): CreateRecipeRequest {
   return {
     importMethod: draft.importMethod,
@@ -182,7 +310,8 @@ function toRequest(draft: RecipeDraft): CreateRecipeRequest {
     sourceUrl: draft.sourceKind === 'url' && draft.sourceUrl.trim() !== '' ? draft.sourceUrl : null,
     sourceText:
       draft.sourceKind === 'text' && draft.sourceText.trim() !== '' ? draft.sourceText : null,
-    ingredients: draft.ingredients.map((ingredient) => ({
+    ingredients: sectionItems(draft.ingredients).map((ingredient) => ({
+      section: ingredient.section,
       name: ingredient.name,
       originalText: ingredient.originalText,
       quantity: ingredient.quantity,
@@ -192,13 +321,13 @@ function toRequest(draft: RecipeDraft): CreateRecipeRequest {
         : null,
       preparation: ingredient.preparation.trim() === '' ? null : ingredient.preparation,
     })),
-    instructions: draft.instructions.map((instruction) => ({ body: instruction.body })),
+    instructions: sectionItems(draft.instructions).map((instruction) => ({ body: instruction.body, section: instruction.section })),
     tagIds: draft.tagIds,
   };
 }
 
 // Zod paths and the API error envelope use the same dotted keys, so one error
-// map drives client-side and server-side feedback identically (section 7.1).
+// map drives client-side and server-side feedback identically.
 export function fieldsFromZod(error: { issues: { path: PropertyKey[]; message: string }[] }): ErrorFields {
   const fields: ErrorFields = {};
 
@@ -217,20 +346,24 @@ export type ValidationResult<T> =
 // Validation and the payload are deliberately separate: the schema decides
 // whether the draft is sendable, and what gets sent is the draft it approved.
 export function validateCreate(draft: RecipeDraft): ValidationResult<CreateRecipeRequest> {
+  const headings = headingErrors(draft);
+  if (Object.keys(headings).length) return { ok: false, fields: headings };
   const request = toRequest(draft);
   const parsed = createRecipeSchema.safeParse(request);
 
-  return parsed.success ? { ok: true, input: request } : { ok: false, fields: fieldsFromZod(parsed.error) };
+  return parsed.success ? { ok: true, input: request } : { ok: false, fields: fieldsForDraft(draft, fieldsFromZod(parsed.error)) };
 }
 
 export function validateUpdate(
   draft: RecipeDraft,
   version: number,
 ): ValidationResult<UpdateRecipeRequest> {
+  const headings = headingErrors(draft);
+  if (Object.keys(headings).length) return { ok: false, fields: headings };
   const request = { ...toRequest(draft), version };
   const parsed = updateRecipeSchema.safeParse(request);
 
-  return parsed.success ? { ok: true, input: request } : { ok: false, fields: fieldsFromZod(parsed.error) };
+  return parsed.success ? { ok: true, input: request } : { ok: false, fields: fieldsForDraft(draft, fieldsFromZod(parsed.error)) };
 }
 
 // Reordering is an array move rather than a swap, so a row dragged or keyed
@@ -258,7 +391,7 @@ export function draftFromImport(source: RecipeImportDraft): RecipeDraft {
     sourceKind: source.sourceUrl ? 'url' : 'none',
     sourceUrl: source.sourceUrl ?? '',
     ingredients: source.ingredients.length
-      ? source.ingredients.map((row) => {
+      ? expandSections<IngredientDraft>(source.ingredients.map((row) => {
           const knownCode = row.unitCode && isKnownUnitCode(row.unitCode) ? row.unitCode : null;
           // Model output can contain a label like "cups" instead of the code
           // "cup". Keep it visible and editable rather than giving the select
@@ -266,6 +399,7 @@ export function draftFromImport(source: RecipeImportDraft): RecipeDraft {
           const unitText = knownCode ? (row.unitText ?? '') : (row.unitCode || row.unitText || '');
           return {
             key: nextKey('ing'),
+            section: row.section,
             originalText: row.originalText,
             quantity: row.quantity ?? '',
             unit: knownCode ?? (unitText ? CUSTOM_UNIT : ''),
@@ -273,10 +407,10 @@ export function draftFromImport(source: RecipeImportDraft): RecipeDraft {
             name: row.name,
             preparation: row.preparation ?? '',
           };
-        })
+        }), emptyIngredient)
       : [emptyIngredient()],
     instructions: source.instructions.length
-      ? source.instructions.map((row) => ({ key: nextKey('step'), body: row.body }))
+      ? expandSections<InstructionDraft>(source.instructions.map((row) => ({ key: nextKey('step'), body: row.body, section: row.section })), emptyInstruction)
       : [emptyInstruction()],
   };
 }

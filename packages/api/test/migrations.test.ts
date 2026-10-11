@@ -39,10 +39,9 @@ describe('domain migration', () => {
 });
 
 // Every other test sees a database migrated from empty, so a migration that
-// reshapes existing rows is never exercised by them. This builds a scratch
-// database at the migration before one-list-per-plan, fills it with the shape
-// that migration has to fix, and then applies the rest.
-describe('one grocery list per plan (0004)', () => {
+// reshapes existing rows is never exercised by them. These scratch databases
+// stop before a migration, retain real old rows, and then apply the rest.
+describe('upgrading existing data', () => {
   const ONE_LIST_PER_PLAN = 4;
 
   function urlFor(name: string): string {
@@ -74,6 +73,43 @@ describe('one grocery list per plan (0004)', () => {
       await copyFile(join(source, `${entry.tag}.sql`), join(folder, `${entry.tag}.sql`));
     return folder;
   }
+
+  it('adds section columns (0006) without changing existing recipe rows', async () => {
+    const name = `${new URL(inject('testDatabaseUrl')).pathname.slice(1)}_sections`;
+    const admin = urlFor('postgres');
+    const before = await migrationsBefore(6);
+    await withClient(admin, sql => sql.unsafe(`create database "${name}"`));
+    try {
+      await withClient(urlFor(name), async sql => {
+        await migrate(drizzle(sql), { migrationsFolder: before });
+        const [{ id: user }] = await sql`insert into users (name, email) values ('Ada', 'sections@example.test') returning id`;
+        const [{ id: category }] = await sql`select id from categories limit 1`;
+        const [{ id: recipe }] = await sql`insert into recipes (name, description, base_servings, category_id, created_by_user_id)
+          values ('Bread', 'Original', 4, ${category}, ${user}) returning id`;
+        await sql`insert into recipe_ingredients (recipe_id, position, name, normalized_name, quantity_numerator, quantity_denominator)
+          values (${recipe}, 0, 'Flour', 'flour', 3, 2)`;
+        await sql`insert into recipe_instructions (recipe_id, position, body) values (${recipe}, 0, 'Mix and bake.')`;
+        const ingredients = await sql`select * from recipe_ingredients`;
+        const instructions = await sql`select * from recipe_instructions`;
+        const parents = await sql`select * from recipes`;
+        await migrate(drizzle(sql), { migrationsFolder: fileURLToPath(new URL('../drizzle', import.meta.url)) });
+        expect([...(await sql`select * from recipe_ingredients`)]).toEqual(ingredients.map(row => ({ ...row, section: null })));
+        expect([...(await sql`select * from recipe_instructions`)]).toEqual(instructions.map(row => ({ ...row, section: null })));
+        expect([...(await sql`select * from recipes`)]).toEqual([...parents]);
+        // Both guards reject whitespace at the database boundary, even for a
+        // writer that bypasses the usual aggregate input schemas.
+        for (const table of ['recipe_ingredients', 'recipe_instructions']) {
+          for (const label of ['', ' ', ' Sauce', 'Sauce ', '\tSauce', 'Sauce\n'])
+            await expect(sql.unsafe(`update ${table} set section = $1`, [label])).rejects.toThrow();
+          await sql.unsafe(`update ${table} set section = 'Sauce'`);
+          await sql.unsafe(`update ${table} set section = null`);
+        }
+      });
+    } finally {
+      await withClient(admin, sql => sql.unsafe(`drop database "${name}" with (force)`));
+      await rm(before, { recursive: true, force: true });
+    }
+  });
 
   it('keeps each plan its newest list, marks it saved, and leaves a plan without one a draft', async () => {
     const name = `${new URL(inject('testDatabaseUrl')).pathname.slice(1)}_upgrade`;

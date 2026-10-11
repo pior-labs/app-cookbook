@@ -90,6 +90,48 @@ describe('updateRecipeSchema', () => {
   });
 });
 
+describe('independent section runs', () => {
+  const ingredients = (labels: (string | null | undefined)[]) => labels.map(section => ({ name: 'Salt', section }));
+  const instructions = (labels: (string | null | undefined)[]) => labels.map(section => ({ body: 'Mix.', section }));
+  it('defaults omitted sections to null, trims names and treats blank input as null', () => {
+    const parsed = createRecipeSchema.parse(baseInput({
+      ingredients: ingredients([undefined, null, ' \t ', '  Sauce  ', 'Sauce']),
+      instructions: instructions(['', 'Sauce']),
+    }));
+    expect(parsed.ingredients.map(row => row.section)).toEqual([null, null, null, 'Sauce', 'Sauce']);
+    expect(parsed.instructions.map(row => row.section)).toEqual([null, 'Sauce']);
+  });
+  it.each(['ingredients', 'instructions'] as const)('enforces every run rule on %s in create and update', list => {
+    for (const [labels, index, message] of [
+      [['Dry', null], 1, 'before the first heading'],
+      [['Dry', 'Wet', ' dry '], 2, 'unique'],
+      [['Dry', 'Wet', 'DRY'], 2, 'unique'],
+      [['Dry', 'dry'], 1, 'unique'],
+      [['x'.repeat(81)], 0, '80 characters'],
+    ] as const) {
+      const rows = list === 'ingredients' ? ingredients([...labels]) : instructions([...labels]);
+      for (const schema of [createRecipeSchema, updateRecipeSchema]) {
+        const input = baseInput({ [list]: rows });
+        const result = schema.safeParse(schema === updateRecipeSchema ? { ...input, version: 1 } : input);
+        expect(result.success).toBe(false);
+        if (!result.success) expect(result.error.issues).toEqual(expect.arrayContaining([
+          expect.objectContaining({ path: [list, index, 'section'], message: expect.stringContaining(message) }),
+        ]));
+      }
+    }
+  });
+  it('allows repeated rows in a run and an 80-character trimmed name', () => {
+    expect(createRecipeSchema.safeParse(baseInput({
+      ingredients: ingredients(['Dry', 'Dry', 'x'.repeat(80)]),
+      instructions: instructions(['Dry', 'Dry']),
+    })).success).toBe(true);
+  });
+  it('cannot store an empty section as a heading-only row', () => {
+    expect(createRecipeSchema.safeParse(baseInput({ ingredients: [{ section: 'Sauce' }] })).success).toBe(false);
+    expect(createRecipeSchema.safeParse(baseInput({ instructions: [{ section: 'Mix' }] })).success).toBe(false);
+  });
+});
+
 describe('storable bounds', () => {
   it('rejects a quantity whose reduced numerator exceeds the integer column', () => {
     expect(quantitySchema.safeParse(String(MAX_INT32)).success).toBe(true);

@@ -44,13 +44,14 @@ interface SeedRecipe {
   // Dish, rim, and board tones for the generated photograph.
   colors: [string, string, string];
   ingredients: {
+    section?: string;
     name: string;
     quantity?: string;
     unitCode?: string;
     unitText?: string;
     preparation?: string;
   }[];
-  instructions: string[];
+  instructions: (string | { body: string; section: string })[];
 }
 
 const RECIPES: SeedRecipe[] = [
@@ -323,16 +324,16 @@ const RECIPES: SeedRecipe[] = [
     colors: ['#c9d96a', '#8aa33c', '#1e2417'],
     tags: ['Make ahead', 'Vegetarian'],
     ingredients: [
-      { name: 'fresh ginger', quantity: '6', unitCode: 'oz', preparation: 'sliced thin, unpeeled' },
-      { name: 'granulated sugar', quantity: '1', unitCode: 'cup' },
-      { name: 'water', quantity: '1', unitCode: 'cup' },
-      { name: 'limes', quantity: '4', preparation: 'juiced' },
-      { name: 'soda water', quantity: '1', unitCode: 'l' },
+      { name: 'fresh ginger', quantity: '6', unitCode: 'oz', preparation: 'sliced thin, unpeeled', section: 'For the syrup' },
+      { name: 'granulated sugar', quantity: '1', unitCode: 'cup', section: 'For the syrup' },
+      { name: 'water', quantity: '1', unitCode: 'cup', section: 'For the syrup' },
+      { name: 'limes', quantity: '4', preparation: 'juiced', section: 'To serve' },
+      { name: 'soda water', quantity: '1', unitCode: 'l', section: 'To serve' },
     ],
     instructions: [
-      'Simmer the ginger, sugar, and water for 15 minutes, then steep off the heat for an hour.',
-      'Strain, pressing hard on the solids, and stir in the lime juice.',
-      'Pour an inch into a tall glass of ice and top with soda water.',
+      { body: 'Simmer the ginger, sugar, and water for 15 minutes, then steep off the heat for an hour.', section: 'Make the syrup' },
+      { body: 'Strain, pressing hard on the solids, and stir in the lime juice.', section: 'Make the syrup' },
+      { body: 'Pour an inch into a tall glass of ice and top with soda water.', section: 'Pour & finish' },
     ],
   },
 ];
@@ -415,7 +416,7 @@ async function main(): Promise<void> {
       notes: seed.notes ?? null,
       categoryId,
       ingredients: seed.ingredients,
-      instructions: seed.instructions.map((body) => ({ body })),
+      instructions: seed.instructions.map((step) => typeof step === 'string' ? { body: step } : step),
       tagIds: seed.tags.map((tag) => tags.get(tag)!),
     });
 
@@ -457,7 +458,7 @@ async function main(): Promise<void> {
   }
 
   // One in the bin so Trash has something to show and restore.
-  const trashed = pick('Ginger Lime Cooler');
+  const trashed = pick('Miso Butter Mushroom Toast');
   if (trashed) await moveRecipeToTrash(trashed, user.id);
 
   console.log(

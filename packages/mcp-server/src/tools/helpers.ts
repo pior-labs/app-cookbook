@@ -152,13 +152,21 @@ export function formatRecipeDetail(recipe: RecipeDetail, servings: number): stri
       : `## Ingredients (scaled to ${servings} from a base of ${recipe.baseServings})`,
   );
   lines.push(
-    ...recipe.ingredients.map(
-      (ingredient) => `- ${formatIngredient(ingredient, recipe.baseServings, servings)}`,
+    ...recipe.ingredients.flatMap(
+      (ingredient, index) => [
+        ...(ingredient.section && ingredient.section !== recipe.ingredients[index - 1]?.section ? [`### ${ingredient.section}`] : []),
+        `- ${formatIngredient(ingredient, recipe.baseServings, servings)}`,
+      ],
     ),
   );
 
   lines.push('', '## Instructions');
-  lines.push(...recipe.instructions.map((step, index) => `${index + 1}. ${step.body}`));
+  // Headings do not consume a step number; the global row order is still the
+  // cooking sequence, regardless of how many stages the author names.
+  lines.push(...recipe.instructions.flatMap((step, index) => [
+    ...(step.section && step.section !== recipe.instructions[index - 1]?.section ? [`### ${step.section}`] : []),
+    `${index + 1}. ${step.body}`,
+  ]));
 
   if (recipe.notes) lines.push('', '## Notes', recipe.notes);
 
@@ -201,6 +209,7 @@ export const recipeSummarySchema = z.object({
 // caller relays to a person; `quantityDecimal` is there for a caller doing
 // arithmetic of its own.
 export const scaledIngredientSchema = z.object({
+  section: z.string().nullable(),
   id: z.number().int(),
   position: z.number().int(),
   quantity: z.string().nullable(),
@@ -225,6 +234,7 @@ export function toScaledIngredient(
   return {
     id: ingredient.id,
     position: ingredient.position,
+    section: ingredient.section,
     quantity: scaled ? formatQuantity(scaled) : null,
     quantityDecimal: scaled ? scaled.numerator / scaled.denominator : null,
     unit: ingredient.unitCode

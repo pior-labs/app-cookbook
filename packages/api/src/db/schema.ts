@@ -184,6 +184,9 @@ export const recipeIngredients = pgTable(
       .notNull()
       .references(() => recipes.id, { onDelete: 'cascade' }),
     position: integer('position').notNull(),
+    // Ingredient and instruction headings are independent. Labels on retained
+    // rows survive soft deletion without a separate restore path.
+    section: text('section'),
     quantityNumerator: integer('quantity_numerator'),
     quantityDenominator: integer('quantity_denominator'),
     unitCode: text('unit_code'),
@@ -195,6 +198,7 @@ export const recipeIngredients = pgTable(
   },
   (table) => [
     check('recipe_ingredients_position_nonneg', sql`${table.position} >= 0`),
+    check('recipe_ingredients_section_trimmed', sql`${table.section} is null or (${table.section} <> '' and ${table.section} !~ '^[[:space:]]|[[:space:]]$')`),
     check(
       'recipe_ingredients_quantity_paired',
       sql`(${table.quantityNumerator} is null and ${table.quantityDenominator} is null) or (${table.quantityNumerator} > 0 and ${table.quantityDenominator} > 0)`,
@@ -215,10 +219,12 @@ export const recipeInstructions = pgTable(
       .notNull()
       .references(() => recipes.id, { onDelete: 'cascade' }),
     position: integer('position').notNull(),
+    section: text('section'),
     body: text('body').notNull(),
   },
   (table) => [
     check('recipe_instructions_position_nonneg', sql`${table.position} >= 0`),
+    check('recipe_instructions_section_trimmed', sql`${table.section} is null or (${table.section} <> '' and ${table.section} !~ '^[[:space:]]|[[:space:]]$')`),
     uniqueIndex('recipe_instructions_recipe_position_idx').on(table.recipeId, table.position),
   ],
 );

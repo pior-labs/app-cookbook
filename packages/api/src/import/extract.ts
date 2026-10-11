@@ -13,6 +13,9 @@ const RECIPE_FIELDS = [
   'cookTime',
   'totalTime',
 ] as const;
+// Keep the nested instruction payload intact: HowToSection names and ordered
+// itemListElement children are source evidence, not disposable formatting.
+// Likewise, visible heading lines remain separate from ingredient text below.
 export function extractRecipePage(html: string): {
   metadata: unknown[];
   text: string;

@@ -6,6 +6,8 @@ import {
   type RecipeIngredient,
 } from '@cookbook/domain';
 import { Check } from 'lucide-react';
+import { Fragment } from 'react';
+import { SectionLabel } from './SectionLabel.js';
 import { cn } from '@/lib/utils';
 import { focusRing } from '@/components/ui';
 
@@ -59,7 +61,9 @@ export function IngredientList({
 }: IngredientListProps) {
   return (
     <ul className="m-0 flex list-none flex-col p-0">
-      {ingredients.map((ingredient) => {
+      {ingredients.map((ingredient, index) => {
+        const heading = ingredient.section && ingredient.section !== ingredients[index - 1]?.section
+          ? <SectionLabel name={ingredient.section} /> : null;
         const quantity = scaledQuantity(ingredient, baseServings, servings);
         const amount = quantity ? formatQuantity(quantity) : null;
         const unit = unitText(ingredient, quantity);
@@ -100,6 +104,8 @@ export function IngredientList({
 
         if (!checkable) {
           return (
+            <Fragment key={ingredient.id}>
+            {heading}
             <li
               className="flex items-baseline gap-4 border-b border-dashed border-ink/10 py-2.5 last:border-b-0"
               key={ingredient.id}
@@ -107,10 +113,13 @@ export function IngredientList({
               {amountCell}
               {nameCell}
             </li>
+            </Fragment>
           );
         }
 
         return (
+          <Fragment key={ingredient.id}>
+          {heading}
           <li className="border-b border-dashed border-ink/10 last:border-b-0" key={ingredient.id}>
             <button
               type="button"
@@ -137,6 +146,7 @@ export function IngredientList({
               {nameCell}
             </button>
           </li>
+          </Fragment>
         );
       })}
     </ul>

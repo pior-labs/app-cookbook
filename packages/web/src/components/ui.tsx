@@ -26,8 +26,10 @@ const VARIANTS: Record<ButtonVariant, string> = {
   primary:
     'border-ink/10 bg-ink text-cream shadow-[var(--cb-action-shadow)] hover:bg-[var(--cb-action-hover-bg)] hover:-translate-y-px hover:shadow-[var(--cb-action-shadow-hover)] motion-reduce:hover:translate-y-0',
   ghost:
-    'border-ink/12 bg-frost/55 text-ink backdrop-blur-md hover:bg-frost/85 hover:-translate-y-px motion-reduce:hover:translate-y-0',
-  quiet: 'border-transparent bg-transparent text-ink-2 hover:bg-ink/5 hover:text-ink',
+    'border-frost/80 bg-[rgba(var(--surface-rgb),0.92)] text-ink shadow-[var(--cb-control-shadow)] backdrop-blur-md hover:bg-frost hover:-translate-y-px motion-reduce:hover:translate-y-0',
+  // Quiet is lower emphasis, not invisible: a light resting surface still
+  // identifies alternatives and cancellation as actions without needing hover.
+  quiet: 'border-transparent bg-frost/65 text-ink-2 shadow-[var(--cb-control-shadow)] hover:bg-frost/90 hover:text-ink',
   // Reserved for the one irreversible action in the app, so it is the only
   // control that looks like one.
   danger:
@@ -247,20 +249,22 @@ export function OverflowMenu({
 
 // ---- fields -----------------------------------------------------------
 
-// Fields stay near-opaque where the chrome is glass: a recipe is written and
-// read while cooking, and text over moving colour is not.
+// Light fields lift off glass panels and shaded recipe sheets. Their fill stays
+// near-opaque so moving colour cannot interfere with writing, and the resting
+// boundary comes from the surface and soft depth, not a grey outline. Only
+// focus and errors draw a coloured border, without changing the control's size.
 const CONTROL_BASE =
-  'w-full min-h-11 rounded-2xl border border-frost/80 bg-[rgba(var(--surface-rgb),0.92)] px-4 py-2.5 text-[15px] text-ink ' +
-  'shadow-[inset_0_0_0_1px_rgba(var(--frost-rgb),0.5)] transition-[border-color,box-shadow] duration-200 ' +
-  'placeholder:text-ink-3 focus:outline-none focus:border-accent/45 focus:shadow-[var(--cb-focus-shadow)] ' +
-  'aria-[invalid=true]:border-[var(--cb-danger-border)] disabled:opacity-60';
+  'w-full min-h-11 rounded-full border border-transparent bg-[rgba(var(--surface-rgb),0.96)] px-4 py-2.5 text-[15px] text-ink ' +
+  'shadow-[var(--cb-control-shadow)] transition-[background-color,border-color,box-shadow] duration-200 ' +
+  'placeholder:text-ink-3 hover:bg-frost focus:outline-none focus:border-accent focus:shadow-[var(--cb-focus-shadow)] ' +
+  'aria-[invalid=true]:border-destructive disabled:opacity-60';
 
 export function Input({ className, ...rest }: InputHTMLAttributes<HTMLInputElement>) {
   return <input className={cn(CONTROL_BASE, className)} {...rest} />;
 }
 
 export function Textarea({ className, ...rest }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return <textarea className={cn(CONTROL_BASE, 'min-h-24 resize-y leading-relaxed', className)} {...rest} />;
+  return <textarea className={cn(CONTROL_BASE, 'min-h-24 resize-y rounded-2xl leading-relaxed', className)} {...rest} />;
 }
 
 export function Select({ className, children, ...rest }: SelectHTMLAttributes<HTMLSelectElement>) {
