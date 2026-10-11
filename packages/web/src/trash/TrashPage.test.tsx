@@ -259,7 +259,8 @@ describe('deleting from recipe detail', () => {
 
     renderDetail();
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Move to Trash' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'More recipe actions' }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Move to Trash' }));
     expect(screen.getByText(/You can restore it from there/)).toBeInTheDocument();
 
     await userEvent.click(screen.getAllByRole('button', { name: 'Move to Trash' })[0]);
@@ -287,7 +288,8 @@ describe('deleting from recipe detail', () => {
 
     renderDetail();
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Move to Trash' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'More recipe actions' }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Move to Trash' }));
     await userEvent.click(screen.getByRole('button', { name: 'Keep it' }));
 
     expect(screen.queryByText(/You can restore it from there/)).toBeNull();

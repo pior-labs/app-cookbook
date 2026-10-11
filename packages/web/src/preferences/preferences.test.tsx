@@ -134,6 +134,26 @@ beforeEach(() => {
 });
 
 describe('favoriting from recipe detail', () => {
+  it('keeps the photo heart and summary rating synchronized', async () => {
+    const user = userEvent.setup();
+    mockApi((call) => {
+      if (call.method === 'GET' && call.path === '/api/recipes/12') return jsonResponse({ ...RECIPE, hasImage: true, image: {
+        cardUrl: '/api/recipes/12/photo/card', detailUrl: '/api/recipes/12/photo/detail',
+        cardWidth: 400, cardHeight: 300, detailWidth: 800, detailHeight: 600,
+      } });
+      if (call.method === 'PUT') return jsonResponse({
+        userState: { favorite: true, rating: call.path.endsWith('/rating') ? 4 : null },
+        rating: call.path.endsWith('/rating') ? { average: 4, count: 1 } : { average: null, count: 0 },
+      });
+      return undefined;
+    });
+    renderDetail();
+    await user.click(await screen.findByRole('button', { name: 'Add Weeknight Chili to your favorites' }));
+    await user.click(screen.getByRole('radio', { name: '4 stars' }));
+    expect(await screen.findByText('4.0 average from 1 rating')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Remove Weeknight Chili from your favorites' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
   it('flips immediately and sends the change', async () => {
     const calls = mockApi((call) =>
       call.method === 'PUT' && call.path.endsWith('/favorite')
