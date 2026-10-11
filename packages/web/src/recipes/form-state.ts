@@ -76,7 +76,62 @@ export function emptyInstruction(): InstructionDraft {
   return { key: nextKey('step'), body: '' };
 }
 
+export function isBlankIngredient(row: IngredientDraft): boolean {
+  return !row.isSection && row.originalText == null &&
+    [row.name, row.quantity, row.unit, row.unitText, row.preparation].every(value => value === '');
+}
+
+export function isBlankInstruction(row: InstructionDraft): boolean {
+  return !row.isSection && row.body === '';
+}
+
 type SectionDraft = { key: string; isSection?: boolean; section?: string | null };
+
+export interface DraftGroup<T> {
+  key: string;
+  heading: T | null;
+  headingIndex: number | null;
+  start: number;
+  end: number;
+  items: { row: T; index: number }[];
+}
+
+// The editor shows containment, while keeping the flat draft as the source of
+// truth for validation paths and item arrows. Group indices always point into
+// that original array, so inserting in an earlier section cannot append into
+// whichever section happens to be last on the page.
+export function draftGroups<T extends SectionDraft>(rows: T[]): DraftGroup<T>[] {
+  const groups: DraftGroup<T>[] = [{
+    key: 'main', heading: null, headingIndex: null, start: 0, end: rows.length, items: [],
+  }];
+  for (const [index, row] of rows.entries()) {
+    if (row.isSection) {
+      groups[groups.length - 1].end = index;
+      groups.push({ key: row.key, heading: row, headingIndex: index, start: index, end: rows.length, items: [] });
+    } else {
+      groups[groups.length - 1].items.push({ row, index });
+    }
+  }
+  return groups;
+}
+
+// A section container moves as one unit. Moving only its boundary would change
+// membership without moving the visible group the cook meant to reorder. The
+// unheaded prefix never moves below headings because it would not be saveable.
+export function moveSection<T extends SectionDraft>(rows: T[], headingIndex: number, direction: -1 | 1): T[] {
+  const groups = draftGroups(rows).filter(group => group.heading != null);
+  const index = groups.findIndex(group => group.headingIndex === headingIndex);
+  const target = index + direction;
+  if (index < 0 || target < 0 || target >= groups.length) return rows;
+  const first = groups[Math.min(index, target)];
+  const second = groups[Math.max(index, target)];
+  return [
+    ...rows.slice(0, first.start),
+    ...rows.slice(second.start, second.end),
+    ...rows.slice(first.start, first.end),
+    ...rows.slice(second.end),
+  ];
+}
 
 // Headings are explicit editor rows so they can be renamed, removed or crossed
 // with the same keyboard/touch reorder controls as items. Only items go over

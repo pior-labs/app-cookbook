@@ -14,23 +14,23 @@ async function resolvedColor(page: Page, color: string): Promise<string> {
   }, color);
 }
 
-async function expectAlignedRowActions(page: Page): Promise<void> {
+async function expectGroupedRowActions(page: Page): Promise<void> {
   for (const [legend, addLabel] of [['Ingredients', 'Add ingredient'], ['Instructions', 'Add step']]) {
     const group = page.getByRole('group', { name: new RegExp(`^${legend}`) });
-    const add = await group.getByRole('button', { name: addLabel, exact: true }).boundingBox();
+    const main = group.getByRole('group', { name: legend === 'Ingredients' ? 'Main ingredients' : 'Main steps', exact: true });
+    const container = await main.boundingBox();
+    const add = await main.getByRole('button', { name: addLabel, exact: true }).boundingBox();
     const section = await group.getByRole('button', { name: 'Add section', exact: true }).boundingBox();
+    expect(container).not.toBeNull();
     expect(add).not.toBeNull();
     expect(section).not.toBeNull();
     expect(section!.height).toBeCloseTo(add!.height, 1);
-    if (section!.x > add!.x) {
-      expect(section!.y).toBeCloseTo(add!.y, 1);
-      expect(section!.x).toBeGreaterThanOrEqual(add!.x + add!.width);
-    } else {
-      // A narrow viewport may wrap the pair; it must never overlap them.
-      expect(section!.y).toBeGreaterThanOrEqual(add!.y + add!.height);
-      expect(section!.x).toBeCloseTo(add!.x, 1);
-      expect(section!.width).toBeCloseTo(add!.width, 1);
-    }
+    // The local action belongs inside Main; creating another group belongs
+    // outside it. Checking containment avoids ambiguous paired footer buttons.
+    expect(add!.x).toBeGreaterThanOrEqual(container!.x);
+    expect(add!.x + add!.width).toBeLessThanOrEqual(container!.x + container!.width);
+    expect(add!.y + add!.height).toBeLessThanOrEqual(container!.y + container!.height);
+    expect(section!.y).toBeGreaterThanOrEqual(container!.y + container!.height);
   }
 }
 
@@ -53,7 +53,9 @@ async function expectSourceActionLayout(page: Page): Promise<void> {
 for (const theme of ['bloom', 'slate']) {
   test(`fields keep theme-derived boundaries and distinct states in ${theme}`, async ({ page }) => {
     await page.addInitScript((value) => localStorage.setItem('pior-theme', value), theme);
-    await page.route('**/api/**', (route) => {
+    // Vite also serves /src/api/*.ts modules. A substring glob would replace
+    // those modules with JSON and leave a blank page before any assertion runs.
+    await page.route(url => url.pathname.startsWith('/api/'), (route) => {
       const path = new URL(route.request().url()).pathname;
       const json = path === '/api/auth/get-session'
         ? { user: { id: 1, name: 'Test cook', email: 'cook@example.test' } }
@@ -102,7 +104,7 @@ for (const theme of ['bloom', 'slate']) {
     const error = await resolvedColor(page, 'var(--destructive)');
 
     await expect(page.locator('section').first()).toHaveCSS('background-color', sheet);
-    await expectAlignedRowActions(page);
+    await expectGroupedRowActions(page);
     await page.mouse.move(0, 0);
     for (const control of [input, area, select]) {
       await expect(control).toBeVisible();
@@ -128,7 +130,7 @@ for (const theme of ['bloom', 'slate']) {
     await expect(input).toHaveCSS('border-top-color', error);
 
     await page.setViewportSize({ width: 390, height: 844 });
-    await expectAlignedRowActions(page);
+    await expectGroupedRowActions(page);
     await expect(area).toBeVisible();
     await expect(area).toHaveCSS('border-top-color', idle);
     await expect(area).toHaveCSS('background-color', fill);

@@ -18,7 +18,8 @@ for (const theme of ['bloom', 'slate']) {
       await page.setViewportSize({ width, height: 1100 });
       await page.emulateMedia({ reducedMotion: 'reduce' });
       await page.addInitScript((value) => localStorage.setItem('pior-theme', value), theme);
-      await page.route('**/api/**', (route) => {
+      // Match application requests, not Vite's /src/api/*.ts module imports.
+      await page.route(url => url.pathname.startsWith('/api/'), (route) => {
         const request = route.request();
         const path = new URL(request.url()).pathname;
         if (request.method() === 'PUT') {

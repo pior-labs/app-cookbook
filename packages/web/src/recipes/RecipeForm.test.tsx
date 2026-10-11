@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import type { ErrorFields } from '../api/client.js';
 import { RecipeForm } from './RecipeForm.jsx';
-import { convertTimeUnit, emptyDraft, emptyIngredient, emptyInstruction, expandSections, validateCreate, validateUpdate, type RecipeDraft } from './form-state.js';
+import { convertTimeUnit, draftGroups, emptyDraft, emptyIngredient, emptyInstruction, expandSections, moveSection, validateCreate, validateUpdate, type RecipeDraft } from './form-state.js';
 
 // Recipe form validation, ordered-row editing, and accessible labelling.
 
@@ -47,7 +47,7 @@ function Harness({
 }
 
 describe('recipe form', () => {
-  it('adds independent headings, renames and moves them, crosses boundaries and removes only the heading', async () => {
+  it('creates contained sections with a first item, inserts locally and keeps the lists independent', async () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn();
     const draft = emptyDraft();
@@ -57,38 +57,112 @@ describe('recipe form', () => {
     const ingredients = within(screen.getByRole('group', { name: /Ingredients/ }));
     const steps = within(screen.getByRole('group', { name: /Instructions/ }));
     await user.click(ingredients.getByRole('button', { name: 'Add section' }));
+    expect(ingredients.getByRole('textbox', { name: 'Ingredient section 1' })).toHaveFocus();
     await user.type(ingredients.getByRole('textbox', { name: 'Ingredient section 1' }), 'Sauce');
-    await user.click(ingredients.getByRole('button', { name: 'Add ingredient' }));
-    await user.type(ingredients.getAllByRole('textbox', { name: 'Ingredient' })[1], 'Oil');
+    const main = within(ingredients.getByRole('group', { name: 'Main ingredients' }));
+    const sauce = within(ingredients.getByRole('group', { name: 'Sauce' }));
+    expect(main.getByRole('textbox', { name: 'Ingredient' })).toHaveValue('Flour');
+    await user.type(sauce.getByRole('textbox', { name: 'Ingredient' }), 'Oil');
+    await user.click(main.getByRole('button', { name: 'Add ingredient' }));
+    expect(main.getAllByRole('textbox', { name: 'Ingredient' })[1]).toHaveFocus();
+    await user.type(main.getAllByRole('textbox', { name: 'Ingredient' })[1], 'Salt');
+    expect(sauce.getAllByRole('textbox', { name: 'Ingredient' })).toHaveLength(1);
+    await user.click(sauce.getByRole('button', { name: 'Add ingredient' }));
+    await user.type(sauce.getAllByRole('textbox', { name: 'Ingredient' })[1], 'Butter');
     await user.click(steps.getByRole('button', { name: 'Add section' }));
+    expect(steps.getByRole('textbox', { name: 'Step section 1' })).toHaveFocus();
     await user.type(steps.getByRole('textbox', { name: 'Step section 1' }), 'Bake');
-    await user.click(steps.getByRole('button', { name: 'Add step' }));
     await user.type(steps.getByRole('textbox', { name: 'Step 2' }), 'Bake.');
+    await user.click(within(steps.getByRole('group', { name: 'Main steps' })).getByRole('button', { name: 'Add step' }));
+    await user.type(steps.getByRole('textbox', { name: 'Step 2' }), 'Rest.');
+    expect(steps.getByRole('textbox', { name: 'Step 3' })).toHaveValue('Bake.');
     await user.click(screen.getByRole('button', { name: 'Save recipe' }));
     expect(validateCreate(onSubmit.mock.lastCall![0])).toMatchObject({ ok: true, input: {
-      ingredients: [{ name: 'Flour', section: null }, { name: 'Oil', section: 'Sauce' }],
-      instructions: [{ body: 'Mix.', section: null }, { body: 'Bake.', section: 'Bake' }],
+      ingredients: [{ name: 'Flour', section: null }, { name: 'Salt', section: null }, { name: 'Oil', section: 'Sauce' }, { name: 'Butter', section: 'Sauce' }],
+      instructions: [{ body: 'Mix.', section: null }, { body: 'Rest.', section: null }, { body: 'Bake.', section: 'Bake' }],
     } });
     await user.clear(ingredients.getByRole('textbox', { name: 'Ingredient section 1' }));
     await user.type(ingredients.getByRole('textbox', { name: 'Ingredient section 1' }), 'Dressing');
-    await user.click(ingredients.getByRole('button', { name: 'Move ingredient section 1 up' }));
+    await user.click(ingredients.getByRole('button', { name: 'Move ingredient 3 up' }));
+    expect(ingredients.getByRole('button', { name: 'Move ingredient 3 up' })).toHaveFocus();
     await user.click(screen.getByRole('button', { name: 'Save recipe' }));
     expect(validateCreate(onSubmit.mock.lastCall![0])).toMatchObject({ ok: true, input: {
-      ingredients: [{ name: 'Flour', section: 'Dressing' }, { name: 'Oil', section: 'Dressing' }],
+      ingredients: [{ name: 'Flour', section: null }, { name: 'Salt', section: null }, { name: 'Oil', section: null }, { name: 'Butter', section: 'Dressing' }],
     } });
-    // Moving an item past a boundary changes its section, not just its order
-    // within the old section. Heading removal never removes its ingredient.
-    await user.click(ingredients.getByRole('button', { name: 'Move ingredient 1 up' }));
+    await user.click(ingredients.getByRole('button', { name: 'Ingredient section 1 options' }));
+    await user.click(ingredients.getByRole('menuitem', { name: /Remove heading.*Items join Main ingredients/ }));
     await user.click(screen.getByRole('button', { name: 'Save recipe' }));
     expect(validateCreate(onSubmit.mock.lastCall![0])).toMatchObject({ ok: true, input: {
-      ingredients: [{ name: 'Flour', section: null }, { name: 'Oil', section: 'Dressing' }],
+      ingredients: [{ name: 'Flour', section: null }, { name: 'Salt', section: null }, { name: 'Oil', section: null }, { name: 'Butter', section: null }],
+      instructions: [{ body: 'Mix.', section: null }, { body: 'Rest.', section: null }, { body: 'Bake.', section: 'Bake' }],
     } });
-    await user.click(ingredients.getByRole('button', { name: 'Remove ingredient section 1' }));
+  });
+  it('names existing main items without creating an extra blank item', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    render(<Harness onSubmit={onSubmit} />);
+    const ingredients = within(screen.getByRole('group', { name: /Ingredients/ }));
+    await user.type(ingredients.getByRole('textbox', { name: 'Ingredient' }), 'Flour');
+    await user.click(ingredients.getByRole('button', { name: 'Name this group' }));
+    const heading = ingredients.getByRole('textbox', { name: 'Ingredient section 1' });
+    expect(heading).toHaveFocus();
+    await user.type(heading, 'Dry');
+    expect(ingredients.queryByRole('group', { name: 'Main ingredients' })).not.toBeInTheDocument();
+    expect(within(ingredients.getByRole('group', { name: 'Dry' })).getByRole('textbox', { name: 'Ingredient' })).toHaveValue('Flour');
+    await user.click(screen.getByRole('button', { name: 'Save recipe' }));
+    expect(onSubmit.mock.lastCall![0].ingredients.filter((row: { isSection?: boolean }) => !row.isSection)).toHaveLength(1);
+  });
+  it('starts a first named section without leaving the untouched main placeholder behind', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    render(<Harness onSubmit={onSubmit} />);
+    const ingredients = within(screen.getByRole('group', { name: /Ingredients/ }));
+    await user.click(ingredients.getByRole('button', { name: 'Add section' }));
+    await user.type(ingredients.getByRole('textbox', { name: 'Ingredient section 1' }), 'Dry');
+    expect(ingredients.queryByRole('group', { name: 'Main ingredients' })).not.toBeInTheDocument();
+    expect(ingredients.getAllByRole('textbox', { name: 'Ingredient' })).toHaveLength(1);
+    await user.type(ingredients.getByRole('textbox', { name: 'Ingredient' }), 'Flour');
+    await user.type(screen.getByRole('textbox', { name: 'Recipe name' }), 'Bread');
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Category' }), '1');
+    await user.type(screen.getByRole('textbox', { name: 'Step 1' }), 'Bake.');
     await user.click(screen.getByRole('button', { name: 'Save recipe' }));
     expect(validateCreate(onSubmit.mock.lastCall![0])).toMatchObject({ ok: true, input: {
-      ingredients: [{ name: 'Flour', section: null }, { name: 'Oil', section: null }],
-      instructions: [{ body: 'Mix.', section: null }, { body: 'Bake.', section: 'Bake' }],
+      ingredients: [{ name: 'Flour', section: 'Dry' }],
     } });
+  });
+  it('moves whole named sections and removes a heading without removing its contents', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    const draft = emptyDraft();
+    draft.name = 'Bread'; draft.categoryId = '1'; draft.instructions[0].body = 'Mix.';
+    draft.ingredients = expandSections([
+      { ...emptyIngredient(), name: 'Salt' },
+      { ...emptyIngredient(), name: 'Flour', section: 'Dry' },
+      { ...emptyIngredient(), name: 'Water', section: 'Wet' },
+    ], emptyIngredient);
+    render(<Harness initial={draft} onSubmit={onSubmit} />);
+    const ingredients = within(screen.getByRole('group', { name: /Ingredients/ }));
+    await user.click(ingredients.getByRole('button', { name: 'Ingredient section 2 options' }));
+    await user.click(ingredients.getByRole('menuitem', { name: 'Move section up' }));
+    expect(ingredients.getByRole('textbox', { name: 'Ingredient section 1' })).toHaveValue('Wet');
+    expect(within(ingredients.getByRole('group', { name: 'Wet' })).getByRole('textbox', { name: 'Ingredient' })).toHaveValue('Water');
+    expect(within(ingredients.getByRole('group', { name: 'Main ingredients' })).getByRole('textbox', { name: 'Ingredient' })).toHaveValue('Salt');
+    await user.click(ingredients.getByRole('button', { name: 'Ingredient section 2 options' }));
+    await user.click(ingredients.getByRole('menuitem', { name: /Remove heading.*Items join Wet/ }));
+    await user.click(screen.getByRole('button', { name: 'Save recipe' }));
+    expect(validateCreate(onSubmit.mock.lastCall![0])).toMatchObject({ ok: true, input: {
+      ingredients: [{ name: 'Salt', section: null }, { name: 'Water', section: 'Wet' }, { name: 'Flour', section: 'Wet' }],
+    } });
+  });
+  it('keeps the section name labelled and its error announced beside the new toolbar', () => {
+    const draft = emptyDraft();
+    draft.ingredients = [{ ...emptyIngredient(), isSection: true, section: '' }, emptyIngredient()];
+    render(<Harness initial={draft} fields={{ 'ingredients.0.section': ['Enter a section name.'] }} />);
+    const input = screen.getByRole('textbox', { name: 'Ingredient section 1' });
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+    expect(input).toHaveAccessibleDescription('Enter a section name.');
+    expect(screen.getByRole('alert')).toHaveTextContent('Enter a section name.');
+    expect(screen.getByRole('button', { name: 'Ingredient section 1 options' })).toBeInTheDocument();
   });
   it('labels every required field for assistive technology', () => {
     render(<Harness />);
@@ -275,6 +349,22 @@ describe('recipe form', () => {
 });
 
 describe('draft validation', () => {
+  it('projects groups with original indices, and never moves main items below a heading', () => {
+    const rows = expandSections([
+      { ...emptyIngredient(), name: 'Salt' },
+      { ...emptyIngredient(), name: 'Flour', section: 'Dry' },
+      { ...emptyIngredient(), name: 'Oil', section: 'Wet' },
+      { ...emptyIngredient(), name: 'Water', section: 'Wet' },
+    ], emptyIngredient);
+    expect(draftGroups(rows).map(group => [group.start, group.end, group.items.map(item => item.index)])).toEqual([
+      [0, 1, [0]], [1, 3, [2]], [3, 6, [4, 5]],
+    ]);
+    expect(moveSection(rows, 1, -1)).toBe(rows);
+    expect(moveSection(rows, 3, 1)).toBe(rows);
+    const moved = moveSection(rows, 1, 1);
+    expect(moved.map(row => row.isSection ? row.section : row.name)).toEqual(['Salt', 'Wet', 'Oil', 'Water', 'Dry', 'Flour']);
+    expect(moveSection(moved, 4, -1)).toEqual(rows);
+  });
   function validDraft() {
     const draft = emptyDraft();
     draft.name = 'Bread';
