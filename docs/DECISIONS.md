@@ -489,3 +489,26 @@ them for now. Linking reusable component recipes is deliberately not part of
 this work. It is a separate product decision, with unresolved grocery, yield,
 cooking-navigation and deletion semantics recorded in `docs/IDEAS.md`, not a
 reason to give headings an identity today.
+
+
+## 0014 - Opt-in private HTTP MCP with a configured-member credential
+
+**Accepted 2026-11-01.**
+
+ChatGPT desktop needs an HTTP connection reachable from the household network.
+This changes ADR 0006's transport choice while retaining its configured-member
+identity boundary and direct use of application services. The existing SSH/stdio
+entry point remains available.
+
+A new OAuth flow through service-auth was considered and deferred. This endpoint
+serves one configured member, whose identity still originates from central SSO;
+it does not let arbitrary signed-in users select that identity. A random bearer
+credential grants access as that member, including the approved write tools.
+A second member needs a separate credential and server instance. If a shared
+multi-user endpoint is needed, OAuth identity must replace this arrangement.
+
+Private HTTP does not require public exposure: the existing platform Caddy,
+split DNS and LAN/Tailscale access already provide trusted HTTPS. A public tunnel
+or extra app-level proxy would add exposure without meeting an additional need.
+This is for a desktop connection that makes requests from the local computer;
+a hosted ChatGPT connection has a different network boundary.

@@ -1,0 +1,22 @@
+# Opt in alongside docker-compose.yml and docker-compose.production.yml.
+# Caddy in platform-deploy routes /mcp directly to this private listener.
+services:
+  mcp:
+    command: ["node", "packages/mcp-server/dist/http-index.js"]
+    # Import/grocery provider work can take 60 seconds. Docker must leave time
+    # for the listener's bounded drain before killing the process.
+    stop_grace_period: 90s
+    environment:
+      MCP_HTTP_PORT: 3001
+      MCP_HTTP_PUBLIC_URL: ${MCP_HTTP_PUBLIC_URL:-https://cookbook.szarans.ca}
+      MCP_HTTP_TOKEN_FILE: /run/secrets/mcp_http_token
+    volumes:
+      - ${PLATFORM_MCP_HTTP_TOKEN_FILE:?Set PLATFORM_MCP_HTTP_TOKEN_FILE to the server-managed MCP credential file}:/run/secrets/mcp_http_token:ro
+    expose:
+      - "3001"
+    networks:
+      pior_edge:
+        aliases:
+          - ${APP_SLUG:-cookbook}-mcp
+    healthcheck:
+      test: ["CMD-SHELL", "node packages/mcp-server/dist/healthcheck.js && wget -qO- http://127.0.0.1:3001/health"]

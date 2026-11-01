@@ -1,12 +1,10 @@
 import { closeDatabase } from '@cookbook/api/db';
-import { resolveUserByEmail } from '@cookbook/api/services';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { mcpEnv } from './env.js';
-import { describeCause } from './errors.js';
 import { track, whenIdle } from './inflight.js';
 import { createLogger } from './logger.js';
 import { createServer } from './server.js';
-import type { ActingUser } from './tools/helpers.js';
+import { resolveActingUser } from './resolve-user.js';
 
 // The Cookbook MCP server (ADRs 0006/0008): recipe reads and planning over stdio, acting as one
 // configured household member.
@@ -22,29 +20,7 @@ async function main() {
   const env = mcpEnv();
   const logger = createLogger(env.logLevel);
 
-  // Identity is resolved once, before the transport is connected. A server that
-  // cannot say who it is acting as must not answer a single per-user question,
-  // so this failing is fatal rather than deferred to the first tool call.
-  //
-  // This is also the first thing that touches the database, so it is where an
-  // unreachable server shows up. Postgres reports that as a failed `select`,
-  // which reads like a bug in this query rather than a connection problem -
-  // hence the distinction below.
-  let resolved;
-  try {
-    resolved = await resolveUserByEmail(env.userEmail);
-  } catch (error) {
-    throw new Error(`Could not reach the Cookbook database. ${describeCause(error)}`);
-  }
-
-  if (!resolved) {
-    throw new Error(
-      `COOKBOOK_MCP_USER_EMAIL is set to "${env.userEmail}", which is not a Cookbook user. ` +
-        'Household members are created by signing in through central SSO; sign in once in the browser, then start this server again.',
-    );
-  }
-
-  const user: ActingUser = { id: resolved.id, name: resolved.name, email: resolved.email };
+  const user = await resolveActingUser(env.userEmail);
   const { server, tools } = createServer(user, logger);
 
   let shuttingDown = false;

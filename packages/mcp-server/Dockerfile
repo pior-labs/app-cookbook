@@ -30,9 +30,6 @@ COPY --from=build /app/packages/domain/dist packages/domain/dist
 COPY --from=build /app/packages/api/dist packages/api/dist
 COPY --from=build /app/packages/mcp-server/dist packages/mcp-server/dist
 
-# No EXPOSE and no HEALTHCHECK: this is a stdio server, not a listening service.
-# It is started per client session (`docker compose run --rm -T mcp`), speaks
-# JSON-RPC on stdin and stdout, and exits when its client disconnects. A health
-# probe would have nothing to probe, and anything it printed would corrupt the
-# protocol stream.
+# The image defaults to a per-client stdio process. The opt-in HTTP Compose
+# override runs http-index.js and supplies the private listener's health probe.
 CMD ["node", "packages/mcp-server/dist/index.js"]

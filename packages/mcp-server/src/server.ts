@@ -9,7 +9,7 @@ import { registerPlanningTools } from './tools/planning.js';
 
 // Building the server is separate from starting it so a test can construct one
 // and speak to it over an in-memory transport without the process bootstrapping
-// itself, reading configuration, or connecting stdio.
+// itself, reading configuration, or opening a production transport.
 export function createServer(
   user: ActingUser,
   logger: Logger,

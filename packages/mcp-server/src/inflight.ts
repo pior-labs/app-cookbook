@@ -9,6 +9,8 @@
 //
 // Both halves count. A handler returning is not the same as its answer having
 // been written, so `index.ts` wraps the transport's `send` with this too.
+// HTTP counts each response until its socket closes, so graceful shutdown
+// drains replies even after the tool handler has returned.
 
 let active = 0;
 let idleWaiters: (() => void)[] = [];

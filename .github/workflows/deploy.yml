@@ -14,6 +14,9 @@ jobs:
   deploy:
     runs-on: [self-hosted, linux, prod]
     env:
+      # Opt in only after the host credential is provisioned and the platform
+      # Caddy route is ready. The default deployment keeps stdio-only access.
+      COMPOSE_FILE: ${{ vars.COOKBOOK_MCP_HTTP_ENABLED == 'true' && 'docker-compose.yml:docker-compose.production.yml:docker-compose.mcp-http.yml' || 'docker-compose.yml:docker-compose.production.yml' }}
       DEPLOY_DIR: ${{ vars.DEPLOY_DIR }}
       APP_ENV: ${{ secrets.APP_ENV }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -34,13 +37,13 @@ jobs:
         run: printf '%s\n' "$APP_ENV" > "$DEPLOY_DIR/.env"
 
       - name: Build images
-        run: cd "$DEPLOY_DIR" && docker compose -f docker-compose.yml -f docker-compose.production.yml build
+        run: cd "$DEPLOY_DIR" && docker compose build
 
       - name: Run database migrations
-        run: cd "$DEPLOY_DIR" && docker compose -f docker-compose.yml -f docker-compose.production.yml run --rm api node packages/api/dist/db/migrate.js
+        run: cd "$DEPLOY_DIR" && docker compose run --rm api node packages/api/dist/db/migrate.js
 
       - name: Start application
-        run: cd "$DEPLOY_DIR" && docker compose -f docker-compose.yml -f docker-compose.production.yml up -d --remove-orphans
+        run: cd "$DEPLOY_DIR" && docker compose up -d --remove-orphans
 
       - name: Show service health
-        run: cd "$DEPLOY_DIR" && docker compose -f docker-compose.yml -f docker-compose.production.yml ps
+        run: cd "$DEPLOY_DIR" && docker compose ps

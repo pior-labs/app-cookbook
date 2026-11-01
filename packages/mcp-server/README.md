@@ -43,7 +43,16 @@ Logs go to **stderr**. stdout carries the MCP protocol and nothing else.
 
 ## Running it
 
-### Against the deployed cookbook
+### Private HTTP for ChatGPT desktop
+
+The opt-in HTTP transport reuses the configured member and the same tools.
+Provisioning, the Compose override, platform Caddy routing, credential rotation,
+and desktop setup are in [operations](../../docs/OPERATIONS.md#8-private-http-mcp-for-chatgpt-desktop).
+ADR 0014 records why this uses a member-specific credential rather than a new
+OAuth flow. It needs private LAN/Tailscale reachability to the platform HTTPS
+endpoint.
+
+### Against the deployed cookbook over SSH
 
 The server runs on the application host as a long-running container, the same
 way `finlens-mcp-server` does. Clients `exec` into it over SSH.

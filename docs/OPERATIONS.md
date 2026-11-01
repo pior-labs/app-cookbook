@@ -446,3 +446,71 @@ page photo uses the existing recipe-image volume and backup procedure. MCP
 URL/text previews omit photo bytes; automatic page-photo attachment is in the web
 review flow. Use a clear screenshot containing one recipe when a site blocks the
 fetcher. The fetcher deliberately does not bypass logins or browser challenges.
+
+
+## 8. Private HTTP MCP for ChatGPT desktop
+
+Use the desktop app's direct Streamable HTTP MCP connection from a computer
+that can reach Cookbook over LAN or Tailscale. The server acts as
+`COOKBOOK_MCP_USER_EMAIL`, including all approved write tools, so provision a
+separate instance for another member. That member must already have signed in
+through central SSO. The existing SSH/stdio command remains available.
+
+On the application host, create the credential outside the deployment checkout.
+Run as the deployment administrator; make the file readable by the container's
+runtime user, without making it world-readable:
+
+```bash
+sudo install -d -m 700 /opt/docker/pior-labs/secrets/app-cookbook
+sudo sh -c 'umask 077; openssl rand -hex 32 > /opt/docker/pior-labs/secrets/app-cookbook/mcp-http-token'
+```
+
+Set these non-secret values in the production application environment (`APP_ENV`
+for Actions). Never put the credential itself in Git or the client URL:
+
+```dotenv
+MCP_HTTP_PUBLIC_URL=https://cookbook.szarans.ca
+PLATFORM_MCP_HTTP_TOKEN_FILE=/opt/docker/pior-labs/secrets/app-cookbook/mcp-http-token
+```
+
+Deploy with the HTTP override. Its health probe checks the listener, database and
+configured member, and its shutdown grace period lets tool writes finish:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.production.yml -f docker-compose.mcp-http.yml up -d --build mcp
+```
+
+For subsequent GitHub Actions deployments, set repository variable
+`COOKBOOK_MCP_HTTP_ENABLED` to `true`; otherwise the workflow intentionally uses
+the stdio-only configuration. Deploy/reload `platform-deploy`'s Cookbook Caddy
+site with its `/mcp` route to `cookbook-mcp:3001`. Do not publish port 3001 or add
+a router port forward. The existing private DNS and HTTPS certificate suffice.
+A request to `https://cookbook.szarans.ca/mcp` without a credential should return
+401; 502 means the upstream listener or edge network alias is unavailable.
+
+In ChatGPT desktop, open **Settings → MCP servers → Add server**, select
+**Streamable HTTP**, and use `https://cookbook.szarans.ca/mcp`. Supply the file's
+credential as a Bearer Authorization header using the client's private settings.
+Save and restart, then use `/mcp` to check the connection. For clients configured
+through `~/.codex/config.toml`, the equivalent is:
+
+```toml
+[mcp_servers.cookbook]
+url = "https://cookbook.szarans.ca/mcp"
+bearer_token_env_var = "COOKBOOK_MCP_TOKEN"
+```
+
+The desktop process must inherit `COOKBOOK_MCP_TOKEN`. For a GUI launch that
+doesn't inherit shell variables, set the Authorization header in private client
+configuration instead; protect that file and keep it out of source control.
+See the [official desktop MCP instructions](https://learn.chatgpt.com/docs/extend/mcp).
+This direct desktop connection depends on the computer's network access; hosted
+ChatGPT plugins do not gain access to a private LAN URL from this configuration.
+
+To rotate or revoke access, replace the credential file and recreate the MCP
+container (`up -d --force-recreate mcp`, with the same three Compose files).
+Recreation is required even for an in-place edit because credentials are loaded
+once at startup; it also refreshes a bind mount after an atomic replacement.
+Update the desktop credential, then verify that the old value returns 401.
+To disable HTTP, return to the two-file stdio deployment and unset the Actions
+variable. The Caddy route then fails closed rather than serving recipe data.

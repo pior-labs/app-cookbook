@@ -1,5 +1,8 @@
 import { afterAll, beforeEach, expect, it, vi } from 'vitest';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import type { AddressInfo } from 'node:net';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { createHttpListener } from '../src/http.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { closeDatabase } from '@cookbook/api/db';
 import type { GroceryList, MealPlan } from '@cookbook/domain';
@@ -15,7 +18,7 @@ import { createLogger } from '../src/logger.js';
 
 beforeEach(resetDatabase);
 afterAll(closeDatabase);
-it('chains MCP mutations into the same data visible to the UI, with configured-user attribution', async () => {
+it.each(['memory', 'http'])('chains MCP mutations into the UI with configured-user attribution over %s', async (mode) => {
   const user = await createUser();
   const app = createTestApp();
   const http = asUser(app, user.id);
@@ -28,10 +31,27 @@ it('chains MCP mutations into the same data visible to the UI, with configured-u
     instructions: [{ body: 'Simmer.' }],
   });
   const recipe = await response.json();
-  const { server } = createServer(user, createLogger('error'));
   const client = new Client({ name: 'planning-integration', version: '1' });
-  const [left, right] = InMemoryTransport.createLinkedPair();
-  await Promise.all([client.connect(left), server.connect(right)]);
+  let closeServer: () => Promise<void>;
+  if (mode === 'http') {
+    const publicUrl = new URL('http://127.0.0.1');
+    const token = 'integration-credential-at-least-32-characters';
+    const service = createHttpListener(user, createLogger('error'), { publicUrl, token });
+    await new Promise<void>((resolve) => service.listener.listen(0, '127.0.0.1', resolve));
+    publicUrl.port = String((service.listener.address() as AddressInfo).port);
+    const transport = new StreamableHTTPClientTransport(new URL('/mcp', publicUrl), {
+      requestInit: { headers: { Authorization: `Bearer ${token}` } },
+      // Keep protocol traffic real while provider requests below fail offline.
+      fetch: globalThis.fetch,
+    });
+    closeServer = () => service.stop();
+    await client.connect(transport);
+  } else {
+    const { server } = createServer(user, createLogger('error'));
+    const [left, right] = InMemoryTransport.createLinkedPair();
+    await Promise.all([client.connect(left), server.connect(right)]);
+    closeServer = () => server.close();
+  }
   const fetch = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'));
   async function call<T>(name: string, args: Record<string, unknown>): Promise<T> {
     const result = await client.callTool({ name, arguments: args });
@@ -122,6 +142,6 @@ it('chains MCP mutations into the same data visible to the UI, with configured-u
   } finally {
     fetch.mockRestore();
     await client.close();
-    await server.close();
+    await closeServer();
   }
 });
