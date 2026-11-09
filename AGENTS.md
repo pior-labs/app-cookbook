@@ -3,6 +3,18 @@
 This repository is the Pior Labs Cookbook, a private household recipe management
 application.
 
+## Shared PiorLabs context
+
+Before changing architecture, shared integrations, or deployment, consult the
+[PiorLabs workspace documentation](https://github.com/pior-labs/workspace/tree/main/docs).
+In the shared workspace, these documents are available under `../docs/`.
+
+Start with `architecture.md` and `conventions.md`; consult `service-catalog.md`,
+`infrastructure.md`, and `decisions/` as relevant. Follow Cookbook's local
+instructions and documentation lifecycle below, update documentation in the
+repository that owns the contract, and flag conflicts between documentation
+and implementation.
+
 ## How documentation works here
 
 **The code is the description of the application.** There is no document that
