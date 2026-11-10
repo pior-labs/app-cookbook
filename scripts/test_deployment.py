@@ -47,7 +47,7 @@ class ResolutionTests(unittest.TestCase):
         self.old_cwd = Path.cwd()
         os.chdir(self.temp.name)
         self.addCleanup(os.chdir, self.old_cwd)
-        self.environment = patch.dict(os.environ, {"GITHUB_REPOSITORY": REPOSITORY, "CI_RUN_ID": "123", "GH_TOKEN": "test-token", "GITHUB_OUTPUT": "output", "GITHUB_STEP_SUMMARY": "summary"})
+        self.environment = patch.dict(os.environ, {"GITHUB_REPOSITORY": REPOSITORY, "CI_RUN_ID": "123", "CI_RUN_ATTEMPT": "", "GH_TOKEN": "test-token", "GITHUB_OUTPUT": "output", "GITHUB_STEP_SUMMARY": "summary"})
         self.environment.start()
         self.addCleanup(self.environment.stop)
         self.run = {"workflow_id": 42, "event": "push", "head_branch": "main", "status": "completed", "conclusion": "success", "head_repository": {"full_name": REPOSITORY}, "head_sha": SHA, "run_attempt": 2}
@@ -57,7 +57,7 @@ class ResolutionTests(unittest.TestCase):
 
     def response(self, request, timeout):
         url = request.full_url
-        if url.endswith("/actions/runs/123"):
+        if url.endswith("/actions/runs/123") or url.endswith("/actions/runs/123/attempts/2"):
             value = self.run
         elif url.endswith("/actions/workflows/ci.yml"):
             value = {"id": 42}
@@ -82,7 +82,12 @@ class ResolutionTests(unittest.TestCase):
     def test_resolves_successful_run_and_writes_exact_manifest(self):
         self.resolve()
         self.assertEqual(json.loads(Path("release.json").read_text()), RELEASE)
-        self.assertEqual(Path("output").read_text(), "sha=" + SHA + "\n")
+        self.assertEqual(Path("output").read_text(), "sha=" + SHA + "\nattempt=2\n")
+
+    def test_can_select_exact_successful_attempt_for_rollback(self):
+        with patch.dict(os.environ, {"CI_RUN_ATTEMPT": "2"}):
+            self.resolve()
+        self.assertEqual(json.loads(Path("release.json").read_text())["run_attempt"], 2)
 
     def test_rejects_failed_pr_foreign_and_unfinished_runs(self):
         original = dict(self.run)
@@ -124,7 +129,7 @@ class DeploymentTests(unittest.TestCase):
         self.history.mkdir(parents=True)
         self.previous = {"sha": "d" * 40, "run_id": 100, "status": "healthy"}
         (self.history / "current.json").write_text(json.dumps(self.previous))
-        self.environment = patch.dict(os.environ, {"DEPLOY_DIR": str(self.root), "APP_ENV": "COMPOSE_PROJECT_NAME=cookbook\nSECRET=private", "GITHUB_REPOSITORY": REPOSITORY, "GITHUB_RUN_ID": "456", "GITHUB_STEP_SUMMARY": str(self.workspace / "summary"), "MCP_HTTP_ENABLED": "true", "EXPECTED_SHA": SHA, "EXPECTED_RUN_ID": "123"})
+        self.environment = patch.dict(os.environ, {"DEPLOY_DIR": str(self.root), "APP_ENV": "COMPOSE_PROJECT_NAME=cookbook\nSECRET=private", "GITHUB_REPOSITORY": REPOSITORY, "GITHUB_RUN_ID": "456", "GITHUB_STEP_SUMMARY": str(self.workspace / "summary"), "MCP_HTTP_ENABLED": "true", "EXPECTED_SHA": SHA, "EXPECTED_RUN_ID": "123", "EXPECTED_ATTEMPT": "2"})
         self.environment.start()
         self.addCleanup(self.environment.stop)
         self.old_umask = os.umask(0o022)

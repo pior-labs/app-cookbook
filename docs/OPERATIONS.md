@@ -177,7 +177,8 @@ images or installs application dependencies.
 Open **Actions -> Cookbook CI**, select a successful **push to main** run, and
 copy its numeric run ID from the URL (`.../actions/runs/<run-id>`). Open
 **Actions -> Deploy Cookbook -> Run workflow**, select `main`, and enter that
-ID in `ci_run_id`. This works for a configuration-only redeployment too; it uses
+ID in `ci_run_id`. Leave `ci_run_attempt` blank for the latest attempt, or enter
+a specific successful attempt to select its exact manifest. This works for a configuration-only redeployment too; it uses
 the current `APP_ENV` and HTTP MCP setting with the selected release's images
 and Compose configuration. Pushing to main never deploys production.
 
@@ -227,7 +228,9 @@ when diagnosing a failure; `current` represents last verified success, not a
 claim about the live containers after a failed attempt.
 
 To roll application images back, find the earlier `run_id` in `previous.json`
-and dispatch **Deploy Cookbook** with that ID. It uses the current secrets and
+and dispatch **Deploy Cookbook** with that ID and its recorded `run_attempt`
+in `ci_run_attempt`. This prevents a later CI rerun from changing which images
+are selected. It uses the current secrets and
 revalidates/redeploys that release. There is no automatic rollback and no schema
 downgrade. Confirm the earlier application works with the current schema before
 requesting rollback. If the database must be restored, use the coordinated

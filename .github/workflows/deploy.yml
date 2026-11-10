@@ -7,6 +7,10 @@ on:
         description: Successful main Cookbook CI run ID (also used to redeploy an older release)
         required: true
         type: string
+      ci_run_attempt:
+        description: Optional exact CI attempt (leave blank for latest; use the recorded attempt for rollback)
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -26,12 +30,14 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       sha: ${{ steps.release.outputs.sha }}
+      attempt: ${{ steps.release.outputs.attempt }}
     steps:
       - uses: actions/checkout@v4
       - name: Resolve successful CI release
         id: release
         env:
           CI_RUN_ID: ${{ inputs.ci_run_id }}
+          CI_RUN_ATTEMPT: ${{ inputs.ci_run_attempt }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python3 scripts/release.py resolve
       - uses: actions/upload-artifact@v4
@@ -52,6 +58,7 @@ jobs:
       MCP_HTTP_ENABLED: ${{ vars.COOKBOOK_MCP_HTTP_ENABLED }}
       EXPECTED_SHA: ${{ needs.resolve.outputs.sha }}
       EXPECTED_RUN_ID: ${{ inputs.ci_run_id }}
+      EXPECTED_ATTEMPT: ${{ needs.resolve.outputs.attempt }}
     steps:
       - uses: actions/checkout@v4
       - name: Check out exact release configuration

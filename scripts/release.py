@@ -63,6 +63,11 @@ def resolve():
         return data if raw else json.loads(data)
 
     run = request(f"actions/runs/{run_id}")
+    attempt = os.environ.get("CI_RUN_ATTEMPT", "").strip()
+    if attempt:
+        if not re.fullmatch(r"[1-9][0-9]*", attempt):
+            raise ValueError("CI attempt must be a positive integer")
+        run = request(f"actions/runs/{run_id}/attempts/{attempt}")
     workflow = request("actions/workflows/ci.yml")
     if (run["workflow_id"] != workflow["id"] or run["event"] != "push"
             or run["head_branch"] != "main" or run["status"] != "completed"
@@ -90,7 +95,7 @@ def resolve():
     validate_release(release, repository, run_id, run["run_attempt"], run["head_sha"])
     Path("release.json").write_text(json.dumps(release, indent=2) + "\n")
     with open(os.environ["GITHUB_OUTPUT"], "a") as output:
-        output.write(f"sha={release['sha']}\n")
+        output.write(f"sha={release['sha']}\nattempt={release['run_attempt']}\n")
     with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
         summary.write(f"Selected CI run {run_id}, attempt {run['run_attempt']}, commit `{release['sha']}`.\n")
         for service, image in release["images"].items():

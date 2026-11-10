@@ -43,7 +43,7 @@ def deploy():
     if not project_name or not re.fullmatch(r"[a-z0-9][a-z0-9_-]*", project_name):
         raise ValueError("APP_ENV must set a literal COMPOSE_PROJECT_NAME matching the existing production project")
     release = json.loads(Path("release.json").read_text())
-    validate_release(release, os.environ["GITHUB_REPOSITORY"], os.environ["EXPECTED_RUN_ID"], release["run_attempt"], os.environ["EXPECTED_SHA"])
+    validate_release(release, os.environ["GITHUB_REPOSITORY"], os.environ["EXPECTED_RUN_ID"], os.environ["EXPECTED_ATTEMPT"], os.environ["EXPECTED_SHA"])
     root.mkdir(parents=True, exist_ok=True)
     history = root / ".deployments"
     history.mkdir(exist_ok=True)
