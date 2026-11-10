@@ -173,6 +173,14 @@ class DeploymentTests(unittest.TestCase):
             self.assertFalse((self.history / "previous.json").exists())
             self.assertFalse((self.root / "current").exists())
 
+    def test_staging_failure_is_recorded_without_touching_production(self):
+        Path("candidate/docker-compose.production.yml").unlink()
+        with patch.object(deploy, "command") as command, self.assertRaises(FileNotFoundError):
+            deploy.deploy()
+        command.assert_not_called()
+        self.assertEqual(json.loads((self.history / "attempt.json").read_text())["status"], "failed")
+        self.assertEqual(json.loads((self.history / "current.json").read_text()), self.previous)
+
     def test_rejects_broad_directory_before_writing(self):
         with patch.dict(os.environ, {"DEPLOY_DIR": "/opt/docker"}), self.assertRaises(ValueError):
             deploy.deploy()

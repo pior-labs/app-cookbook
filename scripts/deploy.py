@@ -38,23 +38,23 @@ def deploy():
     releases = root / "releases"
     releases.mkdir(exist_ok=True)
     runtime = Path(tempfile.mkdtemp(prefix=f"{release['run_id']}-{release['run_attempt']}-", dir=releases))
-    candidate = Path("candidate")
-    files = ["docker-compose.yml", "docker-compose.production.yml"]
-    if os.environ.get("MCP_HTTP_ENABLED") == "true":
-        files.append("docker-compose.mcp-http.yml")
-    for name in files:
-        shutil.copyfile(candidate / name, runtime / name)
-    (runtime / ".env").write_text(app_env + "\n")
-    write_json(runtime / "release.json", release)
-    write_json(runtime / "images.json", {"services": {service: {"image": image} for service, image in release["images"].items()}})
-    # Keep the existing project identity (DEPLOY_DIR basename or .env override),
-    # even though each candidate has its own runtime directory.
-    base = ["docker", "compose", "--project-directory", str(root), "--env-file", str(runtime / ".env")]
-    for name in files + ["images.json"]:
-        base.extend(["-f", str(runtime / name)])
     record = {**release, "runtime_dir": str(runtime), "started_at": datetime.datetime.now(datetime.timezone.utc).isoformat(), "deployment_run_id": os.environ["GITHUB_RUN_ID"]}
     write_json(history / "attempt.json", {**record, "status": "deploying"})
     try:
+        candidate = Path("candidate")
+        files = ["docker-compose.yml", "docker-compose.production.yml"]
+        if os.environ.get("MCP_HTTP_ENABLED") == "true":
+            files.append("docker-compose.mcp-http.yml")
+        for name in files:
+            shutil.copyfile(candidate / name, runtime / name)
+        (runtime / ".env").write_text(app_env + "\n")
+        write_json(runtime / "release.json", release)
+        write_json(runtime / "images.json", {"services": {service: {"image": image} for service, image in release["images"].items()}})
+        # Keep the existing project identity (DEPLOY_DIR basename or .env override),
+        # even though each candidate has its own runtime directory.
+        base = ["docker", "compose", "--project-directory", str(root), "--env-file", str(runtime / ".env")]
+        for name in files + ["images.json"]:
+            base.extend(["-f", str(runtime / name)])
         rendered = json.loads(command(*base, "config", "--format", "json", capture_output=True).stdout)
         for service in ("api", "web", "mcp"):
             rendered["services"][service].pop("build", None)
