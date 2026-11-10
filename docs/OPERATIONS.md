@@ -142,18 +142,102 @@ sudo ./svc.sh start
 
 ## 2. Deploying
 
-`.github/workflows/deploy.yml`, run manually, syncs the source, writes `.env`,
-builds the images, runs migrations as a one-off container, and starts the stack.
-Migrations run **before** the new API starts, so a deployment fails rather than
-serving against an incompatible schema.
+CI builds the API, web and MCP images on GitHub-hosted runners after both the
+integration and browser jobs pass. Pull requests build without publishing;
+pushes to `main` publish to `ghcr.io/pior-labs/app-cookbook-{api,web,mcp}`.
+Each successful main run saves an attempt-specific release manifest containing
+all three immutable image digests and the source commit. Production never builds
+images or installs application dependencies.
 
-To apply a configuration change, including the container restart policies, push
-it to `main`, then open this repository's **Actions -> Deploy Cookbook -> Run
-workflow**, select `main`, and run it. Pushing to `main` runs CI but does **not**
-trigger CD automatically. The workflow checks out and syncs the selected source
-and runs `docker compose up -d --remove-orphans`, which recreates containers whose
-configuration changed. No manual Git commands on the server are needed. Check
-the workflow's **Show service health** output and readiness below after it ends.
+### First activation
+
+1. Merge the workflow changes, then wait for the **entire Cookbook CI run on
+   main**, including **Build release images**, to succeed.
+2. Confirm Actions can create the three GHCR packages. If a package already
+   exists, grant this repository Actions access to it. Keep image visibility
+   private unless publication is deliberately agreed. Do not delete images or
+   release artifacts that are still deployed or retained for rollback.
+3. The production runner needs Python 3, curl (with `--retry-all-errors`), Docker
+   Compose supporting `up --wait`, and write access to the existing `DEPLOY_DIR`.
+   Docker registry authentication uses this workflow's temporary `GITHUB_TOKEN`;
+   no personal access token or permanent Docker login is required.
+4. Keep existing repository variables/secrets, including `APP_ENV`, `DEPLOY_DIR`
+   and optional `COOKBOOK_MCP_HTTP_ENABLED`. The deployment job references the
+   `PRODUCTION` environment; configure environment protections separately if
+   desired. Merely naming an environment does not require reviewer approval.
+5. Run the manual deployment below. Earlier CI runs without a release manifest
+   cannot be deployed through this workflow. The existing installation continues
+   running until this first deployment is requested.
+
+### Deploy or redeploy
+
+Open **Actions -> Cookbook CI**, select a successful **push to main** run, and
+copy its numeric run ID from the URL (`.../actions/runs/<run-id>`). Open
+**Actions -> Deploy Cookbook -> Run workflow**, select `main`, and enter that
+ID in `ci_run_id`. This works for a configuration-only redeployment too; it uses
+the current `APP_ENV` and HTTP MCP setting with the selected release's images
+and Compose configuration. Pushing to main never deploys production.
+
+A hosted job verifies the CI workflow identity, successful conclusion, main
+history, attempt, artifact and image identities before using the production
+runner. It rejects PR runs, failed runs, incomplete image sets, branch tags and
+expired manifests. The source revision is checked out by SHA, not by a moving
+branch. All production deployment requests share `cookbook-production` concurrency
+and do not cancel an active deployment. Any future production maintenance
+workflow must use that same group. GitHub may replace a pending request with a
+newer pending request; it is not a FIFO deployment queue.
+
+The runner stages each candidate beneath `$DEPLOY_DIR/releases/`, writes private
+runtime configuration, and renders a Compose file with digest-only images and
+all build definitions removed. It pulls all images before running migrations,
+starts containers with building/pulling disabled, waits for API/web/MCP health,
+and probes both `/api/readiness` and `/` through canonical HTTPS ingress.
+Migrations run before the new API starts, while the old application may still
+be serving requests. Schema changes must therefore remain compatible with both
+versions during rollout. Use additive changes first and remove old structures
+only after older versions are no longer rollback candidates.
+
+### Deployment records and recovery
+
+After successful readiness checks, `$DEPLOY_DIR/current` points to the private
+runtime directory. Use its resolved configuration for server-side operations:
+
+```bash
+cd "$DEPLOY_DIR/current"
+export COMPOSE_FILE="$PWD/compose.json"
+docker compose ps
+```
+
+Use this `COMPOSE_FILE` for the backup/restore and MCP commands below, rather
+than adding old source Compose overrides. The original root checkout is left
+intact for the transition, but is no longer the active runtime configuration.
+Runtime files contain secrets, must stay private, and must never be uploaded as
+Actions artifacts or copied into source control.
+
+`$DEPLOY_DIR/.deployments/current.json` records the last healthy commit, CI
+run/attempt, image digests, runtime directory and deployment run. `previous.json`
+preserves the preceding healthy record. `attempt.json` describes the latest
+attempt, including failures. Failed pulls, migrations, startup or ingress checks
+leave the successful records and `current` link unchanged, but may have changed
+the database or running containers. Inspect `attempt.json` and its `runtime_dir`
+when diagnosing a failure; `current` represents last verified success, not a
+claim about the live containers after a failed attempt.
+
+To roll application images back, find the earlier `run_id` in `previous.json`
+and dispatch **Deploy Cookbook** with that ID. It uses the current secrets and
+revalidates/redeploys that release. There is no automatic rollback and no schema
+downgrade. Confirm the earlier application works with the current schema before
+requesting rollback. If the database must be restored, use the coordinated
+backup/restore procedure below instead. The first migration to this process has
+no recorded previous release from the legacy source-build deployment.
+
+Release manifests are retained in Actions for 90 days. Keep GHCR images for at
+least as long as their eligible release manifests, and never remove a currently
+used image. Expired manifests cannot be selected; rebuild a reviewed main
+revision through CI to establish a new eligible release. Private host release
+directories are retained for diagnosis; clean them up deliberately while keeping
+the current, previous and latest attempted runtimes. Old runtime directories
+contain historical secrets and should not accumulate indefinitely.
 
 The long-running containers use `restart: unless-stopped` to recover when they
 exit and to start again after Docker or the host restarts, unless explicitly
@@ -204,11 +288,11 @@ export COOKBOOK_DATABASE_URL="$(sudo cat /opt/docker/pior-labs/secrets/app-cookb
 ```
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.production.yml stop api mcp
+docker compose stop api mcp
 pg_dump --format=custom --file=cookbook-$(date +%F).dump "$COOKBOOK_DATABASE_URL"
 tar --numeric-owner -czf cookbook-images-$(date +%F).tar.gz \
   -C /opt/docker/pior-labs/data/app-cookbook images
-docker compose -f docker-compose.yml -f docker-compose.production.yml start api mcp
+docker compose start api mcp
 ```
 
 `--numeric-owner` matters: the API container writes these files as its own uid,
@@ -220,7 +304,7 @@ read.
 1. Stop the application so nothing writes during the restore:
 
    ```bash
-   docker compose -f docker-compose.yml -f docker-compose.production.yml down
+   docker compose down
    ```
 
 2. Restore the database in place, over whatever is currently there:
@@ -248,14 +332,14 @@ read.
 4. Start the application and confirm readiness:
 
    ```bash
-   docker compose -f docker-compose.yml -f docker-compose.production.yml up -d
+   docker compose up -d
    curl -fsS https://cookbook.szarans.ca/api/readiness
    ```
 
 5. Reconcile the two halves. The command reports by default and changes nothing:
 
    ```bash
-   docker compose -f docker-compose.yml -f docker-compose.production.yml \
+   docker compose \
      exec api node packages/api/dist/images/reconcile.js
    ```
 
@@ -349,7 +433,7 @@ the health check asks whether an `exec`'d session *would* work - database
 reachable, configured user resolving:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.production.yml \
+docker compose \
   ps mcp
 docker inspect --format '{{.State.Health.Status}}' cookbook-mcp-server
 ```
@@ -379,7 +463,7 @@ host port, so the client needs SSH rather than a route to the database.
 Logs are JSON on **stderr**; stdout carries the MCP protocol and nothing else.
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.production.yml \
+docker compose \
   logs --tail 100 mcp
 ```
 
@@ -473,16 +557,11 @@ MCP_HTTP_PUBLIC_URL=https://cookbook.szarans.ca
 PLATFORM_MCP_HTTP_TOKEN_FILE=/opt/docker/pior-labs/secrets/app-cookbook/mcp-http-token
 ```
 
-Deploy with the HTTP override. Its health probe checks the listener, database and
-configured member, and its shutdown grace period lets tool writes finish:
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.production.yml -f docker-compose.mcp-http.yml up -d --build mcp
-```
-
-For subsequent GitHub Actions deployments, set repository variable
-`COOKBOOK_MCP_HTTP_ENABLED` to `true`; otherwise the workflow intentionally uses
-the stdio-only configuration. Deploy/reload `platform-deploy`'s Cookbook Caddy
+Set repository variable `COOKBOOK_MCP_HTTP_ENABLED` to `true` and dispatch
+**Deploy Cookbook** with a successful main CI run ID. The selected release must
+contain the HTTP override. Its health probe checks the listener, database and
+configured member, and its shutdown grace period lets tool writes finish.
+Without the variable, the workflow intentionally uses the stdio-only configuration. Deploy/reload `platform-deploy`'s Cookbook Caddy
 site with its `/mcp` route to `cookbook-mcp:3001`. Do not publish port 3001 or add
 a router port forward. The existing private DNS and HTTPS certificate suffice.
 A request to `https://cookbook.szarans.ca/mcp` without a credential should return
@@ -508,9 +587,9 @@ This direct desktop connection depends on the computer's network access; hosted
 ChatGPT plugins do not gain access to a private LAN URL from this configuration.
 
 To rotate or revoke access, replace the credential file and recreate the MCP
-container (`up -d --force-recreate mcp`, with the same three Compose files).
+container (`docker compose up -d --no-build --pull never --force-recreate mcp`,
+using the current runtime's `COMPOSE_FILE`, with no deployment in progress).
 Recreation is required even for an in-place edit because credentials are loaded
 once at startup; it also refreshes a bind mount after an atomic replacement.
 Update the desktop credential, then verify that the old value returns 401.
-To disable HTTP, return to the two-file stdio deployment and unset the Actions
-variable. The Caddy route then fails closed rather than serving recipe data.
+To disable HTTP, unset the Actions variable and redeploy a successful CI release. The Caddy route then fails closed rather than serving recipe data.

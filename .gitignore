@@ -22,3 +22,6 @@ ds-bundle/
 .design-sync/.cache/
 .design-sync/learnings/
 .design-sync/node_modules
+
+# Python deployment-tool caches.
+__pycache__/
