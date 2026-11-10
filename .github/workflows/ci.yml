@@ -32,6 +32,8 @@ jobs:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cookbook_ci
     steps:
       - uses: actions/checkout@v4
+      - name: Test deployment tooling
+        run: python3 -m unittest discover -s scripts -p 'test_*.py' -v
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -48,9 +50,7 @@ jobs:
       - name: Build
         run: pnpm build
 
-  # The browser suite runs separately: it needs a browser download and starts
-  # its own API and web servers, and it must not slow the check that gates every
-  # push.
+  # Browser and integration checks both gate the release images.
   browser:
     runs-on: ubuntu-latest
     services:
@@ -96,3 +96,77 @@ jobs:
           name: playwright-report
           path: packages/e2e/playwright-report
           retention-days: 7
+
+  images:
+    name: Build release images
+    needs: [validate, browser]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Log in to GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build API image
+        id: api
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: packages/api/Dockerfile
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          tags: ghcr.io/${{ github.repository }}-api:run-${{ github.run_id }}-${{ github.run_attempt }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+      - name: Build web image
+        id: web
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: packages/web/Dockerfile
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          tags: ghcr.io/${{ github.repository }}-web:run-${{ github.run_id }}-${{ github.run_attempt }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          secrets: |
+            github_token=${{ secrets.GITHUB_TOKEN }}
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
+      - name: Build MCP image
+        id: mcp
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: packages/mcp-server/Dockerfile
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          tags: ghcr.io/${{ github.repository }}-mcp:run-${{ github.run_id }}-${{ github.run_attempt }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=mcp
+          cache-to: type=gha,mode=max,scope=mcp
+      - name: Write release manifest
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          API_DIGEST: ${{ steps.api.outputs.digest }}
+          WEB_DIGEST: ${{ steps.web.outputs.digest }}
+          MCP_DIGEST: ${{ steps.mcp.outputs.digest }}
+        run: python3 scripts/release.py create
+      - name: Save release manifest
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: cookbook-release-${{ github.run_attempt }}
+          path: release.json
+          if-no-files-found: error
+          retention-days: 90

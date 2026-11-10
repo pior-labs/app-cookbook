@@ -197,12 +197,10 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml config
 docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
 ```
 
-Production adds the platform-managed database connection file:
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.production.yml config
-docker compose -f docker-compose.yml -f docker-compose.production.yml up -d --build
-```
+Production mounts the platform-managed database connection file and deploys
+CI-built images by digest through the manual deployment workflow. Follow
+[`docs/OPERATIONS.md`](docs/OPERATIONS.md) for activation, deployment and recovery;
+production does not build images on the server.
 
 The Caddy process inside the web image serves only the compiled SPA and falls back to `index.html`. It does not proxy `/api/*`.
 
@@ -226,7 +224,7 @@ TLS, ingress, DNS, shared networks, database provisioning, and routes are owned 
 
 ## Validation and deployment
 
-The CI workflow installs dependencies, typechecks, runs the unit and integration test suites against a PostgreSQL service container, and builds every package. A second job runs the Playwright critical-path suite in a real browser against a real migrated database. There is no lint command yet; add one with the first code that needs it.
+The CI workflow installs dependencies, typechecks, runs the unit and integration test suites against a PostgreSQL service container, and builds every package. A second job runs the Playwright critical-path suite in a real browser against a real migrated database. Both jobs gate image builds. Main builds publish API, web and MCP images to GHCR and save their digests in a CI release manifest; PR builds validate the Dockerfiles without publishing. There is no lint command yet; add one with the first code that needs it.
 
 ```bash
 pnpm test       # domain, API integration, and component suites
@@ -239,8 +237,10 @@ Every external dependency is provisioned - the `service-auth` client, the
 `platform-deploy` database, secret file, image directory and routes, split-horizon
 DNS, the dedicated `optiplex-cookbook` runner, and the repository's `APP_ENV` and
 `DEPLOY_DIR`. The deployment workflow stays `workflow_dispatch` by choice: a
-household cookbook is deployed when somebody decides to deploy it, not on every
-push to `main`.
+household cookbook is deployed when somebody selects a successful main CI run,
+not on every push to `main`. Deployment pulls that run's exact image digests,
+applies migrations, checks readiness through Caddy, and records current and
+previous healthy releases.
 
 [`docs/OPERATIONS.md`](docs/OPERATIONS.md) carries the full runner setup, provisioning checklist, and backup and restore procedure.
 
