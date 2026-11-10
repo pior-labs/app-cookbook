@@ -70,6 +70,7 @@ def deploy():
         rendered = json.loads(command(*base, "config", "--format", "json", capture_output=True).stdout)
         for service in ("api", "web", "mcp"):
             rendered["services"][service].pop("build", None)
+            rendered["services"][service]["pull_policy"] = "never"
             if rendered["services"][service]["image"] != release["images"][service]:
                 raise ValueError("Compose image does not match release")
         rendered.get("secrets", {}).pop("github_token", None)
@@ -77,8 +78,8 @@ def deploy():
         # on the host and is never logged or uploaded as an Actions artifact.
         write_json(runtime / "compose.json", rendered)
         compose = ["docker", "compose", "--project-directory", str(runtime), "--project-name", project_name, "-f", str(runtime / "compose.json")]
-        command(*compose, "pull", "api", "web", "mcp")
-        command(*compose, "run", "--rm", "--no-deps", "--no-build", "--pull", "never", "api", "node", "packages/api/dist/db/migrate.js")
+        command(*compose, "pull", "--policy", "always", "api", "web", "mcp")
+        command(*compose, "run", "--rm", "--no-deps", "api", "node", "packages/api/dist/db/migrate.js")
         command(*compose, "up", "-d", "--no-build", "--pull", "never", "--remove-orphans", "--wait", "--wait-timeout", "180")
         for path in ("/api/readiness", "/"):
             command("curl", "--fail", "--silent", "--show-error", "--max-time", "15", "--retry", "10", "--retry-delay", "3", "--retry-all-errors", "--output", "/dev/null", "https://cookbook.szarans.ca" + path)

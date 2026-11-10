@@ -160,7 +160,8 @@ class DeploymentTests(unittest.TestCase):
         commands = [list(args) for args in self.calls]
         migration = next(args for args in commands if "run" in args)
         startup = next(args for args in commands if "up" in args)
-        self.assertIn("--no-build", migration)
+        self.assertNotIn("--build", migration)
+        self.assertTrue(all(service["pull_policy"] == "never" for service in rendered["services"].values()))
         self.assertIn("--no-deps", migration)
         self.assertIn("--no-build", startup)
         self.assertIn("--wait", startup)
