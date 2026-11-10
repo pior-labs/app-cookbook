@@ -55,6 +55,7 @@ jobs:
     env:
       DEPLOY_DIR: ${{ vars.DEPLOY_DIR }}
       APP_ENV: ${{ secrets.APP_ENV }}
+      COMPOSE_PROJECT_NAME: ${{ secrets.COMPOSE_PROJECT_NAME }}
       MCP_HTTP_ENABLED: ${{ vars.COOKBOOK_MCP_HTTP_ENABLED }}
       EXPECTED_SHA: ${{ needs.resolve.outputs.sha }}
       EXPECTED_RUN_ID: ${{ inputs.ci_run_id }}

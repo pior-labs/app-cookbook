@@ -3,7 +3,6 @@ import datetime
 import json
 import os
 import re
-import shlex
 from pathlib import Path
 import shutil
 import subprocess
@@ -34,14 +33,15 @@ def deploy():
         raise ValueError("APP_ENV is required")
     # Keep identity explicit while resolving env_file and bind paths relative
     # to the candidate, not the stale legacy checkout at DEPLOY_DIR.
-    project_name = None
-    for line in app_env.splitlines():
-        key, separator, value = line.strip().removeprefix("export ").partition("=")
-        if separator and key.strip() == "COMPOSE_PROJECT_NAME":
-            values = shlex.split(value, comments=True)
-            project_name = values[0] if len(values) == 1 else None
+    project_name = os.environ.get("COMPOSE_PROJECT_NAME", "").strip()
     if not project_name or not re.fullmatch(r"[a-z0-9][a-z0-9_-]*", project_name):
-        raise ValueError("APP_ENV must set a literal COMPOSE_PROJECT_NAME matching the existing production project")
+        raise ValueError("Set the COMPOSE_PROJECT_NAME Actions secret to the existing production project name")
+    # The separate secret wins during the APP_ENV migration. Remove legacy
+    # declarations so the stored runtime environment has only one identity.
+    app_env = "\n".join(
+        line for line in app_env.splitlines()
+        if not re.match(r"^[ \t]*(?:export[ \t]+)?COMPOSE_PROJECT_NAME[ \t]*=", line)
+    ) + f"\nCOMPOSE_PROJECT_NAME={project_name}"
     release = json.loads(Path("release.json").read_text())
     validate_release(release, os.environ["GITHUB_REPOSITORY"], os.environ["EXPECTED_RUN_ID"], os.environ["EXPECTED_ATTEMPT"], os.environ["EXPECTED_SHA"])
     root.mkdir(parents=True, exist_ok=True)
@@ -62,8 +62,7 @@ def deploy():
         (runtime / ".env").write_text(app_env + "\n")
         write_json(runtime / "release.json", release)
         write_json(runtime / "images.json", {"services": {service: {"image": image} for service, image in release["images"].items()}})
-        # Keep the existing project identity (DEPLOY_DIR basename or .env override),
-        # even though each candidate has its own runtime directory.
+        # Use the explicit project identity across all release directories.
         base = ["docker", "compose", "--project-directory", str(runtime), "--project-name", project_name, "--env-file", str(runtime / ".env")]
         for name in files + ["images.json"]:
             base.extend(["-f", str(runtime / name)])

@@ -129,7 +129,7 @@ class DeploymentTests(unittest.TestCase):
         self.history.mkdir(parents=True)
         self.previous = {"sha": "d" * 40, "run_id": 100, "status": "healthy"}
         (self.history / "current.json").write_text(json.dumps(self.previous))
-        self.environment = patch.dict(os.environ, {"DEPLOY_DIR": str(self.root), "APP_ENV": "COMPOSE_PROJECT_NAME=cookbook\nSECRET=private", "GITHUB_REPOSITORY": REPOSITORY, "GITHUB_RUN_ID": "456", "GITHUB_STEP_SUMMARY": str(self.workspace / "summary"), "MCP_HTTP_ENABLED": "true", "EXPECTED_SHA": SHA, "EXPECTED_RUN_ID": "123", "EXPECTED_ATTEMPT": "2"})
+        self.environment = patch.dict(os.environ, {"DEPLOY_DIR": str(self.root), "APP_ENV": "SECRET=private", "COMPOSE_PROJECT_NAME": "cookbook", "GITHUB_REPOSITORY": REPOSITORY, "GITHUB_RUN_ID": "456", "GITHUB_STEP_SUMMARY": str(self.workspace / "summary"), "MCP_HTTP_ENABLED": "true", "EXPECTED_SHA": SHA, "EXPECTED_RUN_ID": "123", "EXPECTED_ATTEMPT": "2"})
         self.environment.start()
         self.addCleanup(self.environment.stop)
         self.old_umask = os.umask(0o022)
@@ -188,7 +188,7 @@ class DeploymentTests(unittest.TestCase):
         # Deliberately different from the staged environment: the old deployment
         # must not silently supply env_file values to the new containers.
         (self.root / ".env").write_text("SECRET=stale\n")
-        app_env = "COMPOSE_PROJECT_NAME=cookbook\nSECRET=candidate\nPLATFORM_DATABASE_URL_FILE=/tmp/fixture-database-url\nPLATFORM_IMAGE_STORAGE_DIR=/tmp/fixture-images\nPLATFORM_MCP_HTTP_TOKEN_FILE=/tmp/fixture-token"
+        app_env = "COMPOSE_PROJECT_NAME=legacy\n export COMPOSE_PROJECT_NAME=other\nSECRET=candidate\nPLATFORM_DATABASE_URL_FILE=/tmp/fixture-database-url\nPLATFORM_IMAGE_STORAGE_DIR=/tmp/fixture-images\nPLATFORM_MCP_HTTP_TOKEN_FILE=/tmp/fixture-token"
         real_command = deploy.command
         def render_only(*args, **kwargs):
             if "config" in args:
@@ -199,6 +199,8 @@ class DeploymentTests(unittest.TestCase):
         runtime = (self.root / "current").resolve()
         config = json.loads((runtime / "compose.json").read_text())
         self.assertEqual(config["name"], "cookbook")
+        self.assertEqual(config["services"]["api"]["environment"]["COMPOSE_PROJECT_NAME"], "cookbook")
+        self.assertEqual((runtime / ".env").read_text().count("COMPOSE_PROJECT_NAME="), 1)
         self.assertEqual(config["services"]["api"]["environment"]["SECRET"], "candidate")
         self.assertTrue(all("build" not in service for service in config["services"].values()))
         real_command("docker", "compose", "-f", str(runtime / "compose.json"), "config", "--quiet", capture_output=True)
@@ -210,6 +212,13 @@ class DeploymentTests(unittest.TestCase):
         command.assert_not_called()
         self.assertEqual(json.loads((self.history / "attempt.json").read_text())["status"], "failed")
         self.assertEqual(json.loads((self.history / "current.json").read_text()), self.previous)
+
+    def test_project_secret_is_required_and_validated_before_writing(self):
+        for value in ("", "Bad Name", "cookbook\nOTHER=value", "../cookbook"):
+            with self.subTest(value=value), patch.dict(os.environ, {"COMPOSE_PROJECT_NAME": value}), patch.object(deploy, "command") as command, self.assertRaises(ValueError):
+                deploy.deploy()
+            command.assert_not_called()
+        self.assertFalse((self.root / "releases").exists())
 
     def test_rejects_broad_directory_before_writing(self):
         with patch.dict(os.environ, {"DEPLOY_DIR": "/opt/docker"}), self.assertRaises(ValueError):

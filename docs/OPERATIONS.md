@@ -46,6 +46,8 @@ deploy it.
 ### This repository
 
 - [x] `DEPLOY_DIR` repository variable set.
+- `COMPOSE_PROJECT_NAME` repository Actions secret must match the existing
+  production project (`cookbook`). It is separate from `APP_ENV`.
 - [x] `APP_ENV` repository secret holds the production `.env`, including
       `PLATFORM_DATABASE_URL_FILE`, `PLATFORM_IMAGE_STORAGE_DIR`,
       `CENTRAL_AUTH_CLIENT_SECRET`, `COOKBOOK_MCP_USER_EMAIL`, and a
@@ -161,9 +163,12 @@ images or installs application dependencies.
    Compose supporting `up --wait`, and write access to the existing `DEPLOY_DIR`.
    Docker registry authentication uses this workflow's temporary `GITHUB_TOKEN`;
    no personal access token or permanent Docker login is required.
-4. Set a literal `COMPOSE_PROJECT_NAME` in `APP_ENV` matching the existing
-   production project (`cookbook` in `.env.example`). This keeps container and
-   volume identity stable across release directories. Keep existing repository
+4. Set the separate repository Actions secret `COMPOSE_PROJECT_NAME` to the
+   existing production project name (`cookbook`), keeping container and volume
+   identity stable across release directories. Deployment requires this secret;
+   it does not fall back to `APP_ENV`. Legacy `COMPOSE_PROJECT_NAME` entries in
+   `APP_ENV` are ignored and replaced in the staged runtime environment, so they
+   can be removed from that secret when convenient. Keep existing repository
    variables/secrets, including `APP_ENV`, `DEPLOY_DIR`
    and optional `COOKBOOK_MCP_HTTP_ENABLED`. The deployment job references the
    `PRODUCTION` environment; configure environment protections separately if
