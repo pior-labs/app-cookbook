@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import subprocess
 import tempfile
+import shutil
 import unittest
 import zipfile
 from unittest.mock import patch
@@ -13,6 +14,7 @@ import deploy
 import release as releases
 from release import validate_release
 
+SOURCE_ROOT = Path(__file__).resolve().parent.parent
 REPOSITORY = "pior-labs/app-cookbook"
 SHA = "a" * 40
 RELEASE = {
@@ -122,7 +124,7 @@ class DeploymentTests(unittest.TestCase):
         self.history.mkdir(parents=True)
         self.previous = {"sha": "d" * 40, "run_id": 100, "status": "healthy"}
         (self.history / "current.json").write_text(json.dumps(self.previous))
-        self.environment = patch.dict(os.environ, {"DEPLOY_DIR": str(self.root), "APP_ENV": "SECRET=private", "GITHUB_REPOSITORY": REPOSITORY, "GITHUB_RUN_ID": "456", "GITHUB_STEP_SUMMARY": str(self.workspace / "summary"), "MCP_HTTP_ENABLED": "true", "EXPECTED_SHA": SHA, "EXPECTED_RUN_ID": "123"})
+        self.environment = patch.dict(os.environ, {"DEPLOY_DIR": str(self.root), "APP_ENV": "COMPOSE_PROJECT_NAME=cookbook\nSECRET=private", "GITHUB_REPOSITORY": REPOSITORY, "GITHUB_RUN_ID": "456", "GITHUB_STEP_SUMMARY": str(self.workspace / "summary"), "MCP_HTTP_ENABLED": "true", "EXPECTED_SHA": SHA, "EXPECTED_RUN_ID": "123"})
         self.environment.start()
         self.addCleanup(self.environment.stop)
         self.old_umask = os.umask(0o022)
@@ -172,6 +174,28 @@ class DeploymentTests(unittest.TestCase):
             self.assertEqual(json.loads((self.history / "attempt.json").read_text())["status"], "failed")
             self.assertFalse((self.history / "previous.json").exists())
             self.assertFalse((self.root / "current").exists())
+
+    @unittest.skipUnless(shutil.which("docker"), "Docker Compose CLI is required for rendering")
+    def test_real_compose_reads_candidate_environment_and_preserves_project(self):
+        for name in ("docker-compose.yml", "docker-compose.production.yml", "docker-compose.mcp-http.yml"):
+            shutil.copyfile(SOURCE_ROOT / name, Path("candidate") / name)
+        # Deliberately different from the staged environment: the old deployment
+        # must not silently supply env_file values to the new containers.
+        (self.root / ".env").write_text("SECRET=stale\n")
+        app_env = "COMPOSE_PROJECT_NAME=cookbook\nSECRET=candidate\nPLATFORM_DATABASE_URL_FILE=/tmp/fixture-database-url\nPLATFORM_IMAGE_STORAGE_DIR=/tmp/fixture-images\nPLATFORM_MCP_HTTP_TOKEN_FILE=/tmp/fixture-token"
+        real_command = deploy.command
+        def render_only(*args, **kwargs):
+            if "config" in args:
+                return real_command(*args, **kwargs)
+            return self.run_command(*args, **kwargs)
+        with patch.dict(os.environ, {"APP_ENV": app_env}), patch.object(deploy, "command", side_effect=render_only):
+            deploy.deploy()
+        runtime = (self.root / "current").resolve()
+        config = json.loads((runtime / "compose.json").read_text())
+        self.assertEqual(config["name"], "cookbook")
+        self.assertEqual(config["services"]["api"]["environment"]["SECRET"], "candidate")
+        self.assertTrue(all("build" not in service for service in config["services"].values()))
+        real_command("docker", "compose", "-f", str(runtime / "compose.json"), "config", "--quiet", capture_output=True)
 
     def test_staging_failure_is_recorded_without_touching_production(self):
         Path("candidate/docker-compose.production.yml").unlink()

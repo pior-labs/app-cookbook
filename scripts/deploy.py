@@ -2,6 +2,8 @@
 import datetime
 import json
 import os
+import re
+import shlex
 from pathlib import Path
 import shutil
 import subprocess
@@ -30,6 +32,16 @@ def deploy():
     app_env = os.environ["APP_ENV"]
     if not app_env.strip():
         raise ValueError("APP_ENV is required")
+    # Keep identity explicit while resolving env_file and bind paths relative
+    # to the candidate, not the stale legacy checkout at DEPLOY_DIR.
+    project_name = None
+    for line in app_env.splitlines():
+        key, separator, value = line.strip().removeprefix("export ").partition("=")
+        if separator and key.strip() == "COMPOSE_PROJECT_NAME":
+            values = shlex.split(value, comments=True)
+            project_name = values[0] if len(values) == 1 else None
+    if not project_name or not re.fullmatch(r"[a-z0-9][a-z0-9_-]*", project_name):
+        raise ValueError("APP_ENV must set a literal COMPOSE_PROJECT_NAME matching the existing production project")
     release = json.loads(Path("release.json").read_text())
     validate_release(release, os.environ["GITHUB_REPOSITORY"], os.environ["EXPECTED_RUN_ID"], release["run_attempt"], os.environ["EXPECTED_SHA"])
     root.mkdir(parents=True, exist_ok=True)
@@ -52,7 +64,7 @@ def deploy():
         write_json(runtime / "images.json", {"services": {service: {"image": image} for service, image in release["images"].items()}})
         # Keep the existing project identity (DEPLOY_DIR basename or .env override),
         # even though each candidate has its own runtime directory.
-        base = ["docker", "compose", "--project-directory", str(root), "--env-file", str(runtime / ".env")]
+        base = ["docker", "compose", "--project-directory", str(runtime), "--project-name", project_name, "--env-file", str(runtime / ".env")]
         for name in files + ["images.json"]:
             base.extend(["-f", str(runtime / name)])
         rendered = json.loads(command(*base, "config", "--format", "json", capture_output=True).stdout)
@@ -64,7 +76,7 @@ def deploy():
         # Rendered configuration contains runtime secrets. The private file stays
         # on the host and is never logged or uploaded as an Actions artifact.
         write_json(runtime / "compose.json", rendered)
-        compose = ["docker", "compose", "--project-directory", str(root), "-f", str(runtime / "compose.json")]
+        compose = ["docker", "compose", "--project-directory", str(runtime), "--project-name", project_name, "-f", str(runtime / "compose.json")]
         command(*compose, "pull", "api", "web", "mcp")
         command(*compose, "run", "--rm", "--no-deps", "--no-build", "--pull", "never", "api", "node", "packages/api/dist/db/migrate.js")
         command(*compose, "up", "-d", "--no-build", "--pull", "never", "--remove-orphans", "--wait", "--wait-timeout", "180")

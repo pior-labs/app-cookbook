@@ -161,7 +161,10 @@ images or installs application dependencies.
    Compose supporting `up --wait`, and write access to the existing `DEPLOY_DIR`.
    Docker registry authentication uses this workflow's temporary `GITHUB_TOKEN`;
    no personal access token or permanent Docker login is required.
-4. Keep existing repository variables/secrets, including `APP_ENV`, `DEPLOY_DIR`
+4. Set a literal `COMPOSE_PROJECT_NAME` in `APP_ENV` matching the existing
+   production project (`cookbook` in `.env.example`). This keeps container and
+   volume identity stable across release directories. Keep existing repository
+   variables/secrets, including `APP_ENV`, `DEPLOY_DIR`
    and optional `COOKBOOK_MCP_HTTP_ENABLED`. The deployment job references the
    `PRODUCTION` environment; configure environment protections separately if
    desired. Merely naming an environment does not require reviewer approval.
