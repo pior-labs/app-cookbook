@@ -39,6 +39,10 @@ jobs:
           node-version: 22
       - name: Enable pnpm
         run: corepack enable
+      # pnpm only expands credentials from user-level config. The literal
+      # ${GITHUB_TOKEN} is expanded at install time; no token is written.
+      - name: Configure GitHub Packages auth
+        run: echo '//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}' >> ~/.npmrc
       - name: Install dependencies
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -81,6 +85,10 @@ jobs:
           node-version: 22
       - name: Enable pnpm
         run: corepack enable
+      # pnpm only expands credentials from user-level config. The literal
+      # ${GITHUB_TOKEN} is expanded at install time; no token is written.
+      - name: Configure GitHub Packages auth
+        run: echo '//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}' >> ~/.npmrc
       - name: Install dependencies
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
