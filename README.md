@@ -34,7 +34,8 @@ Requirements:
 - Node.js 22
 - pnpm 10.8.1 through Corepack
 - a local PostgreSQL server with an empty `cookbook_dev` database
-- GitHub Packages access for `@pior-labs/design-system`
+- GitHub Packages access for `@pior-labs/design-system`, configured in your
+  user-level `~/.npmrc` as `//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}` (current pnpm ignores credentials in the committed `.npmrc`)
 
 Set up and start the app:
 

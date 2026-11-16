@@ -5,9 +5,15 @@ RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json .npmrc ./
 COPY packages/web/package.json packages/web/package.json
 COPY packages/domain/package.json packages/domain/package.json
+# pnpm only expands credentials from user-level config, so the registry auth
+# line lives in a temporary user config. It holds the literal ${GITHUB_TOKEN};
+# the token itself comes from the build secret and is never written to a layer.
 RUN --mount=type=secret,id=github_token \
+    printf '%s\n' '//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}' > /tmp/registry-auth.npmrc && \
     GITHUB_TOKEN="$(cat /run/secrets/github_token)" \
-    pnpm install --filter @cookbook/web... --frozen-lockfile
+    NPM_CONFIG_USERCONFIG=/tmp/registry-auth.npmrc \
+    pnpm install --filter @cookbook/web... --frozen-lockfile && \
+    rm /tmp/registry-auth.npmrc
 
 COPY packages/domain packages/domain
 COPY packages/web packages/web
