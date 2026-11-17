@@ -1,8 +1,10 @@
-FROM node:22-alpine AS build
+FROM node:26.13.1-alpine@sha256:6bd9ab43c0ec0190ca7b2d193906cb8b7edf6e7f4afa43ddeccd6452710bffb5 AS build
 WORKDIR /app
-RUN corepack enable
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json .npmrc ./
+# Node 25+ no longer bundles Corepack; install the pnpm named by packageManager.
+RUN npm install --global --no-fund --no-audit \
+    "$(node -p "require('./package.json').packageManager.split('+')[0]")"
 COPY packages/web/package.json packages/web/package.json
 COPY packages/domain/package.json packages/domain/package.json
 # pnpm only expands credentials from user-level config, so the registry auth

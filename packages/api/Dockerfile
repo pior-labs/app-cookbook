@@ -1,8 +1,10 @@
-FROM node:22-alpine AS build
+FROM node:26.13.1-alpine@sha256:6bd9ab43c0ec0190ca7b2d193906cb8b7edf6e7f4afa43ddeccd6452710bffb5 AS build
 WORKDIR /app
-RUN corepack enable
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
+# Node 25+ no longer bundles Corepack; install the pnpm named by packageManager.
+RUN npm install --global --no-fund --no-audit \
+    "$(node -p "require('./package.json').packageManager.split('+')[0]")"
 COPY packages/api/package.json packages/api/package.json
 COPY packages/domain/package.json packages/domain/package.json
 RUN pnpm install --filter @cookbook/api... --frozen-lockfile
@@ -12,15 +14,18 @@ COPY packages/api packages/api
 # Builds @cookbook/domain and then @cookbook/api in dependency order.
 RUN pnpm --filter @cookbook/api... build
 
-FROM node:22-alpine AS runtime
+FROM node:26.13.1-alpine@sha256:6bd9ab43c0ec0190ca7b2d193906cb8b7edf6e7f4afa43ddeccd6452710bffb5 AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 # Recipe image storage. Compose mounts a persistent volume here; creating the
 # directory keeps the readiness check meaningful when nothing is mounted yet.
 ENV IMAGE_STORAGE_DIR=/var/lib/cookbook/images
-RUN corepack enable && mkdir -p /var/lib/cookbook/images
+RUN mkdir -p /var/lib/cookbook/images
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# Node 25+ no longer bundles Corepack; install the pnpm named by packageManager.
+RUN npm install --global --no-fund --no-audit \
+    "$(node -p "require('./package.json').packageManager.split('+')[0]")"
 COPY packages/api/package.json packages/api/package.json
 COPY packages/domain/package.json packages/domain/package.json
 RUN pnpm install --filter @cookbook/api... --prod --frozen-lockfile
