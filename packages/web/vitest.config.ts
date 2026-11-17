@@ -18,5 +18,14 @@ export default defineConfig({
     include: ['src/**/*.test.tsx', 'src/**/*.test.ts'],
     setupFiles: ['./test/setup.ts'],
     css: false,
+    // Node 25+ defines its own global localStorage, which is undefined unless
+    // Node gets a storage file. Vitest's jsdom environment does not replace a
+    // global that already exists, so tests would see Node's empty one instead
+    // of jsdom's. Disabling Node's Web Storage in the test workers lets jsdom
+    // provide it, as on earlier Node versions.
+    poolOptions: {
+      forks: { execArgv: ['--no-experimental-webstorage'] },
+      threads: { execArgv: ['--no-experimental-webstorage'] },
+    },
   },
 });
