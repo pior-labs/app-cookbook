@@ -31,8 +31,10 @@ The code is the description of the application. [`docs/DECISIONS.md`](docs/DECIS
 
 Requirements:
 
-- Node.js 22
-- pnpm 10.8.1 through Corepack
+- the Node.js version in `.node-version` (fnm, mise, nodenv and asdf read it
+  directly)
+- any pnpm release; pnpm switches itself to the version in `packageManager`.
+  Node.js 25 and later no longer bundle Corepack
 - a local PostgreSQL server with an empty `cookbook_dev` database
 - GitHub Packages access for `@pior-labs/design-system`, configured in your
   user-level `~/.npmrc` as `//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}` (current pnpm ignores credentials in the committed `.npmrc`)
@@ -40,7 +42,6 @@ Requirements:
 Set up and start the app:
 
 ```bash
-corepack enable
 cp .env.example .env
 pnpm install
 pnpm dev
