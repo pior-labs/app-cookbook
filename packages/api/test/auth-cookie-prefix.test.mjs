@@ -6,7 +6,6 @@ process.env.DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/cookbo
 process.env.BETTER_AUTH_SECRET = 'test-only-cookbook-session-secret';
 process.env.CENTRAL_AUTH_DISCOVERY_URL =
   'https://auth.szarans.ca/api/auth/.well-known/openid-configuration';
-process.env.CENTRAL_AUTH_ISSUER = 'https://auth.szarans.ca/api/auth';
 process.env.CENTRAL_AUTH_CLIENT_ID = 'cookbook';
 process.env.CENTRAL_AUTH_CLIENT_SECRET = 'test-only-client-secret';
 

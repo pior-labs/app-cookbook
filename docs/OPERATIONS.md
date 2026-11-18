@@ -24,8 +24,8 @@ deploy it.
 
 - [x] The `cookbook` client exists and is seeded with the production secret.
 - [x] Its registered callbacks include the canonical
-      `https://cookbook.szarans.ca/api/auth/oauth2/callback/auth-pior` **and**
-      the shared local one, `http://localhost:5173/api/auth/oauth2/callback/auth-pior`.
+      `https://cookbook.szarans.ca/api/auth/callback/auth-pior` **and**
+      the shared local one, `http://localhost:5173/api/auth/callback/auth-pior`.
 
 ### platform-deploy
 

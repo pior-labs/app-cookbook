@@ -75,11 +75,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refreshSession]);
 
   const startSignIn = useCallback(async () => {
-    const response = await fetch('/api/auth/sign-in/oauth2', {
+    const response = await fetch('/api/auth/sign-in/social', {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ providerId: 'auth-pior', callbackURL: '/' }),
+      body: JSON.stringify({ provider: 'auth-pior', callbackURL: '/' }),
     });
     const payload = await readJson(response);
 
