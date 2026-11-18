@@ -1,5 +1,8 @@
-import { drizzleAdapter } from '@better-auth/drizzle-adapter';
 import { betterAuth } from 'better-auth';
+// The adapter comes through better-auth's own export, which pins the matching
+// @better-auth/drizzle-adapter version. A separate direct dependency let the two
+// drift apart and installed a second @better-auth/core.
+import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { genericOAuth } from 'better-auth/plugins';
 import { db, schema } from './db/index.js';
 import { appEnv } from './env.js';
@@ -26,8 +29,11 @@ export const auth = betterAuth({
         {
           providerId: env.centralAuth.providerId,
           discoveryUrl: env.centralAuth.discoveryUrl,
-          issuer: env.centralAuth.issuer,
-          requireIssuerValidation: true,
+          // Better Auth takes the issuer and signing keys from discovery and
+          // verifies each ID token's signature, issuer, audience and nonce.
+          // Requiring that verification makes a discovery document without an
+          // issuer or JWKS disable the provider instead of silently skipping it.
+          requireIdTokenVerification: true,
           clientId: env.centralAuth.clientId,
           clientSecret: env.centralAuth.clientSecret,
           scopes: ['openid', 'profile', 'email', 'offline_access'],

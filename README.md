@@ -161,7 +161,6 @@ pnpm test
 Cookbook uses the central Pior Labs `service-auth` OAuth 2.1/OIDC provider through an authorization-code flow with PKCE. Better Auth handles the callback and stores an HTTP-only Cookbook session in PostgreSQL. Configure the local app with:
 
 ```text
-CENTRAL_AUTH_ISSUER
 CENTRAL_AUTH_DISCOVERY_URL
 CENTRAL_AUTH_CLIENT_ID=cookbook
 CENTRAL_AUTH_CLIENT_SECRET
@@ -182,8 +181,8 @@ Before authenticated feature work or production deployment, `service-auth` must 
 - client ID: `cookbook`
 - name: `Pior Labs Cookbook`
 - production URI: `https://cookbook.szarans.ca`
-- production callback: `https://cookbook.szarans.ca/api/auth/oauth2/callback/auth-pior`
-- local callback: `http://localhost:5173/api/auth/oauth2/callback/auth-pior`
+- production callback: `https://cookbook.szarans.ca/api/auth/callback/auth-pior`
+- local callback: `http://localhost:5173/api/auth/callback/auth-pior`
 - scopes: `openid profile email offline_access`
 
 The corresponding plaintext client secret belongs in local or server-managed secrets, not source control. The login screen, callback, protected API boundary, session restoration, and logout flow are implemented locally.

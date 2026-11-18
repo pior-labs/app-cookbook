@@ -98,9 +98,12 @@ export function appEnv() {
       process.env.BETTER_AUTH_TRUSTED_ORIGINS || betterAuthUrl,
     ),
     centralAuth: {
+      // Must match the OAuth callback path registered with service-auth:
+      // /api/auth/callback/auth-pior
       providerId: 'auth-pior',
+      // The issuer comes from this discovery document; there is no separate
+      // issuer setting to keep in sync with it.
       discoveryUrl: requiredEnv('CENTRAL_AUTH_DISCOVERY_URL'),
-      issuer: requiredEnv('CENTRAL_AUTH_ISSUER'),
       clientId: requiredEnv('CENTRAL_AUTH_CLIENT_ID'),
       clientSecret: requiredEnv('CENTRAL_AUTH_CLIENT_SECRET'),
     },
