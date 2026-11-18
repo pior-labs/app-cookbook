@@ -15,9 +15,9 @@
   "dependencies": {
     "@cookbook/api": "workspace:*",
     "@cookbook/domain": "workspace:*",
-    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "dotenv": "^16.4.7",
-    "zod": "^4.4.2"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^22.13.4",
