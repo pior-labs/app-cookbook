@@ -22,10 +22,7 @@ export default defineConfig({
     // Node gets a storage file. Vitest's jsdom environment does not replace a
     // global that already exists, so tests would see Node's empty one instead
     // of jsdom's. Disabling Node's Web Storage in the test workers lets jsdom
-    // provide it, as on earlier Node versions.
-    poolOptions: {
-      forks: { execArgv: ['--no-experimental-webstorage'] },
-      threads: { execArgv: ['--no-experimental-webstorage'] },
-    },
+    // provide it, as on earlier Node versions. The flag applies to every pool.
+    execArgv: ['--no-experimental-webstorage'],
   },
 });
