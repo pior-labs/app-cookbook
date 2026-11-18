@@ -30,7 +30,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@better-auth/drizzle-adapter": "1.6.20",
+    "@better-auth/drizzle-adapter": "1.7.7",
     "@cookbook/domain": "workspace:*",
     "@hono/node-server": "^1.14.1",
     "better-auth": "1.6.20",
