@@ -5,7 +5,7 @@ Pior Labs Cookbook is a private, self-hosted household recipe manager. It is a p
 
 ## Stack
 
-- React 19 + Vite frontend
+- React + Vite frontend
 - Hono API
 - PostgreSQL + Drizzle ORM
 - TypeScript and pnpm workspaces

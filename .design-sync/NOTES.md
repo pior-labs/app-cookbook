@@ -79,5 +79,6 @@ declared. **Adding a component means editing three things**: the barrel,
 - **Tokens come from the installed package**, not from `../package-design-system`
   source. A local change in that sibling repo is invisible here until it is
   published and the dependency bumped.
-- The build assumes node 20 + pnpm 10.8.1, and fetches fonts from Google Fonts
+- The build uses the Node and pnpm versions from `.node-version` and
+  `packageManager`, and fetches fonts from Google Fonts
   at render time (the headless render check needs network).

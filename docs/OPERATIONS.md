@@ -283,7 +283,7 @@ orphan the reconciler can clean up; a row written after the files is a recipe
 with a missing photo, which needs a human.
 
 `pg_dump` and `pg_restore` run on the host, not in a container - the API image is
-`node:22-alpine` and carries no PostgreSQL client. Their major version must match
+Node-based and carries no PostgreSQL client. Their major version must match
 the server's, or `pg_restore` will refuse the archive:
 
 ```bash
